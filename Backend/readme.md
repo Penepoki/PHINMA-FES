@@ -56,11 +56,14 @@ Run python on Shell:
   python
 ```
 
-### Then
-
+### Then:
+Import the required util:
 ```bash
-    from django.core.management.utils import get_random_secret_key
-    print(get_random_secret_key())
+from django.core.management.utils import get_random_secret_key
+```
+Print your own secret key:
+```bash
+print(get_random_secret_key())
 ```
 
 ### Copy the generated Secret key and place it inside your .env file
