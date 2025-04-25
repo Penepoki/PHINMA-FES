@@ -1,0 +1,140 @@
+import { FunnelIcon } from "@heroicons/react/24/solid";
+
+interface CreateStudentEvalProps {
+  setActiveView: (view: string) => void;
+}
+
+function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
+  return (
+    <div className="custom-container gap-y-6">
+      <div className="breadcrumbs">
+        <ul>
+          <li>
+            <a onClick={() => setActiveView("home")}>Home</a>
+          </li>
+          <li>
+            <a onClick={() => setActiveView("evaluation")}>Evaluation</a>
+          </li>
+          <li>Create Student Evaluations</li>
+        </ul>
+      </div>
+      <h2 className="text-3xl font-bold mt-4 text-white ">
+        Create Student Evaluation
+      </h2>
+      <div className="flex w-full justify-center items-start pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
+        <button
+          onClick={() =>
+            (
+              document.getElementById("my_modal_4") as HTMLDialogElement
+            )?.showModal()
+          }
+          className="flex bg-[#1c402a] shadow-xl text-white w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
+        >
+          Create New Student Evaluation
+        </button>
+        <dialog id="my_modal_4" className="modal">
+          <div className="modal-box w-11/12 max-w-5xl">
+            <h3 className="font-bold text-lg">Hello!</h3>
+            <p className="py-4">Click the button below to close</p>
+            <div className="modal-action">
+              <form method="dialog">
+                {/* If there is a button, it will close the modal */}
+                <button type="submit" className="btn">
+                  Close
+                </button>
+              </form>
+            </div>
+          </div>
+        </dialog>
+      </div>
+      <div className="flex w-full justify-center items-start pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
+        <input
+          type="text"
+          className="input w-full max-w-md border border-gray-300 rounded-lg"
+          placeholder="Search"
+        />
+        <div className="dropdown dropdown-end ml-2">
+          <div
+            tabIndex={0}
+            role="button"
+            className="btn shadow-xl bg-[#1c402a] border-0 text-white"
+          >
+            <FunnelIcon className="h-5 w-5" />
+          </div>
+          <ul
+            tabIndex={0}
+            className="dropdown-content menu bg-base-100 rounded-box z-10 w-52 p-2 shadow-sm"
+          >
+            <li>
+              <a href="#">Item 1</a>
+            </li>
+            <li>
+              <a href="#">Item 2</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto w-full text-white backdrop-blur-lg shadow-xl">
+        <table className="table">
+          {/* head */}
+          <thead className="text-white text-xl font-bold bg-[#1c402a]/50 shadow-xl">
+            <tr>
+              <th>
+                <input type="checkbox" defaultChecked className="checkbox" />
+              </th>
+              <th>Title</th>
+              <th></th>
+              <th></th>
+              <th>Publish</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody className="text-gray-300 text-lg">
+            {/* row 1 */}
+            <tr className="hover:bg-[#1b2e3e]/50">
+              <td>
+                <input type="checkbox" defaultChecked className="checkbox" />
+              </td>
+              <td>Renzo Cua</td>
+              <td></td>
+              <td></td>
+              <td>
+                <input type="checkbox" defaultChecked className="toggle" />
+              </td>
+              <td>Edit</td>
+            </tr>
+            {/* row 2 */}
+            <tr className="hover:bg-[#1b2e3e]/50">
+              <td>
+                <input type="checkbox" defaultChecked className="checkbox" />
+              </td>
+              <td>Martin Espineda</td>
+              <td></td>
+              <td></td>
+              <td>
+                <input type="checkbox" defaultChecked className="toggle" />
+              </td>
+              <td>Edit</td>
+            </tr>
+            {/* row 3 */}
+            <tr className="hover:bg-[#1b2e3e]/50">
+              <td>
+                <input type="checkbox" defaultChecked className="checkbox" />
+              </td>
+              <td>Chester Espineda</td>
+              <td></td>
+              <td></td>
+              <td>
+                <input type="checkbox" defaultChecked className="toggle" />
+              </td>
+              <td>Edit</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export default CreateStudentEvaluation;

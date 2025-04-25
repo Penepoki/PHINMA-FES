@@ -1,0 +1,106 @@
+from django.db import models
+from django.contrib.auth.models import AbstractUser, Permission
+
+# Custom User Model
+class User(AbstractUser):
+    email = models.EmailField(unique=True)  # Ensures unique email addresses
+    role = models.ForeignKey('Role', on_delete=models.SET_NULL, null=True)  # Defines user roles
+    supervisor = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)  # Self-referential FK for hierarchy
+
+# Role and Permissions
+class Role(models.Model):
+    name = models.CharField(max_length=255, unique=True)  # Role name must be unique
+    permissions = models.ManyToManyField(Permission, blank=True)  # Links role to Django permissions
+
+    def __str__(self):
+        return self.name
+
+# Courses
+class Course(models.Model):
+    name = models.CharField(max_length=255)  # Course name
+    slug = models.SlugField(unique=True)  # Unique URL-friendly identifier
+    code = models.CharField(max_length=50, unique=True)  # Unique course code
+    is_active = models.BooleanField(default=True)  # Active status flag
+    deleted_at = models.DateTimeField(null=True, blank=True)  # Soft delete timestamp
+    created_at = models.DateTimeField(auto_now_add=True)  # Auto-created timestamp
+    updated_at = models.DateTimeField(auto_now=True)  # Auto-updated timestamp
+
+# Subjects
+class Subject(models.Model):
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True)
+    is_active = models.BooleanField(default=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+# Rooms
+class Room(models.Model):
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True)
+    is_active = models.BooleanField(default=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+# Schedules
+class Schedule(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)  # Links to a course
+    professor = models.ForeignKey(User, on_delete=models.CASCADE)  # Assigned professor
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)  # Related subject
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)  # Assigned room
+    name = models.CharField(max_length=255)
+    start_time = models.TimeField()  # Start time of the class
+    end_time = models.TimeField()  # End time of the class
+    SEMESTER_CHOICES = [('First', 'First'), ('Second', 'Second'), ('Summer', 'Summer')]
+    semester = models.CharField(max_length=10, choices=SEMESTER_CHOICES)
+    year = models.CharField(max_length=10)
+    is_active = models.BooleanField(default=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+# Faculty Assignments
+class FacultyAssignment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Assigned faculty member
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)  # Assigned schedule
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+# Evaluations
+class Evaluation(models.Model):
+    evaluator = models.ForeignKey(User, on_delete=models.CASCADE)  # Evaluator (dean/professor)
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)  # Evaluated schedule
+    observation_date = models.DateField()  # Date of evaluation
+    evaluation_type = models.CharField(max_length=255)  # Type of evaluation
+    additional_comments = models.TextField(null=True, blank=True)
+    instructor_comments = models.JSONField(null=True, blank=True)  # JSON format for structured comments
+    student_comments = models.JSONField(null=True, blank=True)
+    student_activities = models.JSONField(null=True, blank=True)
+    instructor_activities = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+# Student Evaluations
+class StudentEvaluation(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class StudentEvaluationQuestion(models.Model):
+    student_evaluation = models.ForeignKey(StudentEvaluation, on_delete=models.CASCADE)  # Links to evaluation
+    question = models.TextField()
+    type = models.CharField(max_length=15)  # Question type (e.g., multiple-choice, text)
+    options = models.JSONField(null=True, blank=True)  # JSON storage for options
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class StudentEvaluationResponse(models.Model):
+    student_evaluation = models.ForeignKey(StudentEvaluation, on_delete=models.CASCADE)
+    student_eval_question = models.ForeignKey(StudentEvaluationQuestion, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Student who answered
+    answer = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
