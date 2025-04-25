@@ -22,6 +22,28 @@ Start by cloning the project to your local machine:
 cd project-name
 ```
 ---
+## 3.Install Dependencies Using Pipenv
+This project uses Pipenv for dependency management. Pipenv simplifies virtual environment creation and management, and it automatically handles dependencies from the Pipfile.
+
+Install Pipenv if you don't have it installed yet:
+
+```bash
+  pip install pipenv
+```
+Install the dependencies listed in the Pipfile and Pipfile.lock:
+
+```bash
+  pipenv install
+```
+This will create a virtual environment and install the necessary dependencies for the project. If you're using Pipenv for the first time, it will also create a new virtual environment specific to the project.
+
+Tip: To activate the virtual environment, use:
+
+```bash
+  pipenv shell
+```
+
+---
 ## 2.Create an .env File
 The .env file contains sensitive information like your Django SECRET_KEY, database credentials, and API keys. Do not share your .env file with others or commit it to version control. A .env file should look like the following:
 
@@ -70,40 +92,31 @@ print(get_random_secret_key())
 SECRET_KEY=django-insecure-<your-secret-key-here>
 
 ---
-
-## 3.Install Dependencies Using Pipenv
-This project uses Pipenv for dependency management. Pipenv simplifies virtual environment creation and management, and it automatically handles dependencies from the Pipfile.
-
-Install Pipenv if you don't have it installed yet:
-
-```bash
-  pip install pipenv
-```
-Install the dependencies listed in the Pipfile and Pipfile.lock:
-
-```bash
-  pipenv install
-```
-This will create a virtual environment and install the necessary dependencies for the project. If you're using Pipenv for the first time, it will also create a new virtual environment specific to the project.
-
-Tip: To activate the virtual environment, use:
-
-```bash
-  pipenv shell
-```
-
----
 ## 4.Apply Migrations
 Run the following Django management commands to apply the database migrations:
 
 ```bash
-    python manage.py migrate
+    python manage.py makemigrations
 ```
 
----
+```bash
+py manage.py migrate
+```
+
 ## 5.Run the Development Server
 Now, you're ready to start the project locally. Run the Django development server:
 
 ```bash
   python manage.py runserver
+```
+
+---
+#Dependencies based on what you're missing if import errors occured.
+For python jazzmin
+```bash
+pip install django-jazzmin
+```
+For decouple
+```bash
+pip install python-decouple
 ```
