@@ -20,18 +20,20 @@ import Rooms from "./DockPages/ResourceGroup Pages/Rooms";
 import Schedules from "./DockPages/ResourceGroup Pages/Schedules";
 import Subject from "./DockPages/ResourceGroup Pages/Subject";
 
-function Dashboard( {role} : {role: string}) {
+function Dashboard({ role }: { role: string }) {
   // Default view is "home"
   const [activeView, setActiveView] = useState("home");
   const viewComponents: Record<string, JSX.Element> = {
     home:
-     role === "Dean"|| role === "Program Head"
-      ? <HomeViewDean activeView={activeView} setActiveView={setActiveView} />
-      : role === "HR"
-      ? (<HomeViewHR />)
-      : role === "Student"
-      ? (<HomeViewStudent />)
-      : <div>Home</div>,
+      role === "Dean" || role === "Program Head" ? (
+        <HomeViewDean activeView={activeView} setActiveView={setActiveView} />
+      ) : role === "HR" ? (
+        <HomeViewHR />
+      ) : role === "Student" ? (
+        <HomeViewStudent />
+      ) : (
+        <div>Home</div>
+      ),
     profile: <Profile />,
     evaluation: <Evaluation setActiveView={setActiveView} />,
     resourceGroup: <ResourceGroup setActiveView={setActiveView} />,

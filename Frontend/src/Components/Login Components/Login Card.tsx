@@ -259,8 +259,6 @@ function LoginCard() {
               >
                 Forgot Password?
               </a>
-
-
             </div>
 
             <div className="card-actions justify-center">

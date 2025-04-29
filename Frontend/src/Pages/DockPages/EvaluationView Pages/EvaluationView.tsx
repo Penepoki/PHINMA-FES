@@ -86,7 +86,7 @@ function Evaluation({ setActiveView }: EvalProps) {
               return (
                 <tr key={index}>
                   <td>
-                    <div className="collapse collapse-arrow backdrop-blur-lg border-gray-300 border rounded-md shadow-xl">
+                    <div className="collapse collapse-arrow backdrop-blur-lg rounded-md shadow-2xl">
                       <input type="checkbox" />
                       <div className="collapse-title bg-[#1c402a]/50 font-semibold text-xl">
                         {row.course}

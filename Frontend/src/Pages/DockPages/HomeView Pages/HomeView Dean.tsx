@@ -1,231 +1,303 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import { FunnelIcon } from "@heroicons/react/24/solid";
+import { useState } from "react";
+import { Pie } from "react-chartjs-2";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import YearCard from "../../../Components/Dashboard Components/Dean Components/Year Card";
 
-interface CreateStudentEvalProps {
-  setActiveView: (view: string) => void;
-}
+const PieChart = () => {
+  const data = {
+    labels: ["Red", "Blue", "Yellow"],
+    datasets: [
+      {
+        label: "My First Dataset",
+        data: [33, 33, 33],
+        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
+        hoverBackgroundColor: ["#FF4365", "#2593D1", "#FFC130"],
+      },
+    ],
+  };
 
-interface User {
-  id: number;
-  name: string;
-}
-
-function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-
-  useEffect(() => {
-    axios
-      .get("http://127.0.0.1:8000/api/users/") // Replace with your actual Django API endpoint
-      .then((response) => {
-        setUsers(response.data); // Assuming the response is a list of users
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch users:", error);
-        setError("Failed to load users.");
-        setLoading(false);
-      });
-  }, []);
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false, // Important for flex containers!
+  };
 
   return (
-    <div className="custom-container gap-y-6">
-      {/* Breadcrumbs */}
-      <div className="breadcrumbs">
-        <ul>
-          <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
-          </li>
-          <li>
-            <a onClick={() => setActiveView("evaluation")}>Evaluation</a>
-          </li>
-          <li>Create Student Evaluations</li>
-        </ul>
-      </div>
-
-      {/* Page Title */}
-      <h2 className="text-3xl font-bold mt-4 text-white">
-        Create Student Evaluation
-      </h2>
-
-      {/* Create New Evaluation Button */}
-      <div className="flex w-full justify-center md:justify-end items-start pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
-        <button
-          onClick={() =>
-            (
-              document.getElementById(
-                "createstudentevaluation"
-              ) as HTMLDialogElement
-            )?.showModal()
-          }
-          className="flex bg-[#1c402a] shadow-xl text-white w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
-        >
-          Create New Student Evaluation
-        </button>
-        <dialog id="createstudentevaluation" className="modal">
-          <div className="modal-box w-11/12 max-w-5xl">
-            <h3 className="font-bold text-2xl mb-4 text-center">
-              New Student Evaluation
-            </h3>
-
-            <form method="dialog" className="flex flex-col gap-6">
-              {/* Schedule */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left">
-                  Schedule:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter schedule"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
-
-              {/* Title */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left">
-                  Title:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter title"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
-
-              {/* Description */}
-              <div className="flex flex-col md:flex-row md:items-start gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left pt-2">
-                  Description:
-                </label>
-                <textarea
-                  placeholder="Enter description"
-                  className="textarea textarea-bordered w-full"
-                  required
-                />
-              </div>
-
-              {/* Questions */}
-              <div className="flex flex-col md:flex-row md:items-start gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left pt-2">
-                  Questions:
-                </label>
-                <textarea
-                  placeholder="Enter questions separated by commas"
-                  className="textarea textarea-bordered w-full"
-                  required
-                />
-              </div>
-
-              {/* Type */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left">
-                  Type:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter type (e.g., Midterm, Final)"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="modal-action">
-                <button type="submit" className="btn btn-success text-white">
-                  Submit
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() =>
-                    (
-                      document.getElementById(
-                        "createstudentevaluation"
-                      ) as HTMLDialogElement
-                    )?.close()
-                  }
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </dialog>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="flex w-full justify-center items-start pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
-        <input
-          type="text"
-          className="input w-full max-w-md border border-gray-300 rounded-lg"
-          placeholder="Search"
-        />
-        <div className="dropdown dropdown-end ml-2">
-          <div
-            tabIndex={0}
-            role="button"
-            className="btn shadow-xl bg-[#1c402a] border-0 text-white"
-          >
-            <FunnelIcon className="h-5 w-5" />
-          </div>
-          <ul
-            tabIndex={0}
-            className="dropdown-content menu bg-base-100 rounded-box z-10 w-52 p-2 shadow-sm"
-          >
-            <li>
-              <a href="#">Item 1</a>
-            </li>
-            <li>
-              <a href="#">Item 2</a>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Table Section */}
-      <div className="overflow-x-auto w-full text-white backdrop-blur-lg shadow-xl">
-        {loading ? (
-          <div className="text-center py-8 text-lg">Loading...</div>
-        ) : error ? (
-          <div className="text-center py-8 text-red-500">{error}</div>
-        ) : (
-          <table className="table">
-            <thead className="text-white text-xl font-bold bg-[#1c402a]/50 shadow-xl">
-              <tr>
-                <th>
-                  <input type="checkbox" className="checkbox" />
-                </th>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Publish</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-300 text-lg">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-[#1b2e3e]/50">
-                  <td>
-                    <input type="checkbox" className="checkbox" />
-                  </td>
-                  <td>{user.id}</td>
-                  <td>{user.name}</td>
-                  <td>
-                    <input type="checkbox" className="toggle" />
-                  </td>
-                  <td>Edit</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+    <div
+      className="
+        flex flex-col
+        w-full h-full
+        text-center
+        justify-center items-center
+      "
+    >
+      <h3
+        className="
+          mb-2
+          text-lg
+          sm:text-xl
+        "
+      >
+        Student Doing
+      </h3>
+      <div
+        className="
+          w-full h-full
+          relative
+        "
+      >
+        <Pie data={data} options={options} />
       </div>
     </div>
   );
+};
+
+// Register chart components
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+interface HomeProps {
+  activeView: string;
+  setActiveView: (view: string) => void;
 }
 
-export default CreateStudentEvaluation;
+const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
+  console.log("Active View:", activeView); // Debugging line
+
+  const yearData = [
+    {
+      year: "1st",
+      ratio: "16/32",
+    },
+    {
+      year: "2nd",
+      ratio: "34/72",
+    },
+    {
+      year: "3rd",
+      ratio: "52/52",
+    },
+    {
+      year: "4th",
+      ratio: "11/12",
+    },
+  ];
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const prevCard = () => {
+    setCurrentIndex((prev) => (prev === 0 ? yearData.length - 1 : prev - 1));
+  };
+
+  const nextCard = () => {
+    setCurrentIndex((prev) => (prev === yearData.length - 1 ? 0 : prev + 1));
+  };
+
+  return (
+    <div
+      className="
+        flex flex-col z-10
+        w-full h-full
+        home-page justify-center items-center
+      "
+    >
+      <header
+        className="
+          flex z-1
+          w-full h-[15%]
+          pl-12
+          border-gray-600 border-b-2
+          shadow-2xl
+          absolute top-0 justify-start items-end backdrop-blur-lg gap-6
+        "
+      >
+        <h1
+          className="
+            text-5xl font-bold text-white
+            sm:text-6xl
+          "
+        >
+          Hi, Renzo
+        </h1>
+        <p
+          className="
+            text-lg text-gray-300
+            sm:text-xl
+          "
+        >
+          Welcome to the Home Page
+        </p>
+      </header>
+
+      <p
+        className="
+        mt-12  
+        md:mt-20
+          mb-4
+          md:mb-8
+          text-lg text-gray-300
+          sm:text-xl
+        "
+      >
+        Recently Evaluated Faculty:
+      </p>
+
+      <div
+        onClick={() => setActiveView("evaluation")}
+        className="
+          flex flex-row overflow-x-auto
+          w-full h-1/3
+          items-center justify-center hover:scale-101
+          sm:h-[30vh]
+        "
+      >
+        <div
+          id="box1"
+          className="
+            flex flex-col
+            w-1/3 h-full
+            p-5
+            rounded-xl
+            shadow-2xl
+            justify-center items-center backdrop-blur-lg backdrop-hue-rotate-100
+          "
+        >
+          <div
+            className="
+              flex flex-col
+              items-center
+            "
+          >
+            {" "}
+            {/* Ensure vertical stacking */}
+            <div className="avatar">
+              <div className="w-24 rounded-full">
+                <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+              </div>
+            </div>
+            <div
+              className="
+                md:mt-4
+                text-center
+              "
+            >
+              {" "}
+              {/* Add spacing & center text */}
+              <span
+                className="
+                  text-3xl font-bold text-white
+                "
+              >
+                Dylan Smalls
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="box2"
+          className="
+            w-1/3 h-full
+            p-5
+            text-white
+            rounded-xl
+            shadow-2xl
+            backdrop-blur-lg backdrop-hue-rotate-300
+          "
+        >
+          <PieChart />
+        </div>
+        <div
+          id="box3"
+          className="
+            w-1/3 h-full
+            p-5
+            text-white
+            rounded-xl
+            shadow-2xl
+            backdrop-blur-lg backdrop-hue-rotate-400
+          "
+        >
+          <PieChart />
+        </div>
+      </div>
+
+      <div
+        className="
+          mt-5
+          text-center
+        "
+      >
+        <p
+          className="
+            text-lg text-gray-300
+            sm:text-xl
+            mb-3
+            md:mb-8
+            md:mt-3
+
+          "
+        >
+          Current SFF Status: Time and date
+        </p>
+
+        {/* Desktop View (Grid) */}
+        <div
+          className="
+            hidden flex-row
+            justify-center items-center gap-6
+            md:flex
+          "
+        >
+          {yearData.map(({ year, ratio }) => (
+            <YearCard
+              key={year}
+              year={year}
+              ratio={ratio}
+              setActiveView={setActiveView}
+            />
+          ))}
+        </div>
+
+        {/* Mobile View (Carousel) */}
+        <div
+          className="
+            flex
+            items-center justify-center gap-4
+            md:hidden
+          "
+        >
+          <button
+            onClick={prevCard}
+            className="
+              p-2
+              text-primary
+              bg-white
+              rounded-full
+            "
+          >
+            ◀
+          </button>
+
+          <YearCard
+            year={yearData[currentIndex].year}
+            ratio={yearData[currentIndex].ratio}
+            setActiveView={setActiveView}
+          />
+
+          <button
+            onClick={nextCard}
+            className="
+              p-2
+              text-primary
+              bg-white
+              rounded-full
+            "
+          >
+            ▶
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Home;
