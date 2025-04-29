@@ -118,7 +118,7 @@ function Courses({ setActiveView }: CoursesProps) {
             </div>
           </dialog>
 
-          {/* Export Rooms Button */}
+          {/* Export Rooms Button.*/}
           <button
             onClick={() =>
               (
