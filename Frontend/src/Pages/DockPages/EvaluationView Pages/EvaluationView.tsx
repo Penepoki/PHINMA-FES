@@ -88,53 +88,6 @@ function Evaluation({ setActiveView }: EvalProps) {
                   <td>
                     <div className="collapse collapse-arrow backdrop-blur-lg border-gray-300 border rounded-md shadow-xl">
                       <input type="checkbox" />
-<<<<<<< Updated upstream
-                      <div className="collapse-title font-semibold">
-                        {row.course}
-                        <div
-                          className="join space-x-5 ml-6 flex justify-center"
-                          onClick={(e) => e.stopPropagation()} // Stop collapse toggle
-                        >
-                          {/* Copus 1 */}
-                          <label className="join-item btn text-black cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`copus-${index}`}
-                              className="hidden"
-                              onClick={() =>
-                                (
-                                  document.getElementById(
-                                    modalId
-                                  ) as HTMLDialogElement
-                                )?.showModal()
-                              }
-                            />
-                            Copus 1
-                          </label>
-
-                          {/* Copus 2 */}
-                          <label className="join-item btn bg-white text-black cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`copus-${index}`}
-                              className="hidden"
-                              onClick={() => console.log("Copus 2 clicked")}
-                            />
-                            Copus 2
-                          </label>
-
-                          {/* Copus 3 */}
-                          <label className="join-item btn bg-white text-black cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`copus-${index}`}
-                              className="hidden"
-                              onClick={() => console.log("Copus 3 clicked")}
-                            />
-                            Copus 3
-                          </label>
-                        </div>
-=======
                       <div className="collapse-title bg-[#1c402a]/50 font-semibold text-xl">
                         {row.course}
                       </div>
@@ -177,7 +130,6 @@ function Evaluation({ setActiveView }: EvalProps) {
                           />
                           Copus 3
                         </label>
->>>>>>> Stashed changes
                       </div>
                       <div className="collapse-content flex text-lg">
                         <div className="avatar mt-5">
