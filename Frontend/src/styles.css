@@ -224,3 +224,11 @@ html {
 .radial-progress:after {
   display: none;
 }
+
+.btn-cancel {
+  @apply bg-red-500 text-white;
+}
+
+.rg-container {
+  @apply w-full h-full flex flex-col items-center justify-start backdrop-blur-lg rounded-lg shadow-lg text-white;
+}
