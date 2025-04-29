@@ -131,6 +131,10 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
       <p
         className="
           mt-10
+<<<<<<< Updated upstream
+=======
+          mb-8
+>>>>>>> Stashed changes
           text-lg text-gray-300
           sm:text-xl
           md:mt-20
@@ -229,6 +233,8 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
           className="
             text-lg text-gray-300
             sm:text-xl
+            mb-8
+            mt-3
           "
         >
           Current SFF Status: Time and date

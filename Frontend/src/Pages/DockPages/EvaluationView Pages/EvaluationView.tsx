@@ -88,6 +88,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                   <td>
                     <div className="collapse collapse-arrow backdrop-blur-lg border-gray-300 border rounded-md shadow-xl">
                       <input type="checkbox" />
+<<<<<<< Updated upstream
                       <div className="collapse-title font-semibold">
                         {row.course}
                         <div
@@ -133,9 +134,53 @@ function Evaluation({ setActiveView }: EvalProps) {
                             Copus 3
                           </label>
                         </div>
+=======
+                      <div className="collapse-title bg-[#1c402a]/50 font-semibold text-xl">
+                        {row.course}
+                      </div>
+                      <div
+                        className="gap-x-3 py-3 flex justify-center items-center bg-[#1c402a]/50"
+                        onClick={(e) => e.stopPropagation()} // Stop collapse toggle
+                      >
+                        {/* Copus 1 */}
+                        <label className="btn text-black cursor-pointer">
+                          <input
+                            name={`copus-${index}`}
+                            className="hidden"
+                            onClick={() =>
+                              (
+                                document.getElementById(
+                                  modalId
+                                ) as HTMLDialogElement
+                              )?.showModal()
+                            }
+                          />
+                          Copus 1
+                        </label>
+
+                        {/* Copus 2 */}
+                        <label className="btn bg-white text-black cursor-pointer">
+                          <input
+                            name={`copus-${index}`}
+                            className="hidden"
+                            onClick={() => console.log("Copus 2 clicked")}
+                          />
+                          Copus 2
+                        </label>
+
+                        {/* Copus 3 */}
+                        <label className="btn bg-white text-black cursor-pointer">
+                          <input
+                            name={`copus-${index}`}
+                            className="hidden"
+                            onClick={() => console.log("Copus 3 clicked")}
+                          />
+                          Copus 3
+                        </label>
+>>>>>>> Stashed changes
                       </div>
                       <div className="collapse-content flex text-lg">
-                        <div className="avatar">
+                        <div className="avatar mt-5">
                           <div className="w-24 rounded-full">
                             <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
                           </div>

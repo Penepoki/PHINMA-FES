@@ -3,7 +3,7 @@ import ProfilePic from "../../assets/Dashboard Page Assets/Renzo_Picture no back
 
 const Profile: React.FC = () => {
   return (
-    <div className="profile-page flex flex-col md:flex-row justify-center items-center w-full h-full z-10 gap-6 p-0 md:p-6">
+    <div className="profile-page flex flex-col md:flex-row justify-center items-center w-full h-full z-10 gap-6 p-0">
       {/* Profile Card Section */}
       <div className="w-full md:w-1/2 h-full flex flex-col items-center justify-center backdrop-blur-lg backdrop-hue-rotate-700 p-6 rounded-lg shadow-lg text-white">
         <div className="avatar">

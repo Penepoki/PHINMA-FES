@@ -6,30 +6,30 @@ import { useState, useEffect } from "react";
 
 const BackgroundAnimation = () => {
   return (
-    <div className="absolute right-0 h-screen w-screen overflow-hidden flex-shrink-0 z-1">
+    <div className="absolute top-0 right-0 h-screen w-screen overflow-hidden shrink-0 z-1">
       <img
         src={Shape_4}
         id="Shape_4"
         alt="Shape"
-        className="fixed top-0 right-[-2vw] w-[8vw] h-auto opacity-80 z-40 blur-lg"
+        className="fixed top-0 right-[-27px] w-[160px] h-screen opacity-80 z-40 blur-lg"
       />
       <img
         src={Shape_3}
         id="Shape_3"
         alt="Shape"
-        className="absolute top-0 right-[-2vw] w-[36vw] h-screen opacity-80 z-30 blur-lg"
+        className="absolute top-0 right-[-27px] w-auto h-screen opacity-80 z-30 blur-lg"
       />
       <img
         src={Shape_2}
         id="Shape_2"
         alt="Shape"
-        className="absolute top-0 right-[-1vw] w-[39vw] h-screen opacity-80 z-20 blur-lg"
+        className="absolute top-0 right-[-18px] w-auto h-screen opacity-80 z-20 blur-lg"
       />
       <img
         src={Shape_1}
         id="Shape_1"
         alt="Shape"
-        className="absolute top-0 right-0 w-[52vw] h-screen opacity-85 z-10 blur-lg"
+        className="absolute top-0 right-0 w-auto h-screen opacity-85 z-10 blur-lg"
       />
     </div>
   );
@@ -54,8 +54,10 @@ export function AnimatedHeading() {
   }, []);
 
   return (
-    <h6 className="hidden lg:flex lg:flex-col lg:items-start ml-20 text-left leading-none z-50">
-      <span className="text-white text-[170px] font-bold">Welcome,</span>
+    <h6 className="hidden lg:flex lg:flex-col lg:items-start lg:ml-20 text-left leading-none z-50">
+      <span className="text-white text-[90px] mr-20 xl:text-[170px] font-bold">
+        Welcome,
+      </span>
       <br />
       <span
         className={`text-[#888888] text-[90px] font-extralight transition-all ${
