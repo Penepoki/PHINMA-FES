@@ -13,6 +13,9 @@ function LoginCard() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -80,25 +83,55 @@ function LoginCard() {
   };
 
   const handleResetPassword = async () => {
-    try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/reset-password/",
-        {
-          email,
-        }
-      );
-
-      if (response.data[0] === "OTP sent successfully") {
-        setIsOtpSent(true);
-        setError("");
-      } else {
-        setError(response.data[0]);
+      try {
+        // example: send request to your API to send OTP
+        await axios.post("http://127.0.0.1:8000/api/forgot-password/", { email });
+        setIsOtpSent(true); // switch to OTP input view
+      } catch (error) {
+        console.error(error);
+        setError("Could not find Email");
       }
-    } catch (error) {
-      console.error("Password reset failed:", error);
-      setError("Password reset request failed");
+    };
+
+
+
+  const handleNewPasswordSubmit = async () => {
+    if (newPassword !== confirmPassword) {
+      setError("Password does not match")
+      return;
     }
+
+    try {
+      const response = await axios.post("http://127.0.0.1:8000/api/set-new-password/", {
+        email,
+        new_password: newPassword,
+      });
+
+      if (response.data.message === "password reset successful") {
+        setError("");
+        alert("Password has been reset. You can now Log in.");
+        setIsForgotPassword(false);
+        setIsOtpSent(false)
+        setIsOtpVerified(false);
+        setOtp(["","","","","",""]);
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        setError(response.data.message || "Else Error");
+      }
+
+    }   catch (err) {
+          const error = err as AxiosError;
+          if (error.response?.status === 400) {
+            setError("Missing required fields");
+          } else if (error.response?.status === 409) {
+            setError("Username already exists");
+          } else {
+            setError("Unexpected error during sign-up");
+          }
+      }
   };
+
 
   const handleOtpChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -126,7 +159,7 @@ function LoginCard() {
   const handleResendOtp = async () => {
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/reset-password/",
+        "http://127.0.0.1:8000/api/forgot-password/",
         {
           email,
         }
@@ -137,15 +170,44 @@ function LoginCard() {
       } else {
         setError(response.data[0]);
       }
-    } catch (error) {
-      setError("Failed to resend OTP");
+    } catch (err) {
+      const error = err as AxiosError;
+      if (error.response?.status === 400) {
+        setError("Missing required fields");
+      } else if (error.response?.status === 409) {
+        setError("Username already exists");
+      } else {
+        setError("Unexpected error during sign-up");
+      }
     }
   };
 
-  const verifyOtp = () => {
+  const verifyOtp = async () => {
     const enteredOtp = otp.join("");
     console.log("Verifying OTP:", enteredOtp);
-    // TODO: Send `enteredOtp` to backend for verification
+
+    try {
+      const response = await axios.post("http://127.0.0.1:8000/api/verify-otp/",{
+        email,
+        otp: enteredOtp
+        })
+        if (response.data.message === "OTP verified successfully") {
+        setIsOtpVerified(true);
+        setError("");
+      } else {
+        setError("Wrong OTP");
+      }
+
+    } catch (err) {
+        const error = err as AxiosError;
+        if (error.response?.status === 400) {
+          setError("Missing required fields");
+        } else if (error.response?.status === 409) {
+          setError("Username already exists");
+        } else {
+          setError("Unexpected error during sign-up");
+        }
+      }
   };
 
   return (
@@ -197,6 +259,8 @@ function LoginCard() {
               >
                 Forgot Password?
               </a>
+
+
             </div>
 
             <div className="card-actions justify-center">
@@ -248,7 +312,7 @@ function LoginCard() {
               </>
             )}
 
-            {isOtpSent && (
+            {isOtpSent && !isOtpVerified && (
               <>
                 <div className="flex justify-center gap-2 my-4">
                   {otp.map((digit, index) => (
@@ -283,6 +347,42 @@ function LoginCard() {
                 </div>
               </>
             )}
+
+            {isOtpVerified && (
+              <>
+                <div className="relative floating-label mt-4">
+                  <span>New Password</span>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter new password"
+                    className="input w-full"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+                <div className="relative floating-label">
+                  <span>Confirm New Password</span>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Confirm new password"
+                    className="input w-full"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+                <div className="card-actions justify-center mt-4">
+                  <button
+                    onClick={handleNewPasswordSubmit}
+                    className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
+                  >
+                    Submit New Password
+                  </button>
+                </div>
+              </>
+            )}
+
 
             <div className="text-center mt-4">
               <button

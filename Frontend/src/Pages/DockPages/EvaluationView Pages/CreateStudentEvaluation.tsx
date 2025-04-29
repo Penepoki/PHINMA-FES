@@ -18,7 +18,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8000/api/users/") // Replace with your actual Django API endpoint
+      .get("") // Replace with your actual Django API endpoint
       .then((response) => {
         setUsers(response.data); // Assuming the response is a list of users
         setLoading(false);

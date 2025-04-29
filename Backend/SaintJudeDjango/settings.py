@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 from decouple import config
 from pathlib import Path
+from django.core.mail import send_mail
 import os
 
 
@@ -28,6 +29,14 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = []
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'maor.espineda.sjc@phinmaed.com'
+EMAIL_HOST_PASSWORD = 'ntbr iwon kajq xqjk'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 # Application definition
