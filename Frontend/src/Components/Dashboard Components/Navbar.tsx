@@ -30,7 +30,7 @@ const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView }) => {
     <>
       {/* Toggle Button - Now Outside Navbar */}
       <button
-        className={`fixed px-5 bg-primary text-white rounded-xl shadow-xl h-12 z-[1000] transition-all duration-300 bottom-0 transform -translate-y-1/2 ${
+        className={`fixed px-4 bg-primary text-white text-xl border-1 border-gray-300 rounded-xl shadow-2xl h-12 z-[1000] transition-all duration-300 bottom-0 transform -translate-y-1/2 hover:scale-110 ${
           isDockVisible ? "left-4" : "left-2"
         } ${
           isDockVisible && secondaryDockVisible

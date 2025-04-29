@@ -1,6 +1,11 @@
 import axios, { AxiosError } from "axios";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import {
+  UserIcon,
+  EnvelopeIcon,
+  LockClosedIcon,
+} from "@heroicons/react/24/outline";
 
 function LoginCard() {
   const [identifier, setIdentifier] = useState("");
@@ -13,6 +18,9 @@ function LoginCard() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -83,11 +91,8 @@ function LoginCard() {
     try {
       const response = await axios.post(
         "http://127.0.0.1:8000/api/reset-password/",
-        {
-          email,
-        }
+        { email }
       );
-
       if (response.data[0] === "OTP sent successfully") {
         setIsOtpSent(true);
         setError("");
@@ -100,36 +105,11 @@ function LoginCard() {
     }
   };
 
-  const handleOtpChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index: number
-  ) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 1);
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    if (value && index < 5) {
-      otpRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
-  ) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
-  };
-
   const handleResendOtp = async () => {
     try {
       const response = await axios.post(
         "http://127.0.0.1:8000/api/reset-password/",
-        {
-          email,
-        }
+        { email }
       );
       if (response.data[0] === "OTP sent successfully") {
         setError("");
@@ -145,7 +125,28 @@ function LoginCard() {
   const verifyOtp = () => {
     const enteredOtp = otp.join("");
     console.log("Verifying OTP:", enteredOtp);
-    // TODO: Send `enteredOtp` to backend for verification
+    // TODO: Replace with real verification
+    setIsOtpVerified(true);
+  };
+
+  const handleOtpChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 1);
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    if (value && index < 5) otpRefs.current[index + 1]?.focus();
+  };
+
+  const handleOtpKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
   };
 
   return (
@@ -155,35 +156,45 @@ function LoginCard() {
           {isSignUp
             ? "Create an Account"
             : isForgotPassword
-              ? "Reset Your Password"
+              ? isOtpVerified
+                ? "Set New Password"
+                : "Reset Your Password"
               : "Faculty Evaluation System"}
         </h2>
 
-        {!isSignUp && !isForgotPassword ? (
+        {/* LOGIN */}
+        {!isSignUp && !isForgotPassword && (
           <>
-            {/* Login Fields */}
             <div className="relative floating-label">
               <span>Username or Email</span>
-              <input
-                type="text"
-                required
-                placeholder="Username or Email"
-                className="input w-full"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Username or Email"
+                  className="input w-full pr-10"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                  <UserIcon className="h-5 w-5" />
+                </div>
+              </div>
             </div>
 
             <div className="relative floating-label">
               <span>Password</span>
-              <input
-                type="password"
-                required
-                placeholder="Password"
-                className="input w-full"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className="input w-full pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                  <LockClosedIcon className="h-5 w-5" />
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-between items-center">
@@ -220,57 +231,56 @@ function LoginCard() {
               <button onClick={() => setIsOtpSent(true)}>Force OTP View</button>
             </div>
           </>
-        ) : isForgotPassword ? (
+        )}
+
+        {/* FORGOT PASSWORD */}
+        {isForgotPassword && !isOtpVerified && (
           <>
-            {/* Forgot Password View */}
-            {!isOtpSent && (
-              <>
-                <div className="relative floating-label">
-                  <span>Email</span>
+            {!isOtpSent ? (
+              <div className="relative floating-label">
+                <span>Email</span>
+                <div className="relative">
                   <input
                     type="email"
-                    required
                     placeholder="Enter your registered email"
-                    className="input w-full"
+                    className="input w-full pr-10"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                    <EnvelopeIcon className="h-5 w-5" />
+                  </div>
                 </div>
-
-                <div className="card-actions justify-center">
-                  <button
-                    onClick={handleResetPassword}
-                    className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
-                  >
-                    Send OTP
-                  </button>
-                </div>
-              </>
+              </div>
+            ) : (
+              <div className="flex justify-center gap-2 my-4">
+                {otp.map((digit, index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    maxLength={1}
+                    className="input w-12 text-center text-xl"
+                    value={digit}
+                    onChange={(e) => handleOtpChange(e, index)}
+                    onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                  />
+                ))}
+              </div>
             )}
 
-            {isOtpSent && (
-              <>
-                <div className="flex justify-center gap-2 my-4">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => {
-                        otpRefs.current[index] = el;
-                      }}
-                      type="text"
-                      maxLength={1}
-                      className="input w-12 text-center text-xl"
-                      value={digit}
-                      onChange={(e) => handleOtpChange(e, index)}
-                      onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                    />
-                  ))}
-                </div>
-
-                <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              {!isOtpSent ? (
+                <button
+                  onClick={handleResetPassword}
+                  className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full text-white"
+                >
+                  Send OTP
+                </button>
+              ) : (
+                <>
                   <button
                     onClick={verifyOtp}
-                    className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
+                    className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full text-white"
                   >
                     Verify OTP
                   </button>
@@ -280,9 +290,9 @@ function LoginCard() {
                   >
                     Resend OTP
                   </button>
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
 
             <div className="text-center mt-4">
               <button
@@ -299,15 +309,72 @@ function LoginCard() {
 
             {error && <p className="text-red-500 text-center">{error}</p>}
           </>
-        ) : (
+        )}
+
+        {/* NEW PASSWORD PAGE */}
+        {isForgotPassword && isOtpVerified && (
           <>
-            {/* Sign Up View */}
+            <div className="relative floating-label">
+              <span>New Password</span>
+              <div className="relative">
+                <input
+                  type="password"
+                  className="input w-full pr-10"
+                  placeholder="New Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                  <LockClosedIcon className="h-5 w-5" />
+                </div>
+              </div>
+            </div>
+
+            <div className="relative floating-label">
+              <span>Confirm New Password</span>
+              <div className="relative">
+                <input
+                  type="password"
+                  className="input w-full pr-10"
+                  placeholder="Confirm New Password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                  <LockClosedIcon className="h-5 w-5" />
+                </div>
+              </div>
+            </div>
+
+            <div className="card-actions justify-center">
+              <button className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white">
+                Set New Password
+              </button>
+            </div>
+
+            <div className="text-center mt-4">
+              <button
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setIsOtpSent(false);
+                  setOtp(["", "", "", "", "", ""]);
+                }}
+                className="text-primary hover:underline"
+              >
+                Back to Login
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* SIGN UP */}
+        {isSignUp && (
+          <>
             <div className="flex gap-4">
               <div className="flex-1 relative floating-label">
                 <span>First Name</span>
                 <input
                   type="text"
-                  required
                   placeholder="First Name"
                   className="input w-full"
                   value={first_name}
@@ -318,7 +385,6 @@ function LoginCard() {
                 <span>Last Name</span>
                 <input
                   type="text"
-                  required
                   placeholder="Last Name"
                   className="input w-full"
                   value={last_name}
@@ -329,48 +395,64 @@ function LoginCard() {
 
             <div className="relative floating-label">
               <span>Email</span>
-              <input
-                type="email"
-                required
-                placeholder="Email"
-                className="input w-full"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  className="input w-full pr-10"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                  <EnvelopeIcon className="h-5 w-5" />
+                </div>
+              </div>
             </div>
 
             <div className="relative floating-label">
               <span>Username</span>
-              <input
-                type="text"
-                required
-                placeholder="Username"
-                className="input w-full"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Username"
+                  className="input w-full pr-10"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                  <UserIcon className="h-5 w-5" />
+                </div>
+              </div>
             </div>
 
             <div className="relative floating-label">
               <span>Password</span>
-              <input
-                type="password"
-                required
-                placeholder="Password"
-                className="input w-full"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className="input w-full pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                  <LockClosedIcon className="h-5 w-5" />
+                </div>
+              </div>
             </div>
 
             <div className="relative floating-label">
               <span>Confirm Password</span>
-              <input
-                type="password"
-                required
-                placeholder="Confirm Password"
-                className="input w-full"
-              />
+              <div className="relative">
+                <input
+                  type="password"
+                  placeholder="Confirm Password"
+                  className="input w-full pr-10"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                  <LockClosedIcon className="h-5 w-5" />
+                </div>
+              </div>
             </div>
 
             <div className="card-actions justify-center">
