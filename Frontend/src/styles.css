@@ -220,3 +220,7 @@ html {
     font-size: 0.875rem; /* Smaller font size for mobile screens */
   }
 }
+
+.radial-progress:after {
+  display: none;
+}
