@@ -107,7 +107,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
           border-gray-600 border-b-2
           shadow-2xl
           absolute top-0 justify-start items-end backdrop-blur-lg gap-6
-          md:h-[20%]
+          md:h-[15%]
         "
       >
         <h1
@@ -131,12 +131,11 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
       <p
         className="
           mt-10
-<<<<<<< Updated upstream
-=======
+
           mb-8
->>>>>>> Stashed changes
           text-lg text-gray-300
           sm:text-xl
+          md:mb-10
           md:mt-20
         "
       >

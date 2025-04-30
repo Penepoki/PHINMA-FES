@@ -1,20 +1,21 @@
-import axios,{ AxiosError } from 'axios'
-import { useState } from "react";
+import axios, { AxiosError } from "axios";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
-// Added constants and Axios, useState from username to error added.
-// handleLogin function response to API, Local address used
-// Edited username and password form
 function LoginCard() {
   const [identifier, setIdentifier] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [error,  setError] = useState("");
+  const [error, setError] = useState("");
   const [first_name, setFirstName] = useState("");
   const [last_name, setLastName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
@@ -23,87 +24,128 @@ function LoginCard() {
         username: identifier,
         password,
       });
-        if (response.data.token){
-          const userRole = response.data.roles[0]
+      if (response.data.token) {
+        const userRole = response.data.roles[0];
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("userRole", userRole);
 
-
-          localStorage.setItem("token", response.data.token);
-          localStorage.setItem("userRole", userRole);
-
-
-          switch (userRole) {
-            case "Dean":
-              navigate("/Dashboard/dean");
-              break;
-            case "Faculty":
-              navigate("/Dashboard/hr");
-              break;
-            case "Student":
-              navigate("/Dashboard/student");
-              break;
-            default:
-              setError("Invalid user role");
-          }
-          
+        switch (userRole) {
+          case "Dean":
+            navigate("/Dashboard/dean");
+            break;
+          case "Faculty":
+            navigate("/Dashboard/hr");
+            break;
+          case "Student":
+            navigate("/Dashboard/student");
+            break;
+          default:
+            setError("Invalid user role");
         }
-
-        else{
-          setError(" If-Else Something went wrong");
-        }
-        }  catch (error){
-              console.error("Login failed:", error);
-              setError("Handle Error");
-          }
+      } else {
+        setError("Something went wrong.");
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+      setError("Handle Error");
+    }
   };
 
   const handleSignUp = async () => {
-    // Add logic for sign-up (e.g., make API request to register the user)
     try {
-      const response = await axios.post("http://127.0.0.1:8000/api/signup/",{
-      first_name,
-      last_name,
-      username,
-      password,
-      email,
+      const response = await axios.post("http://127.0.0.1:8000/api/signup/", {
+        first_name,
+        last_name,
+        username,
+        password,
+        email,
       });
-      
-      if (response.data.token){
-        localStorage.setItem("token", response.data.token); 
+
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
         navigate("/dashboard");
+      } else {
+        setError("If-Else Something went wrong" + response.data.error);
       }
-      else
-        {
-        setError(" If-Else Something went wrong"+(response.data.error));
-        }
-      }catch (err) {
-        const error = err as AxiosError;
-        if (error.response?.status === 400) {
-          setError("Missing required fields");
-        } else if (error.response?.status === 409) {
-          setError("Username already exists");
-        } else {
-          setError("Unexpected error during sign-up");
-        }
+    } catch (err) {
+      const error = err as AxiosError;
+      if (error.response?.status === 400) {
+        setError("Missing required fields");
+      } else if (error.response?.status === 409) {
+        setError("Username already exists");
+      } else {
+        setError("Unexpected error during sign-up");
       }
+    }
   };
 
   const handleResetPassword = async () => {
-    // Add logic for resetting password (e.g., send password reset link via email)
-    try{
-        const response = await axios.post("http://127.0.0.1:8000/api/reset-password/", {
-        email,
-    });
-        if(response.data.success){    
-            alert("Password reset link has been sent to your email.");
-            navigate("/login"); // Redirect back to login page after sending reset link
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/reset-password/",
+        {
+          email,
         }
-        else{
-            setError("If-Else Something went wrong");
-        }
-    }catch (error){
-        console.error("Password reset failed:", error);
-        setError("Password reset request failed");
+      );
+
+      if (response.data[0] === "OTP sent successfully") {
+        setIsOtpSent(true);
+        setError("");
+      } else {
+        setError(response.data[0]);
+      }
+    } catch (error) {
+      console.error("Password reset failed:", error);
+      setError("Password reset request failed");
     }
+  };
+
+  const handleOtpChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 1);
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/reset-password/",
+        {
+          email,
+        }
+      );
+      if (response.data[0] === "OTP sent successfully") {
+        setError("");
+        alert("OTP resent!");
+      } else {
+        setError(response.data[0]);
+      }
+    } catch (error) {
+      setError("Failed to resend OTP");
+    }
+  };
+
+  const verifyOtp = () => {
+    const enteredOtp = otp.join("");
+    console.log("Verifying OTP:", enteredOtp);
+    // TODO: Send `enteredOtp` to backend for verification
   };
 
   return (
@@ -113,53 +155,41 @@ function LoginCard() {
           {isSignUp
             ? "Create an Account"
             : isForgotPassword
-            ? "Reset Your Password"
-            : "Faculty Evaluation System"}
+              ? "Reset Your Password"
+              : "Faculty Evaluation System"}
         </h2>
 
-        {/* Form Fields */}
         {!isSignUp && !isForgotPassword ? (
           <>
-            {/* Username */}
+            {/* Login Fields */}
             <div className="relative floating-label">
               <span>Username or Email</span>
               <input
                 type="text"
                 required
                 placeholder="Username or Email"
-                className="input w-full validator"
+                className="input w-full"
                 value={identifier}
-                //pattern="(?=.*@phinmaed.com).{30,}"
                 onChange={(e) => setIdentifier(e.target.value)}
               />
-              <p className="validator-hint">Must be a phinmaed email.</p>
             </div>
 
-            {/* Password */}
             <div className="relative floating-label">
               <span>Password</span>
               <input
                 type="password"
                 required
                 placeholder="Password"
-                className="input w-full validator"
+                className="input w-full"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                //pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
               />
-              <p className="validator-hint">
-                Incorrect username, password, or the account does not exist.
-              </p>
             </div>
 
-            {/* Checkbox */}
             <div className="flex justify-between items-center">
               <label className="cursor-pointer flex items-center">
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-primary text-white mr-2"
-                />
-                <span className="label-text">Remember me</span>
+                <input type="checkbox" className="checkbox mr-2" />
+                <span>Remember me</span>
               </label>
               <a
                 onClick={() => setIsForgotPassword(true)}
@@ -169,18 +199,16 @@ function LoginCard() {
               </a>
             </div>
 
-            {/* Login Button */}
             <div className="card-actions justify-center">
               <button
                 onClick={handleLogin}
                 className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
               >
                 Log In
-                {error  && <p   className="text-red-500">{error}</p>}
               </button>
+              {error && <p className="text-red-500">{error}</p>}
             </div>
 
-            {/* Sign Up Link */}
             <div className="text-center">
               <span>Don't have an account? </span>
               <button
@@ -189,74 +217,116 @@ function LoginCard() {
               >
                 Sign Up
               </button>
+              <button onClick={() => setIsOtpSent(true)}>Force OTP View</button>
             </div>
           </>
         ) : isForgotPassword ? (
           <>
-            {/* Email for Password Reset */}
-            <div className="relative floating-label">
-              <span>Email</span>
-              <input
-                type="email"
-                required
-                placeholder="Enter your registered email"
-                className="input w-full"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+            {/* Forgot Password View */}
+            {!isOtpSent && (
+              <>
+                <div className="relative floating-label">
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    required
+                    placeholder="Enter your registered email"
+                    className="input w-full"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
 
-            {/* Reset Password Button */}
-            <div className="card-actions justify-center">
-              <button
-                onClick={handleResetPassword}
-                className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
-              >
-                Reset Password
-              </button>
-            </div>
+                <div className="card-actions justify-center">
+                  <button
+                    onClick={handleResetPassword}
+                    className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
+                  >
+                    Send OTP
+                  </button>
+                </div>
+              </>
+            )}
 
-            {/* Back to Login Link */}
-            <div className="text-center">
+            {isOtpSent && (
+              <>
+                <div className="flex justify-center gap-2 my-4">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => {
+                        otpRefs.current[index] = el;
+                      }}
+                      type="text"
+                      maxLength={1}
+                      className="input w-12 text-center text-xl"
+                      value={digit}
+                      onChange={(e) => handleOtpChange(e, index)}
+                      onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={verifyOtp}
+                    className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
+                  >
+                    Verify OTP
+                  </button>
+                  <button
+                    onClick={handleResendOtp}
+                    className="btn btn-outline text-primary w-full text-sm"
+                  >
+                    Resend OTP
+                  </button>
+                </div>
+              </>
+            )}
+
+            <div className="text-center mt-4">
               <button
-                onClick={() => setIsForgotPassword(false)}
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setIsOtpSent(false);
+                  setOtp(["", "", "", "", "", ""]);
+                }}
                 className="text-primary hover:underline"
               >
                 Back to Login
               </button>
             </div>
+
+            {error && <p className="text-red-500 text-center">{error}</p>}
           </>
         ) : (
           <>
+            {/* Sign Up View */}
             <div className="flex gap-4">
-                {/* First Name */}
-                <div className="flex-1 relative floating-label">
-                  <span>First Name</span>
-                  <input
-                    type="text"
-                    required
-                    placeholder="First Name"
-                    className="input w-full"
-                    value={first_name}
-                    onChange={(e) => setFirstName(e.target.value)}
-                  />
-                </div>
-
-                {/* Last Name */}
-                <div className="flex-1 relative floating-label">
-                  <span>Last Name</span>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Last Name"
-                    className="input w-full"
-                    value={last_name}
-                    onChange={(e) => setLastName(e.target.value)}
-                  />
-                </div>
+              <div className="flex-1 relative floating-label">
+                <span>First Name</span>
+                <input
+                  type="text"
+                  required
+                  placeholder="First Name"
+                  className="input w-full"
+                  value={first_name}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </div>
+              <div className="flex-1 relative floating-label">
+                <span>Last Name</span>
+                <input
+                  type="text"
+                  required
+                  placeholder="Last Name"
+                  className="input w-full"
+                  value={last_name}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
             </div>
 
-            {/* Email */}
             <div className="relative floating-label">
               <span>Email</span>
               <input
@@ -269,7 +339,6 @@ function LoginCard() {
               />
             </div>
 
-            {/* Username */}
             <div className="relative floating-label">
               <span>Username</span>
               <input
@@ -282,7 +351,6 @@ function LoginCard() {
               />
             </div>
 
-            {/* Password */}
             <div className="relative floating-label">
               <span>Password</span>
               <input
@@ -290,13 +358,11 @@ function LoginCard() {
                 required
                 placeholder="Password"
                 className="input w-full"
-                //pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
-            {/* Confirm Password */}
             <div className="relative floating-label">
               <span>Confirm Password</span>
               <input
@@ -307,7 +373,6 @@ function LoginCard() {
               />
             </div>
 
-            {/* Sign Up Button */}
             <div className="card-actions justify-center">
               <button
                 onClick={handleSignUp}
@@ -317,7 +382,6 @@ function LoginCard() {
               </button>
             </div>
 
-            {/* Back to Login Link */}
             <div className="text-center">
               <span>Already have an account? </span>
               <button
