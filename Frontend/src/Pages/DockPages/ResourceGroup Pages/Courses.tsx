@@ -73,7 +73,7 @@ function Courses({ setActiveView }: CoursesProps) {
                 </button>
                 <button
                   type="button"
-                  className="btn"
+                  className="btn btn-cancel"
                   onClick={() =>
                     (
                       document.getElementById(
@@ -99,22 +99,51 @@ function Courses({ setActiveView }: CoursesProps) {
                 ) as HTMLDialogElement
               )?.showModal()
             }
-            className="bg-[#1b2e3e] shadow-xl text-white w-full rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
+            className="bg-[#1b2e3e] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
           >
             Import Course
           </button>
 
           <dialog id="modal_import_rooms" className="modal">
-            <div className="modal-box w-11/12 max-w-5xl">
-              <h3 className="font-bold text-lg">Import Rooms</h3>
-              <p className="py-4">This is the modal for importing rooms.</p>
-              <div className="modal-action">
-                <form method="dialog">
-                  <button type="submit" className="btn">
-                    Close
+            <div className="modal-box w-11/12 max-w-3xl">
+              <h3 className="font-bold text-2xl mb-4 text-center">
+                Import Rooms
+              </h3>
+
+              <form method="dialog" className="flex flex-col gap-6">
+                {/* CSV Upload */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/6 text-lg font-bold text-left">
+                    File:
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="file-input file-input-bordered w-full"
+                    required
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="modal-action">
+                  <button type="submit" className="btn btn-success text-white">
+                    Upload
                   </button>
-                </form>
-              </div>
+                  <button
+                    type="button"
+                    className="btn btn-cancel"
+                    onClick={() =>
+                      (
+                        document.getElementById(
+                          "modal_import_rooms"
+                        ) as HTMLDialogElement
+                      )?.close()
+                    }
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </dialog>
 
@@ -127,22 +156,64 @@ function Courses({ setActiveView }: CoursesProps) {
                 ) as HTMLDialogElement
               )?.showModal()
             }
-            className="bg-[#d4c351] shadow-xl text-white w-full rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
+            className="bg-[#d4c351] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
           >
             Export Course
           </button>
 
           <dialog id="modal_export_rooms" className="modal">
-            <div className="modal-box w-11/12 max-w-5xl">
-              <h3 className="font-bold text-lg">Export Rooms</h3>
-              <p className="py-4">This is the modal for exporting rooms.</p>
-              <div className="modal-action">
-                <form method="dialog">
-                  <button type="submit" className="btn">
-                    Close
+            <div className="modal-box w-11/12 max-w-3xl">
+              <h3 className="font-bold text-2xl mb-4 text-center">
+                Export Rooms
+              </h3>
+
+              <form method="dialog" className="flex flex-col gap-6">
+                {/* Name Field */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/6 text-lg font-bold text-left">
+                    Name:
+                  </label>
+                  <input
+                    type="text"
+                    value="Room A"
+                    readOnly
+                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Code Field */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/6 text-lg font-bold text-left">
+                    Code:
+                  </label>
+                  <input
+                    type="text"
+                    value="RM-A101"
+                    readOnly
+                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="modal-action">
+                  <button type="submit" className="btn btn-success text-white">
+                    Export
                   </button>
-                </form>
-              </div>
+                  <button
+                    type="button"
+                    className="btn btn-cancel"
+                    onClick={() =>
+                      (
+                        document.getElementById(
+                          "modal_export_rooms"
+                        ) as HTMLDialogElement
+                      )?.close()
+                    }
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </dialog>
         </div>

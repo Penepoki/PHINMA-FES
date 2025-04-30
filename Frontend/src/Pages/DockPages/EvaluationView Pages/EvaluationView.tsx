@@ -147,16 +147,121 @@ function Evaluation({ setActiveView }: EvalProps) {
 
                     {/* Modal for Copus 1 */}
                     <dialog id={modalId} className="modal">
-                      <div className="modal-box w-11/12 max-w-5xl">
-                        <h3 className="font-bold text-lg">
-                          {row.course} - Copus 1
+                      <div className="modal-box w-11/12 max-w-5xl text-black">
+                        <h3 className="font-bold text-xl mb-4">
+                          {row.course} - COPUS Evaluation
                         </h3>
-                        <p className="py-4">
-                          This is Copus 1 content for {row.course}.
-                        </p>
+
+                        {/* Basic Information */}
+                        <div className="collapse collapse-arrow border-1 border-gray-300 mb-4">
+                          <input type="checkbox" />
+                          <div className="collapse-title text-lg font-semibold">
+                            Basic Information
+                          </div>
+                          <div className="collapse-content space-y-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <input
+                                type="text"
+                                placeholder="Observer Name"
+                                className="input input-bordered w-full"
+                              />
+                              <input
+                                type="date"
+                                placeholder="Observation Date"
+                                className="input input-bordered w-full"
+                              />
+                              <input
+                                type="text"
+                                value={row.course}
+                                readOnly
+                                className="input input-bordered w-full"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Professor Name"
+                                className="input input-bordered w-full"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Room"
+                                className="input input-bordered w-full"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Semester"
+                                className="input input-bordered w-full"
+                              />
+                              <input
+                                type="number"
+                                placeholder="Year"
+                                className="input input-bordered w-full"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* COPUS Matrix */}
+                        <div className="collapse collapse-arrow border-1 border-gray-300 mb-4">
+                          <input type="checkbox" />
+                          <div className="collapse-title text-lg font-semibold">
+                            COPUS Matrix
+                          </div>
+                          <div className="collapse-content">
+                            <div className="mb-4">
+                              <label className="block mb-1 font-medium">
+                                Teacher Doing
+                              </label>
+                              <select className="select select-bordered w-full">
+                                <option disabled selected>
+                                  Select an activity
+                                </option>
+                                <option>Lecturing</option>
+                                <option>Demonstrating</option>
+                                <option>Moving and guiding</option>
+                                <option>Writing on board</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block mb-1 font-medium">
+                                Student Doing
+                              </label>
+                              <select className="select select-bordered w-full">
+                                <option disabled selected>
+                                  Select an activity
+                                </option>
+                                <option>Listening</option>
+                                <option>Group Work</option>
+                                <option>Answering Questions</option>
+                                <option>Using Clickers</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Additional Information */}
+                        <div className="collapse collapse-arrow border-1 border-gray-300 mb-4">
+                          <input type="checkbox" />
+                          <div className="collapse-title text-lg font-semibold">
+                            Additional Information
+                          </div>
+                          <div className="collapse-content">
+                            <textarea
+                              className="textarea textarea-bordered w-full min-h-[100px]"
+                              placeholder="Enter any additional comments or observations here..."
+                            ></textarea>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
                         <div className="modal-action">
                           <form method="dialog">
-                            <button type="submit" className="btn">
+                            <button
+                              type="submit"
+                              className="btn bg-[#1c402a] text-white"
+                            >
+                              Save
+                            </button>
+                            <button type="submit" className="btn btn-cancel">
                               Close
                             </button>
                           </form>

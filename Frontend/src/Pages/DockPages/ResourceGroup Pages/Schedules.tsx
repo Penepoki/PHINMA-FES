@@ -52,26 +52,55 @@ function Schedules({ setActiveView }: SchedulesProps) {
             onClick={() =>
               (
                 document.getElementById(
-                  "modal_import_rooms"
+                  "modal_import_schedule"
                 ) as HTMLDialogElement
               )?.showModal()
             }
-            className="bg-[#1b2e3e] shadow-xl text-white w-full rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
+            className="bg-[#1b2e3e] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
           >
             Import Schedule
           </button>
 
-          <dialog id="modal_import_rooms" className="modal">
-            <div className="modal-box w-11/12 max-w-5xl">
-              <h3 className="font-bold text-lg">Import Rooms</h3>
-              <p className="py-4">This is the modal for importing rooms.</p>
-              <div className="modal-action">
-                <form method="dialog">
-                  <button type="submit" className="btn">
-                    Close
+          <dialog id="modal_import_schedule" className="modal">
+            <div className="modal-box w-11/12 max-w-3xl">
+              <h3 className="font-bold text-2xl mb-4 text-center">
+                Import Schedule
+              </h3>
+
+              <form method="dialog" className="flex flex-col gap-6">
+                {/* CSV Upload */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/6 text-lg font-bold text-left">
+                    File:
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="file-input file-input-bordered w-full"
+                    required
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="modal-action">
+                  <button type="submit" className="btn btn-success text-white">
+                    Upload
                   </button>
-                </form>
-              </div>
+                  <button
+                    type="button"
+                    className="btn btn-cancel"
+                    onClick={() =>
+                      (
+                        document.getElementById(
+                          "modal_import_schedule"
+                        ) as HTMLDialogElement
+                      )?.close()
+                    }
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </dialog>
 
@@ -80,26 +109,146 @@ function Schedules({ setActiveView }: SchedulesProps) {
             onClick={() =>
               (
                 document.getElementById(
-                  "modal_export_rooms"
+                  "modal_export_schedule"
                 ) as HTMLDialogElement
               )?.showModal()
             }
-            className="bg-[#d4c351] shadow-xl text-white w-full rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
+            className="bg-[#d4c351] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
           >
             Export Schedule
           </button>
 
-          <dialog id="modal_export_rooms" className="modal">
-            <div className="modal-box w-11/12 max-w-5xl">
-              <h3 className="font-bold text-lg">Export Rooms</h3>
-              <p className="py-4">This is the modal for exporting rooms.</p>
-              <div className="modal-action">
-                <form method="dialog">
-                  <button type="submit" className="btn">
-                    Close
+          <dialog id="modal_export_schedule" className="modal">
+            <div className="modal-box w-11/12 max-w-3xl">
+              <h3 className="font-bold text-2xl mb-4 text-center">
+                Export Schedule
+              </h3>
+
+              <form method="dialog" className="flex flex-col gap-6">
+                {/* Title */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/4 text-lg font-bold text-left">
+                    Title:
+                  </label>
+                  <input
+                    type="text"
+                    value="Intro to Programming"
+                    readOnly
+                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Course */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/4 text-lg font-bold text-left">
+                    Course:
+                  </label>
+                  <input
+                    type="text"
+                    value="BSCS 101"
+                    readOnly
+                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Instructor */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/4 text-lg font-bold text-left">
+                    Instructor:
+                  </label>
+                  <input
+                    type="text"
+                    value="Prof. Jane Doe"
+                    readOnly
+                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Room */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/4 text-lg font-bold text-left">
+                    Room:
+                  </label>
+                  <input
+                    type="text"
+                    value="Room 204"
+                    readOnly
+                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Start Time */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/4 text-lg font-bold text-left">
+                    Start Time:
+                  </label>
+                  <input
+                    type="text"
+                    value="09:00 AM"
+                    readOnly
+                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* End Time */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/4 text-lg font-bold text-left">
+                    End Time:
+                  </label>
+                  <input
+                    type="text"
+                    value="10:30 AM"
+                    readOnly
+                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Day of the Week */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/4 text-lg font-bold text-left">
+                    Day:
+                  </label>
+                  <input
+                    type="text"
+                    value="Monday"
+                    readOnly
+                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Status */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <label className="md:w-1/4 text-lg font-bold text-left">
+                    Status:
+                  </label>
+                  <input
+                    type="text"
+                    value="Active"
+                    readOnly
+                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="modal-action">
+                  <button type="submit" className="btn btn-success text-white">
+                    Export
                   </button>
-                </form>
-              </div>
+                  <button
+                    type="button"
+                    className="btn btn-cancel"
+                    onClick={() =>
+                      (
+                        document.getElementById(
+                          "modal_export_schedule"
+                        ) as HTMLDialogElement
+                      )?.close()
+                    }
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </dialog>
         </div>
