@@ -1,11 +1,6 @@
 import axios, { AxiosError } from "axios";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  UserIcon,
-  EnvelopeIcon,
-  LockClosedIcon,
-} from "@heroicons/react/24/outline";
 
 function LoginCard() {
   const [identifier, setIdentifier] = useState("");
@@ -94,7 +89,7 @@ function LoginCard() {
         setIsOtpSent(true); // switch to OTP input view
       } catch (error) {
         console.error(error);
-        setError("Could not find Email");
+        setError("Failed to send OTP");
       }
     };
 
@@ -146,7 +141,10 @@ function LoginCard() {
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-    if (value && index < 5) otpRefs.current[index + 1]?.focus();
+
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
   };
 
   const handleOtpKeyDown = (
@@ -193,12 +191,12 @@ function LoginCard() {
         email,
         otp: enteredOtp
         })
-        if (response.data.message === "OTP verified successfully") {
+        if (response.data.mesage == "OTP verified"){
         setIsOtpVerified(true);
-        setError("");
-      } else {
-        setError("Wrong OTP");
-      }
+        setError("")
+        }else {
+        setError("Wrong OTP")
+        }
 
     } catch (err) {
         const error = err as AxiosError;
@@ -223,39 +221,31 @@ function LoginCard() {
               : "Faculty Evaluation System"}
         </h2>
 
-        {/* LOGIN */}
-        {!isSignUp && !isForgotPassword && (
+        {!isSignUp && !isForgotPassword ? (
           <>
+            {/* Login Fields */}
             <div className="relative floating-label">
               <span>Username or Email</span>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Username or Email"
-                  className="input w-full pr-10"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                  <UserIcon className="h-5 w-5" />
-                </div>
-              </div>
+              <input
+                type="text"
+                required
+                placeholder="Username or Email"
+                className="input w-full"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+              />
             </div>
 
             <div className="relative floating-label">
               <span>Password</span>
-              <div className="relative">
-                <input
-                  type="password"
-                  placeholder="Password"
-                  className="input w-full pr-10"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                  <LockClosedIcon className="h-5 w-5" />
-                </div>
-              </div>
+              <input
+                type="password"
+                required
+                placeholder="Password"
+                className="input w-full"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
 
             <div className="flex justify-between items-center">
@@ -269,6 +259,8 @@ function LoginCard() {
               >
                 Forgot Password?
               </a>
+
+
             </div>
 
             <div className="card-actions justify-center">
@@ -292,25 +284,30 @@ function LoginCard() {
               <button onClick={() => setIsOtpSent(true)}>Force OTP View</button>
             </div>
           </>
-        )}
-
-        {/* FORGOT PASSWORD */}
-        {isForgotPassword && !isOtpVerified && (
+        ) : isForgotPassword ? (
           <>
-            {!isOtpSent ? (
-              <div className="relative floating-label">
-                <span>Email</span>
-                <div className="relative">
+            {/* Forgot Password View */}
+            {!isOtpSent && (
+              <>
+                <div className="relative floating-label">
+                  <span>Email</span>
                   <input
                     type="email"
+                    required
                     placeholder="Enter your registered email"
-                    className="input w-full pr-10"
+                    className="input w-full"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                    <EnvelopeIcon className="h-5 w-5" />
-                  </div>
+                </div>
+
+                <div className="card-actions justify-center">
+                  <button
+                    onClick={handleResetPassword}
+                    className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
+                  >
+                    Send OTP
+                  </button>
                 </div>
               </>
             )}
@@ -334,19 +331,10 @@ function LoginCard() {
                   ))}
                 </div>
 
-            <div className="flex flex-col gap-2">
-              {!isOtpSent ? (
-                <button
-                  onClick={handleResetPassword}
-                  className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full text-white"
-                >
-                  Send OTP
-                </button>
-              ) : (
-                <>
+                <div className="flex flex-col gap-2">
                   <button
                     onClick={verifyOtp}
-                    className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full text-white"
+                    className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
                   >
                     Verify OTP
                   </button>
@@ -356,9 +344,45 @@ function LoginCard() {
                   >
                     Resend OTP
                   </button>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
+
+            {isOtpVerified && (
+              <>
+                <div className="relative floating-label mt-4">
+                  <span>New Password</span>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter new password"
+                    className="input w-full"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+                <div className="relative floating-label">
+                  <span>Confirm New Password</span>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Confirm new password"
+                    className="input w-full"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+                <div className="card-actions justify-center mt-4">
+                  <button
+                    onClick={handleNewPasswordSubmit}
+                    className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
+                  >
+                    Submit New Password
+                  </button>
+                </div>
+              </>
+            )}
+
 
             <div className="text-center mt-4">
               <button
@@ -375,72 +399,15 @@ function LoginCard() {
 
             {error && <p className="text-red-500 text-center">{error}</p>}
           </>
-        )}
-
-        {/* NEW PASSWORD PAGE */}
-        {isForgotPassword && isOtpVerified && (
+        ) : (
           <>
-            <div className="relative floating-label">
-              <span>New Password</span>
-              <div className="relative">
-                <input
-                  type="password"
-                  className="input w-full pr-10"
-                  placeholder="New Password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                  <LockClosedIcon className="h-5 w-5" />
-                </div>
-              </div>
-            </div>
-
-            <div className="relative floating-label">
-              <span>Confirm New Password</span>
-              <div className="relative">
-                <input
-                  type="password"
-                  className="input w-full pr-10"
-                  placeholder="Confirm New Password"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                  <LockClosedIcon className="h-5 w-5" />
-                </div>
-              </div>
-            </div>
-
-            <div className="card-actions justify-center">
-              <button className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white">
-                Set New Password
-              </button>
-            </div>
-
-            <div className="text-center mt-4">
-              <button
-                onClick={() => {
-                  setIsForgotPassword(false);
-                  setIsOtpSent(false);
-                  setOtp(["", "", "", "", "", ""]);
-                }}
-                className="text-primary hover:underline"
-              >
-                Back to Login
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* SIGN UP */}
-        {isSignUp && (
-          <>
+            {/* Sign Up View */}
             <div className="flex gap-4">
               <div className="flex-1 relative floating-label">
                 <span>First Name</span>
                 <input
                   type="text"
+                  required
                   placeholder="First Name"
                   className="input w-full"
                   value={first_name}
@@ -451,6 +418,7 @@ function LoginCard() {
                 <span>Last Name</span>
                 <input
                   type="text"
+                  required
                   placeholder="Last Name"
                   className="input w-full"
                   value={last_name}
@@ -461,64 +429,48 @@ function LoginCard() {
 
             <div className="relative floating-label">
               <span>Email</span>
-              <div className="relative">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  className="input w-full pr-10"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                  <EnvelopeIcon className="h-5 w-5" />
-                </div>
-              </div>
+              <input
+                type="email"
+                required
+                placeholder="Email"
+                className="input w-full"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
 
             <div className="relative floating-label">
               <span>Username</span>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Username"
-                  className="input w-full pr-10"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                  <UserIcon className="h-5 w-5" />
-                </div>
-              </div>
+              <input
+                type="text"
+                required
+                placeholder="Username"
+                className="input w-full"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
             </div>
 
             <div className="relative floating-label">
               <span>Password</span>
-              <div className="relative">
-                <input
-                  type="password"
-                  placeholder="Password"
-                  className="input w-full pr-10"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                  <LockClosedIcon className="h-5 w-5" />
-                </div>
-              </div>
+              <input
+                type="password"
+                required
+                placeholder="Password"
+                className="input w-full"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
 
             <div className="relative floating-label">
               <span>Confirm Password</span>
-              <div className="relative">
-                <input
-                  type="password"
-                  placeholder="Confirm Password"
-                  className="input w-full pr-10"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                  <LockClosedIcon className="h-5 w-5" />
-                </div>
-              </div>
+              <input
+                type="password"
+                required
+                placeholder="Confirm Password"
+                className="input w-full"
+              />
             </div>
 
             <div className="card-actions justify-center">
