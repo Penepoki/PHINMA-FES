@@ -88,17 +88,16 @@ function Evaluation({ setActiveView }: EvalProps) {
                   <td>
                     <div className="collapse collapse-arrow backdrop-blur-lg border-gray-300 border rounded-md shadow-xl">
                       <input type="checkbox" />
-                      <div className="collapse-title font-semibold text-xl">
+                      <div className="collapse-title bg-[#1c402a]/50 font-semibold text-xl">
                         {row.course}
                       </div>
                       <div
-                        className="join space-x-3 space-y-4 flex justify-center"
+                        className="gap-x-3 py-3 flex justify-center items-center bg-[#1c402a]/50"
                         onClick={(e) => e.stopPropagation()} // Stop collapse toggle
                       >
                         {/* Copus 1 */}
-                        <label className="join-item btn text-black cursor-pointer">
+                        <label className="btn text-black cursor-pointer">
                           <input
-                            type="radio"
                             name={`copus-${index}`}
                             className="hidden"
                             onClick={() =>
@@ -113,9 +112,9 @@ function Evaluation({ setActiveView }: EvalProps) {
                         </label>
 
                         {/* Copus 2 */}
-                        <label className="join-item btn bg-white text-black cursor-pointer">
+                        <label className="btn bg-white text-black cursor-pointer">
                           <input
-                            type="radio"
+
                             name={`copus-${index}`}
                             className="hidden"
                             onClick={() => console.log("Copus 2 clicked")}
@@ -124,9 +123,9 @@ function Evaluation({ setActiveView }: EvalProps) {
                         </label>
 
                         {/* Copus 3 */}
-                        <label className="join-item btn bg-white text-black cursor-pointer">
+
+                        <label className="btn bg-white text-black cursor-pointer">
                           <input
-                            type="radio"
                             name={`copus-${index}`}
                             className="hidden"
                             onClick={() => console.log("Copus 3 clicked")}
@@ -135,7 +134,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                         </label>
                       </div>
                       <div className="collapse-content flex text-lg">
-                        <div className="avatar">
+                        <div className="avatar mt-5">
                           <div className="w-24 rounded-full">
                             <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
                           </div>

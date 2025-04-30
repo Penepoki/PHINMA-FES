@@ -66,6 +66,10 @@ html {
   @apply transition-all duration-300 ease-in-out;
   @apply hover:shadow-lg hover:scale-105;
 }
+.textarea {
+  @apply transition-all duration-300 ease-in-out;
+  @apply hover:shadow-lg hover:scale-105;
+}
 .checkbox {
   @apply transition-all duration-300 ease-in-out;
   @apply hover:shadow-lg hover:scale-110;

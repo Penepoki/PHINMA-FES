@@ -25,7 +25,7 @@ function Rooms({ setActiveView }: RoomsProps) {
         <button
           onClick={() =>
             (
-              document.getElementById("modal_new_room") as HTMLDialogElement
+              document.getElementById("create_new_room") as HTMLDialogElement
             )?.showModal()
           }
           className="bg-[#1c402a] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
@@ -33,19 +33,49 @@ function Rooms({ setActiveView }: RoomsProps) {
           New Room
         </button>
 
-        <dialog id="modal_new_room" className="modal">
-          <div className="modal-box w-11/12 max-w-5xl">
-            <h3 className="font-bold text-lg">New Room</h3>
-            <p className="py-4">This is the modal for creating a new room.</p>
-            <div className="modal-action">
-              <form method="dialog">
-                <button type="submit" className="btn">
-                  Close
+        <dialog id="create_new_room" className="modal">
+          <div className="modal-box w-11/12 max-w-3xl">
+            <h3 className="font-bold text-2xl mb-4 text-center">
+              Create New Room
+            </h3>
+
+            <form method="dialog" className="flex flex-col gap-6">
+              {/* Course Name */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <label className="md:w-1/6 text-lg font-bold text-left">
+                  Name:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter course name"
+                  className="input input-bordered w-full"
+                  required
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="modal-action">
+                <button type="submit" className="btn btn-success text-white">
+                  Submit
                 </button>
-              </form>
-            </div>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() =>
+                    (
+                      document.getElementById(
+                        "create_new_room"
+                      ) as HTMLDialogElement
+                    )?.close()
+                  }
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </dialog>
+
         <div className="flex flex-row justify-center">
           {/* Import Rooms Button */}
           <button

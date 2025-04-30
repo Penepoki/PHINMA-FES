@@ -4,7 +4,7 @@ import Shape_3 from "../../assets/Dashboard Page Assets/IShape-3.svg";
 
 const DashboardAnimation = () => {
   return (
-    <div className="absolute top-0 left-0  h-screen w-screen z-1">
+    <div className="absolute top-0 left-0 h-screen w-screen overflow-hidden z-1">
       <img
         src={Shape_1}
         id="Shape-3"

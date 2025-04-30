@@ -11,8 +11,8 @@ django-cors-headers = "*"
 mysqlclient = "*"
 django-simple-history = "*"
 django-jazzmin = "*"
-python-decouple = "*"
 django-decouple = "*"
+python-decouple = "*"
 
 [dev-packages]
 
