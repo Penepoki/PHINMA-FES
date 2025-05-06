@@ -7,8 +7,6 @@ urlpatterns = [
 
     path('signup/', signup_view),
 
-    path('reset-password/',reset_password_view),
-
     path('latest-evaluation/', latest_evaluation),
 
     path('all-evaluation/', get_evaluations),
@@ -18,4 +16,6 @@ urlpatterns = [
     path('user-profile/', user_view_profile),
 
     path('forgot-password/', forgot_password_view),
+
+    path('verify-otp/', verify_otp_view),
 ]

@@ -31,10 +31,13 @@ def verify_otp_view(request):
     email = request.data.get('email')
     input_code = request.data.get('input_code')
 
+    print(f"Received email: {email}")  # Check if the email is being sent from the frontend
+    print(f"Received input_code: {input_code}")  # Check if the OTP is being received
+
     try:
         user = User.objects.get(email=email)
         if verify_otp(user, input_code):
-            return Response({'message': 'OTP sent successfully'}, status=200)
+            return Response({'message': 'OTP verified successfully'}, status=200)
         return Response({'message': 'Invalid OTP'}, status=400)
     except User.DoesNotExist:
         return Response({'message': 'User does not exist'}, status=404)
@@ -50,9 +53,7 @@ def signup_view(request):
 
     return Response(result, status=status.HTTP_201_CREATED)
 
-@api_view(['POST'])
-def reset_password_view(request):
-    return Response(reset_password(request.data))
+
 
 #Evaluation View
 @api_view(['GET'])

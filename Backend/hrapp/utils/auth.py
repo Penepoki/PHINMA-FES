@@ -40,7 +40,7 @@ def send_otp_via_email(user):
 
     send_mail(
         subject='OTP Verification',
-        message=f'OTP Verification Code: {verif_code}',
+        message=f'OTP Verification Code: {verif_code} This Code will expire in 10 minutes.',
         from_email='no-reply@saintjude.com',
         recipient_list=[user.email],
     )
