@@ -1,7 +1,17 @@
+import {
+  useEffect,
+  useState,
+} from "react";
+import axios from "axios";
 import { FunnelIcon } from "@heroicons/react/24/solid";
 
 interface CreateStudentEvalProps {
   setActiveView: (view: string) => void;
+}
+
+interface User {
+  id: number;
+  name: string;
 }
 
 function CreateStudentEvaluation({
@@ -9,6 +19,7 @@ function CreateStudentEvaluation({
 }: CreateStudentEvalProps) {
   return (
     <div className="custom-container gap-y-6">
+      {/* Breadcrumbs */}
       <div className="breadcrumbs">
         <ul>
           <li>
@@ -156,6 +167,8 @@ function CreateStudentEvaluation({
           </div>
         </dialog>
       </div>
+
+      {/* Search and Filter */}
       <div className="flex w-full justify-center items-start pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
         <input
           type="text"
@@ -184,6 +197,7 @@ function CreateStudentEvaluation({
         </div>
       </div>
 
+      {/* Table Section */}
       <div className="overflow-x-auto w-full text-white backdrop-blur-lg shadow-xl">
         <table className="table">
           {/* head */}
