@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 import axios from "axios";
 import { FunnelIcon } from "@heroicons/react/24/solid";
 
@@ -11,45 +14,42 @@ interface User {
   name: string;
 }
 
-function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-
-  useEffect(() => {
-    axios
-      .get("http://127.0.0.1:8000/api/users/") // Replace with your actual Django API endpoint
-      .then((response) => {
-        setUsers(response.data); // Assuming the response is a list of users
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch users:", error);
-        setError("Failed to load users.");
-        setLoading(false);
-      });
-  }, []);
-
+function CreateStudentEvaluation({
+  setActiveView,
+}: CreateStudentEvalProps) {
   return (
     <div className="custom-container gap-y-6">
       {/* Breadcrumbs */}
       <div className="breadcrumbs">
         <ul>
           <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
+            <a
+              onClick={() =>
+                setActiveView("home")
+              }
+            >
+              Home
+            </a>
           </li>
           <li>
-            <a onClick={() => setActiveView("evaluation")}>Evaluation</a>
+            <a
+              onClick={() =>
+                setActiveView(
+                  "evaluation"
+                )
+              }
+            >
+              Evaluation
+            </a>
           </li>
-          <li>Create Student Evaluations</li>
+          <li>
+            Create Student Evaluations
+          </li>
         </ul>
       </div>
-
-      {/* Page Title */}
-      <h2 className="text-3xl font-bold mt-4 text-white">
+      <h2 className="text-3xl font-bold mt-4 text-white ">
         Create Student Evaluation
       </h2>
-
       {/* Create New Evaluation Button */}
 
       <div className="flex w-full justify-center md:justify-end items-start pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
@@ -57,7 +57,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
           onClick={() =>
             (
               document.getElementById(
-                "createstudentevaluation"
+                "create_student_eval"
               ) as HTMLDialogElement
             )?.showModal()
           }
@@ -65,16 +65,22 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
         >
           Create New Student Evaluation
         </button>
-        <dialog id="createstudentevaluation" className="modal">
+        <dialog
+          id="create_student_eval"
+          className="modal"
+        >
           <div className="modal-box w-11/12 max-w-5xl">
             <h3 className="font-bold text-2xl mb-4 text-center">
               New Student Evaluation
             </h3>
 
-            <form method="dialog" className="flex flex-col gap-6">
+            <form
+              method="dialog"
+              className="flex flex-col gap-6"
+            >
               {/* Schedule */}
               <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left">
+                <label className="md:w-1/4 text-lg font-bold text-left">
                   Schedule:
                 </label>
                 <input
@@ -87,7 +93,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
               {/* Title */}
               <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left">
+                <label className="md:w-1/4 text-lg font-bold text-left">
                   Title:
                 </label>
                 <input
@@ -100,7 +106,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
               {/* Description */}
               <div className="flex flex-col md:flex-row md:items-start gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left pt-2">
+                <label className="md:w-1/4 text-lg font-bold text-left pt-2">
                   Description:
                 </label>
                 <textarea
@@ -112,7 +118,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
               {/* Questions */}
               <div className="flex flex-col md:flex-row md:items-start gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left pt-2">
+                <label className="md:w-1/4 text-lg font-bold text-left pt-2">
                   Questions:
                 </label>
                 <textarea
@@ -124,7 +130,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
               {/* Type */}
               <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left">
+                <label className="md:w-1/4 text-lg font-bold text-left">
                   Type:
                 </label>
                 <input
@@ -137,16 +143,19 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
               {/* Action Buttons */}
               <div className="modal-action">
-                <button type="submit" className="btn btn-success text-white">
+                <button
+                  type="submit"
+                  className="btn btn-success text-white"
+                >
                   Submit
                 </button>
                 <button
                   type="button"
-                  className="btn"
+                  className="btn btn-cancel"
                   onClick={() =>
                     (
                       document.getElementById(
-                        "createstudentevaluation"
+                        "create_student_eval"
                       ) as HTMLDialogElement
                     )?.close()
                   }
@@ -190,40 +199,90 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
       {/* Table Section */}
       <div className="overflow-x-auto w-full text-white backdrop-blur-lg shadow-xl">
-        {loading ? (
-          <div className="text-center py-8 text-lg">Loading...</div>
-        ) : error ? (
-          <div className="text-center py-8 text-red-500">{error}</div>
-        ) : (
-          <table className="table">
-            <thead className="text-white text-xl font-bold bg-[#1c402a]/50 shadow-xl">
-              <tr>
-                <th>
-                  <input type="checkbox" className="checkbox" />
-                </th>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Publish</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-300 text-lg">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-[#1b2e3e]/50">
-                  <td>
-                    <input type="checkbox" className="checkbox" />
-                  </td>
-                  <td>{user.id}</td>
-                  <td>{user.name}</td>
-                  <td>
-                    <input type="checkbox" className="toggle" />
-                  </td>
-                  <td>Edit</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <table className="table">
+          {/* head */}
+          <thead className="text-white text-xl font-bold bg-[#1c402a]/50 shadow-xl">
+            <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="checkbox"
+                />
+              </th>
+              <th>Title</th>
+              <th></th>
+              <th></th>
+              <th>Publish</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody className="text-gray-300 text-lg">
+            {/* row 1 */}
+            <tr className="hover:bg-[#1b2e3e]/50">
+              <td>
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="checkbox"
+                />
+              </td>
+              <td>Renzo Cua</td>
+              <td></td>
+              <td></td>
+              <td>
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="toggle"
+                />
+              </td>
+              <td>Edit</td>
+            </tr>
+            {/* row 2 */}
+            <tr className="hover:bg-[#1b2e3e]/50">
+              <td>
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="checkbox"
+                />
+              </td>
+              <td>Martin Espineda</td>
+              <td></td>
+              <td></td>
+              <td>
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="toggle"
+                />
+              </td>
+              <td>Edit</td>
+            </tr>
+            {/* row 3 */}
+            <tr className="hover:bg-[#1b2e3e]/50">
+              <td>
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="checkbox"
+                />
+              </td>
+              <td>Chester Espineda</td>
+              <td></td>
+              <td></td>
+              <td>
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="toggle"
+                />
+              </td>
+              <td>Edit</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );

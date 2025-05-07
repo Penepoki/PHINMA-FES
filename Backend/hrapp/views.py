@@ -1,3 +1,5 @@
+from urllib import request
+
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -29,7 +31,7 @@ def forgot_password_view(request):
 @api_view(['POST'])
 def verify_otp_view(request):
     email = request.data.get('email')
-    input_code = request.data.get('input_code')
+    input_code = request.data.get('otp')
 
     print(f"Received email: {email}")  # Check if the email is being sent from the frontend
     print(f"Received input_code: {input_code}")  # Check if the OTP is being received
@@ -42,6 +44,20 @@ def verify_otp_view(request):
     except User.DoesNotExist:
         return Response({'message': 'User does not exist'}, status=404)
 
+
+
+
+@api_view(['POST'])
+def set_new_password_view(request):
+    email = request.data.get('email')
+    new_password = request.data.get('password')
+    try:
+        user = User.objects.get(email=email)
+        user.set_password(new_password)
+        user.save()
+        return Response({'message': 'OTP sent successfully'}, status=200)
+    except User.DoesNotExist:
+        return Response({'message': 'User does not exist'}, status=404)
 
 #User Creation and Pass Reset look @ user_utils.py
 @api_view(['POST'])

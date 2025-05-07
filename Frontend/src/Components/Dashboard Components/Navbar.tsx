@@ -1,14 +1,64 @@
-import React, { useState } from "react";
+import React, {
+  useEffect,
+  useState,
+} from "react";
 
 interface NavbarProps {
   activeView: string;
   setActiveView: (view: string) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView }) => {
-  const [isDockVisible, setIsDockVisible] = useState<boolean>(true);
+const Navbar: React.FC<NavbarProps> = ({
+  activeView,
+  setActiveView,
+}) => {
+  const [
+    isDockVisible,
+    setIsDockVisible,
+  ] = useState<boolean>(true);
 
-  const handleClick = (page: string) => {
+  useEffect(() => {
+    const handleKeyDown = (
+      e: KeyboardEvent
+    ) => {
+      const target =
+        e.target as HTMLElement;
+      const tagName =
+        target.tagName.toLowerCase();
+
+      const isTyping =
+        tagName === "input" ||
+        tagName === "textarea" ||
+        target.isContentEditable;
+
+      if (isTyping) return;
+
+      if (
+        e.code === "Space" ||
+        e.key === " "
+      ) {
+        e.preventDefault();
+        setIsDockVisible(
+          (prev) => !prev
+        );
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+    };
+  }, []);
+
+  const handleClick = (
+    page: string
+  ) => {
     setActiveView(page);
   };
 
@@ -18,7 +68,8 @@ const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView }) => {
   const secondaryDockVisible =
     activeView === "evaluation" ||
     activeView === "resourceGroup" ||
-    activeView === "createStudentEval" ||
+    activeView ===
+      "createStudentEval" ||
     activeView === "studentEval" ||
     activeView === "evalSummary" ||
     activeView === "courses" ||
@@ -29,22 +80,44 @@ const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView }) => {
   return (
     <>
       {/* Toggle Button - Now Outside Navbar */}
-      <button
-        className={`fixed px-5 bg-primary text-white rounded-xl shadow-xl h-12 z-[1000] transition-all duration-300 bottom-0 transform -translate-y-1/2 ${
-          isDockVisible ? "left-4" : "left-2"
-        } ${
-          isDockVisible && secondaryDockVisible
-            ? "bottom-38 md:bottom-20" // When secondary dock is visible, set bottom to 38 (or any other value you prefer)
-            : isDockVisible
-              ? "bottom-20" // When only primary dock is visible, set bottom to 22
-              : "bottom-0" // When both docks are closed, reset to bottom-0
-        }`}
-        onClick={() => setIsDockVisible(!isDockVisible)}
+      <div
+        className={`fixed z-[501] transition-all duration-300 transform -translate-y-1/2
+    ${isDockVisible ? "left-4" : "left-2"}
+    ${
+      isDockVisible &&
+      secondaryDockVisible
+        ? "bottom-38 md:bottom-20"
+        : isDockVisible
+          ? "bottom-20"
+          : "bottom-0"
+    }
+  `}
       >
-        {isDockVisible ? "◀" : "▶"}
-      </button>
+        <div className="tooltip tooltip-right">
+          <button
+            className="px-4 bg-primary text-white text-xl border-1 border-gray-300 rounded-xl shadow-2xl h-12 hover:scale-110"
+            onClick={() =>
+              setIsDockVisible(
+                !isDockVisible
+              )
+            }
+          >
+            {isDockVisible
+              ? "◀"
+              : "▶"}
+          </button>
+          <div className="tooltip-content text-sm whitespace-pre-line hidden sm:block">
+            Open/Close Dock
+            <br />
+            (Shortcut: Space)
+          </div>
+        </div>
+      </div>
 
-      <nav data-theme="SJC" className="relative">
+      <nav
+        data-theme="SJC"
+        className="relative"
+      >
         {/* Secondary Dock */}
         {secondaryDockVisible && (
           <div
@@ -56,191 +129,430 @@ const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView }) => {
       }`}
           >
             {/* Buttons for Evaluation */}
-            {activeView === "evaluation" && (
+            {activeView ===
+              "evaluation" && (
               <>
                 <button
                   className="dock"
-                  onClick={() => handleClick("createStudentEval")}
+                  onClick={() =>
+                    handleClick(
+                      "createStudentEval"
+                    )
+                  }
                 >
-                  <span className="dock-label">Create Student Evaluations</span>
+                  <span className="dock-label">
+                    Create Student
+                    Evaluations
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("studentEval")}
+                  onClick={() =>
+                    handleClick(
+                      "studentEval"
+                    )
+                  }
                 >
-                  <span className="dock-label">Student Evaluations</span>
+                  <span className="dock-label">
+                    Student Evaluations
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("evalSummary")}
+                  onClick={() =>
+                    handleClick(
+                      "evalSummary"
+                    )
+                  }
                 >
-                  <span className="dock-label">Evaluation Summary</span>
+                  <span className="dock-label">
+                    Evaluation Summary
+                  </span>
                 </button>
               </>
             )}
 
-            {activeView === "createStudentEval" && (
+            {activeView ===
+              "createStudentEval" && (
               <>
                 <button
                   className="dock"
-                  onClick={() => handleClick("createStudentEval")}
+                  onClick={() =>
+                    handleClick(
+                      "createStudentEval"
+                    )
+                  }
                 >
-                  <span className="dock-label">Create Student Evaluations</span>
+                  <span className="dock-label">
+                    Create Student
+                    Evaluations
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("studentEval")}
+                  onClick={() =>
+                    handleClick(
+                      "studentEval"
+                    )
+                  }
                 >
-                  <span className="dock-label">Student Evaluations</span>
+                  <span className="dock-label">
+                    Student Evaluations
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("evalSummary")}
+                  onClick={() =>
+                    handleClick(
+                      "evalSummary"
+                    )
+                  }
                 >
-                  <span className="dock-label">Evaluation Summary</span>
+                  <span className="dock-label">
+                    Evaluation Summary
+                  </span>
                 </button>
               </>
             )}
 
-            {activeView === "studentEval" && (
+            {activeView ===
+              "studentEval" && (
               <>
                 <button
                   className="dock"
-                  onClick={() => handleClick("createStudentEval")}
+                  onClick={() =>
+                    handleClick(
+                      "createStudentEval"
+                    )
+                  }
                 >
-                  <span className="dock-label">Create Student Evaluations</span>
+                  <span className="dock-label">
+                    Create Student
+                    Evaluations
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("studentEval")}
+                  onClick={() =>
+                    handleClick(
+                      "studentEval"
+                    )
+                  }
                 >
-                  <span className="dock-label">Student Evaluations</span>
+                  <span className="dock-label">
+                    Student Evaluations
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("evalSummary")}
+                  onClick={() =>
+                    handleClick(
+                      "evalSummary"
+                    )
+                  }
                 >
-                  <span className="dock-label">Evaluation Summary</span>
+                  <span className="dock-label">
+                    Evaluation Summary
+                  </span>
                 </button>
               </>
             )}
 
-            {activeView === "evalSummary" && (
+            {activeView ===
+              "evalSummary" && (
               <>
                 <button
                   className="dock"
-                  onClick={() => handleClick("createStudentEval")}
+                  onClick={() =>
+                    handleClick(
+                      "createStudentEval"
+                    )
+                  }
                 >
-                  <span className="dock-label">Create Student Evaluations</span>
+                  <span className="dock-label">
+                    Create Student
+                    Evaluations
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("studentEval")}
+                  onClick={() =>
+                    handleClick(
+                      "studentEval"
+                    )
+                  }
                 >
-                  <span className="dock-label">Student Evaluations</span>
+                  <span className="dock-label">
+                    Student Evaluations
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("evalSummary")}
+                  onClick={() =>
+                    handleClick(
+                      "evalSummary"
+                    )
+                  }
                 >
-                  <span className="dock-label">Evaluation Summary</span>
+                  <span className="dock-label">
+                    Evaluation Summary
+                  </span>
                 </button>
               </>
             )}
 
             {/* Buttons for Resource Group */}
-            {activeView === "resourceGroup" && (
+            {activeView ===
+              "resourceGroup" && (
               <>
-                <button className="dock" onClick={() => handleClick("courses")}>
-                  <span className="dock-label">Courses</span>
-                </button>
-                <button className="dock" onClick={() => handleClick("subject")}>
-                  <span className="dock-label">Subjects</span>
-                </button>
-                <button className="dock" onClick={() => handleClick("rooms")}>
-                  <span className="dock-label">Rooms</span>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick(
+                      "courses"
+                    )
+                  }
+                >
+                  <span className="dock-label">
+                    Courses
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("schedules")}
+                  onClick={() =>
+                    handleClick(
+                      "subject"
+                    )
+                  }
                 >
-                  <span className="dock-label">Schedules</span>
+                  <span className="dock-label">
+                    Subjects
+                  </span>
+                </button>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick("rooms")
+                  }
+                >
+                  <span className="dock-label">
+                    Rooms
+                  </span>
+                </button>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick(
+                      "schedules"
+                    )
+                  }
+                >
+                  <span className="dock-label">
+                    Schedules
+                  </span>
                 </button>
               </>
             )}
-            {activeView === "courses" && (
+            {activeView ===
+              "courses" && (
               <>
-                <button className="dock" onClick={() => handleClick("courses")}>
-                  <span className="dock-label">Courses</span>
-                </button>
-                <button className="dock" onClick={() => handleClick("subject")}>
-                  <span className="dock-label">Subjects</span>
-                </button>
-                <button className="dock" onClick={() => handleClick("rooms")}>
-                  <span className="dock-label">Rooms</span>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick(
+                      "courses"
+                    )
+                  }
+                >
+                  <span className="dock-label">
+                    Courses
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("schedules")}
+                  onClick={() =>
+                    handleClick(
+                      "subject"
+                    )
+                  }
                 >
-                  <span className="dock-label">Schedules</span>
+                  <span className="dock-label">
+                    Subjects
+                  </span>
+                </button>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick("rooms")
+                  }
+                >
+                  <span className="dock-label">
+                    Rooms
+                  </span>
+                </button>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick(
+                      "schedules"
+                    )
+                  }
+                >
+                  <span className="dock-label">
+                    Schedules
+                  </span>
                 </button>
               </>
             )}
-            {activeView === "schedules" && (
+            {activeView ===
+              "schedules" && (
               <>
-                <button className="dock" onClick={() => handleClick("courses")}>
-                  <span className="dock-label">Courses</span>
-                </button>
-                <button className="dock" onClick={() => handleClick("subject")}>
-                  <span className="dock-label">Subjects</span>
-                </button>
-                <button className="dock" onClick={() => handleClick("rooms")}>
-                  <span className="dock-label">Rooms</span>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick(
+                      "courses"
+                    )
+                  }
+                >
+                  <span className="dock-label">
+                    Courses
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("schedules")}
+                  onClick={() =>
+                    handleClick(
+                      "subject"
+                    )
+                  }
                 >
-                  <span className="dock-label">Schedules</span>
+                  <span className="dock-label">
+                    Subjects
+                  </span>
+                </button>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick("rooms")
+                  }
+                >
+                  <span className="dock-label">
+                    Rooms
+                  </span>
+                </button>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick(
+                      "schedules"
+                    )
+                  }
+                >
+                  <span className="dock-label">
+                    Schedules
+                  </span>
                 </button>
               </>
             )}
             {activeView === "rooms" && (
               <>
-                <button className="dock" onClick={() => handleClick("courses")}>
-                  <span className="dock-label">Courses</span>
-                </button>
-                <button className="dock" onClick={() => handleClick("subject")}>
-                  <span className="dock-label">Subjects</span>
-                </button>
-                <button className="dock" onClick={() => handleClick("rooms")}>
-                  <span className="dock-label">Rooms</span>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick(
+                      "courses"
+                    )
+                  }
+                >
+                  <span className="dock-label">
+                    Courses
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("schedules")}
+                  onClick={() =>
+                    handleClick(
+                      "subject"
+                    )
+                  }
                 >
-                  <span className="dock-label">Schedules</span>
+                  <span className="dock-label">
+                    Subjects
+                  </span>
+                </button>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick("rooms")
+                  }
+                >
+                  <span className="dock-label">
+                    Rooms
+                  </span>
+                </button>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick(
+                      "schedules"
+                    )
+                  }
+                >
+                  <span className="dock-label">
+                    Schedules
+                  </span>
                 </button>
               </>
             )}
-            {activeView === "subject" && (
+            {activeView ===
+              "subject" && (
               <>
-                <button className="dock" onClick={() => handleClick("courses")}>
-                  <span className="dock-label">Courses</span>
-                </button>
-                <button className="dock" onClick={() => handleClick("subject")}>
-                  <span className="dock-label">Subjects</span>
-                </button>
-                <button className="dock" onClick={() => handleClick("rooms")}>
-                  <span className="dock-label">Rooms</span>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick(
+                      "courses"
+                    )
+                  }
+                >
+                  <span className="dock-label">
+                    Courses
+                  </span>
                 </button>
                 <button
                   className="dock"
-                  onClick={() => handleClick("schedules")}
+                  onClick={() =>
+                    handleClick(
+                      "subject"
+                    )
+                  }
                 >
-                  <span className="dock-label">Schedules</span>
+                  <span className="dock-label">
+                    Subjects
+                  </span>
+                </button>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick("rooms")
+                  }
+                >
+                  <span className="dock-label">
+                    Rooms
+                  </span>
+                </button>
+                <button
+                  className="dock"
+                  onClick={() =>
+                    handleClick(
+                      "schedules"
+                    )
+                  }
+                >
+                  <span className="dock-label">
+                    Schedules
+                  </span>
                 </button>
               </>
             )}
@@ -250,35 +562,63 @@ const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView }) => {
         {/* Primary Dock */}
         <div
           className={`dock dock-xl w-[95%] mx-auto bottom-2 rounded-xl shadow-2xl transition-transform duration-300 ease-in-out z-[500] ${
-            isDockVisible ? "translate-x-0" : "-translate-x-full"
+            isDockVisible
+              ? "translate-x-0"
+              : "-translate-x-full"
           }`}
         >
           <button
-            className={buttonClasses("home")}
-            onClick={() => handleClick("home")}
+            className={buttonClasses(
+              "home"
+            )}
+            onClick={() =>
+              handleClick("home")
+            }
           >
-            <span className="dock-label">Home</span>
+            <span className="dock-label">
+              Home
+            </span>
           </button>
 
           <button
-            className={buttonClasses("profile")}
-            onClick={() => handleClick("profile")}
+            className={buttonClasses(
+              "profile"
+            )}
+            onClick={() =>
+              handleClick("profile")
+            }
           >
-            <span className="dock-label">Profile</span>
+            <span className="dock-label">
+              Profile
+            </span>
           </button>
 
           <button
-            className={buttonClasses("evaluation")}
-            onClick={() => handleClick("evaluation")}
+            className={buttonClasses(
+              "evaluation"
+            )}
+            onClick={() =>
+              handleClick("evaluation")
+            }
           >
-            <span className="dock-label">Evaluation</span>
+            <span className="dock-label">
+              Evaluation
+            </span>
           </button>
 
           <button
-            className={buttonClasses("resourceGroup")}
-            onClick={() => handleClick("resourceGroup")}
+            className={buttonClasses(
+              "resourceGroup"
+            )}
+            onClick={() =>
+              handleClick(
+                "resourceGroup"
+              )
+            }
           >
-            <span className="dock-label">Resource Group</span>
+            <span className="dock-label">
+              Resource Group
+            </span>
           </button>
         </div>
       </nav>
