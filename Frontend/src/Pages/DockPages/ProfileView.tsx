@@ -95,7 +95,7 @@ function Profile({
           </li>
         </ul>
       </div>
-      <div className="profile-page flex flex-col md:flex-row justify-center items-center w-full h-full z-10 gap-6 p-4 md:p-8">
+      <div className="profile-page flex flex-col lg:flex-row items-start w-full min-h-screen z-10 gap-6 px-4 py-6 md:px-8 md:py-10">
         {/* Profile Card Section */}
         <div className="w-full md:w-1/2 h-full flex flex-col items-center justify-center backdrop-blur-lg p-6 rounded-xl shadow-2xl text-white">
           <div className="avatar">

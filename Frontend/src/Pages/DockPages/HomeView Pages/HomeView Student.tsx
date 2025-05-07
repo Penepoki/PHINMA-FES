@@ -12,8 +12,8 @@ function Home() {
       teacher: "Mr. Smith",
       questions: Array.from(
         { length: 10 },
-        (_, i) =>
-          `Mathematics Question ${i + 1}`
+        () =>
+          `I understand the lessons with the help of activities provided by my teacher.`
       ),
       image: null,
     },
@@ -237,12 +237,52 @@ function Home() {
                         <label className="md:w-1/3 text-lg font-semibold pt-2">
                           {question}
                         </label>
-                        <input
-                          type="text"
-                          placeholder="Your answer"
-                          className="input input-bordered w-full"
-                          required
-                        />
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`question-${index}`}
+                            value="Strongly Agree"
+                            className="radio"
+                          />
+                          Strongly Agree
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`question-${index}`}
+                            value="Agree"
+                            className="radio"
+                          />
+                          Agree
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`question-${index}`}
+                            value="Neutral"
+                            className="radio"
+                          />
+                          Neutral
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`question-${index}`}
+                            value="Disagree"
+                            className="radio"
+                          />
+                          Disagree
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`question-${index}`}
+                            value="Strongly Disagree"
+                            className="radio"
+                          />
+                          Strongly
+                          Disagree
+                        </label>
                       </div>
                     )
                   )}
