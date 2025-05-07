@@ -1,4 +1,3 @@
-
 import {
   EnvelopeIcon,
   UserIcon,
@@ -58,16 +57,7 @@ function LoginCard() {
   const otpRefs = useRef<
     (HTMLInputElement | null)[]
   >([]);
-
   const navigate = useNavigate();
-
-      // Utility function to validate email format
-    const isValidEmail = (email: string): boolean => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Simple regex for email validation
-      return emailRegex.test(email);
-    };
-
-
 
   const handleLogin = async () => {
     try {
@@ -94,7 +84,7 @@ function LoginCard() {
           case "Dean":
             navigate("/Dashboard/dean");
             break;
-          case "Faculty":
+          case "HR":
             navigate("/Dashboard/hr");
             break;
           case "Student":
@@ -139,7 +129,7 @@ function LoginCard() {
           "token",
           response.data.token
         );
-        navigate("/dashboard");
+        navigate("/dashboard/student");
       } else {
         setError(
           "If-Else Something went wrong" +
@@ -249,11 +239,7 @@ function LoginCard() {
           setError(
             "Unexpected error during sign-up"
           );
-
         }
-      } catch (err) {
-        setLoading(false);
-        console.error("Error verifying OTP:", err)
       }
     };
 
@@ -373,13 +359,7 @@ function LoginCard() {
         );
       }
     }
-  } catch (err) {
-    setLoading(false);
-    //Changes here
-    console.error("Error Verify Otp Function:", err);
-    setError("Error resetting password. Please try again.");
-  }
-};
+  };
 
   return (
     <div className="card card-border bg-white w-[90%] max-w-[28rem] shadow-2xl mx-auto lg:mr-40 opacity-95 hover:opacity-100 transition-opacity duration-300 ease-in-out z-50">
@@ -394,7 +374,6 @@ function LoginCard() {
 
         {!isSignUp &&
         !isForgotPassword ? (
-
           <>
             {/* Login Fields */}
             <div className="relative floating-label">
@@ -412,7 +391,6 @@ function LoginCard() {
                     e.target.value
                   )
                 }
-
               />
             </div>
 
@@ -429,7 +407,6 @@ function LoginCard() {
                     e.target.value
                   )
                 }
-
               />
             </div>
 
@@ -480,17 +457,7 @@ function LoginCard() {
               >
                 Sign Up
               </button>
-              <button
-                onClick={() =>
-                  setIsOtpSent(true)
-                }
-              >
-                Force OTP View
-
-              </button>
             </div>
-
-            {error && <p className="text-red-500 text-center">{error}</p>}
           </>
         ) : isForgotPassword ? (
           <>
@@ -574,7 +541,7 @@ function LoginCard() {
                       }
                       className="btn bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] w-full h-13 text-xl text-white"
                     >
-                      Send OTP
+                      Verify OTP
                     </button>
                     <button
                       onClick={
@@ -699,7 +666,6 @@ function LoginCard() {
                       e.target.value
                     )
                   }
-
                 />
               </div>
             </div>
@@ -746,7 +712,6 @@ function LoginCard() {
 
             <div className="relative floating-label">
               <span>Password</span>
-
               <div className="relative">
                 <input
                   type="password"
