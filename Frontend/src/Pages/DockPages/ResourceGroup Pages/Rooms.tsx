@@ -60,7 +60,7 @@ function Rooms({ setActiveView }: RoomsProps) {
                 </button>
                 <button
                   type="button"
-                  className="btn"
+                  className="btn btn-cancel"
                   onClick={() =>
                     (
                       document.getElementById(

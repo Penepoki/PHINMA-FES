@@ -13,23 +13,41 @@
   --color-base-100: white;
   --color-base-200: oklch(95% 0.03 240);
   --color-base-300: oklch(92% 0.04 240);
-  --color-base-content: oklch(20% 0.05 240);
+  --color-base-content: oklch(
+    20% 0.05 240
+  );
   --color-primary: #1c402a;
   --color-primary-content: black;
-  --color-secondary: oklch(70% 0.25 200);
-  --color-secondary-content: oklch(98% 0.01 200);
+  --color-secondary: oklch(
+    70% 0.25 200
+  );
+  --color-secondary-content: oklch(
+    98% 0.01 200
+  );
   --color-accent: oklch(65% 0.25 160);
-  --color-accent-content: oklch(98% 0.01 160);
+  --color-accent-content: oklch(
+    98% 0.01 160
+  );
   --color-neutral: oklch(50% 0.05 240);
-  --color-neutral-content: oklch(98% 0.01 240);
+  --color-neutral-content: oklch(
+    98% 0.01 240
+  );
   --color-info: oklch(70% 0.2 220);
-  --color-info-content: oklch(98% 0.01 220);
+  --color-info-content: oklch(
+    98% 0.01 220
+  );
   --color-success: #1c402a;
-  --color-success-content: oklch(98% 0.01 140);
+  --color-success-content: oklch(
+    98% 0.01 140
+  );
   --color-warning: oklch(80% 0.25 80);
-  --color-warning-content: oklch(20% 0.05 80);
+  --color-warning-content: oklch(
+    20% 0.05 80
+  );
   --color-error: oklch(65% 0.3 30);
-  --color-error-content: oklch(98% 0.01 30);
+  --color-error-content: oklch(
+    98% 0.01 30
+  );
 
   /* border radius */
   --radius-selector: 2rem;
@@ -101,49 +119,63 @@ html {
 
 #Shape_1 {
   position: absolute;
-  animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+  animation: Shape1_anim 5.5s
+    cubic-bezier(0.42, 0, 0.58, 1)
+    infinite alternate;
   will-change: transform;
   animation-delay: 0s; /* Starts immediately */
 }
 
 #Shape_2 {
   position: absolute;
-  animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+  animation: Shape1_anim 5.5s
+    cubic-bezier(0.42, 0, 0.58, 1)
+    infinite alternate;
   will-change: transform;
   animation-delay: 3s; /* Starts after 2 seconds */
 }
 
 #Shape_3 {
   position: absolute;
-  animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+  animation: Shape1_anim 5.5s
+    cubic-bezier(0.42, 0, 0.58, 1)
+    infinite alternate;
   will-change: transform;
   animation-delay: 6s; /* Starts after 4 seconds */
 }
 
 #Shape_4 {
   position: absolute;
-  animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+  animation: Shape1_anim 5.5s
+    cubic-bezier(0.42, 0, 0.58, 1)
+    infinite alternate;
   will-change: transform;
   animation-delay: 9; /* Starts after 6 seconds */
 }
 
 #Shape-1 {
   position: absolute;
-  animation: Shape2_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+  animation: Shape2_anim 5.5s
+    cubic-bezier(0.42, 0, 0.58, 1)
+    infinite alternate;
   will-change: transform;
   animation-delay: 0s; /* Starts immediately */
 }
 
 #Shape-2 {
   position: absolute;
-  animation: Shape2_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+  animation: Shape2_anim 5.5s
+    cubic-bezier(0.42, 0, 0.58, 1)
+    infinite alternate;
   will-change: transform;
   animation-delay: 4s; /* Starts after 2 seconds */
 }
 
 #Shape-3 {
   position: absolute;
-  animation: Shape2_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+  animation: Shape2_anim 5.5s
+    cubic-bezier(0.42, 0, 0.58, 1)
+    infinite alternate;
   will-change: transform;
   animation-delay: 8s; /* Starts after 4 seconds */
 }
@@ -177,16 +209,20 @@ html {
   }
   100% {
     opacity: 0;
-    transform: translateY(-20px); /* Adjust for direction of movement */
+    transform: translateY(
+      -20px
+    ); /* Adjust for direction of movement */
   }
 }
 
 .word {
-  animation: fadeIn 0.5s ease-out forwards; /* Apply fadeIn animation */
+  animation: fadeIn 0.5s ease-out
+    forwards; /* Apply fadeIn animation */
 }
 
 .word-exit {
-  animation: fadeOut 0.5s ease-out forwards; /* Apply fadeOut animation */
+  animation: fadeOut 0.5s ease-out
+    forwards; /* Apply fadeOut animation */
 }
 
 .custom-container {
@@ -197,13 +233,13 @@ html {
   align-items: center;
   justify-content: flex-start;
   text-align: center;
-  backdrop-filter: blur(16px); /* Tailwind's 'backdrop-blur-lg' */
+  backdrop-filter: blur(
+    16px
+  ); /* Tailwind's 'backdrop-blur-lg' */
   padding: 0; /* Default padding for mobile */
   border-radius: 0.5rem; /* Tailwind's 'rounded-lg' = 8px */
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Tailwind's 'shadow-lg' */
   z-index: 10;
+  @apply shadow-2xl;
 }
 
 .breadcrumbs {
@@ -231,4 +267,8 @@ html {
 
 .rg-container {
   @apply w-full h-full flex flex-col items-center justify-start backdrop-blur-lg rounded-lg shadow-lg text-white;
+}
+
+.tooltip {
+  --tt-bg: var(--color-primary);
 }

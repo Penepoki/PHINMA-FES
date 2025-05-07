@@ -20,13 +20,25 @@ import Rooms from "./DockPages/ResourceGroup Pages/Rooms";
 import Schedules from "./DockPages/ResourceGroup Pages/Schedules";
 import Subject from "./DockPages/ResourceGroup Pages/Subject";
 
-function Dashboard({ role }: { role: string }) {
+function Dashboard({
+  role,
+}: {
+  role: string;
+}) {
   // Default view is "home"
-  const [activeView, setActiveView] = useState("home");
-  const viewComponents: Record<string, JSX.Element> = {
+  const [activeView, setActiveView] =
+    useState("home");
+  const viewComponents: Record<
+    string,
+    JSX.Element
+  > = {
     home:
-      role === "Dean" || role === "Program Head" ? (
-        <HomeViewDean activeView={activeView} setActiveView={setActiveView} />
+      role === "Dean" ||
+      role === "Program Head" ? (
+        <HomeViewDean
+          activeView={activeView}
+          setActiveView={setActiveView}
+        />
       ) : role === "HR" ? (
         <HomeViewHR />
       ) : role === "Student" ? (
@@ -34,27 +46,66 @@ function Dashboard({ role }: { role: string }) {
       ) : (
         <div>Home</div>
       ),
-    profile: <Profile />,
-    evaluation: <Evaluation setActiveView={setActiveView} />,
-    resourceGroup: <ResourceGroup setActiveView={setActiveView} />,
+    profile: (
+      <Profile
+        setActiveView={setActiveView}
+      />
+    ),
+    evaluation: (
+      <Evaluation
+        setActiveView={setActiveView}
+      />
+    ),
+    resourceGroup: (
+      <ResourceGroup
+        setActiveView={setActiveView}
+      />
+    ),
     // subComponents
     createStudentEval: (
-      <CreateStudentEvaluation setActiveView={setActiveView} />
+      <CreateStudentEvaluation
+        setActiveView={setActiveView}
+      />
     ),
-    studentEval: <StudentEvaluation setActiveView={setActiveView} />,
+    studentEval: (
+      <StudentEvaluation
+        setActiveView={setActiveView}
+      />
+    ),
     evalSummary: <EvaluationSummary />,
     // Resource Group sub-components
-    courses: <Courses setActiveView={setActiveView} />,
-    rooms: <Rooms setActiveView={setActiveView} />,
-    schedules: <Schedules setActiveView={setActiveView} />,
-    subject: <Subject setActiveView={setActiveView} />,
+    courses: (
+      <Courses
+        setActiveView={setActiveView}
+      />
+    ),
+    rooms: (
+      <Rooms
+        setActiveView={setActiveView}
+      />
+    ),
+    schedules: (
+      <Schedules
+        setActiveView={setActiveView}
+      />
+    ),
+    subject: (
+      <Subject
+        setActiveView={setActiveView}
+      />
+    ),
   };
 
   return (
-    <section id="dashboard-section" data-theme="SJC">
+    <section
+      id="dashboard-section"
+      data-theme="SJC"
+    >
       <div
         className="min-h-screen bg-cover bg-center z-1"
-        style={{ backgroundImage: `url(${Background})` }}
+        style={{
+          backgroundImage: `url(${Background})`,
+        }}
       >
         <DashboardAnimation />
 
@@ -68,12 +119,21 @@ function Dashboard({ role }: { role: string }) {
 
         {/* Main Content: Render dynamic view based on activeView */}
         <main className="flex w-screen h-screen p-3 md:p-10 z-40">
-          {viewComponents[activeView] || <div>View not found</div>}
+          {viewComponents[
+            activeView
+          ] || (
+            <div>View not found</div>
+          )}
         </main>
 
         {/* NavBar (passing setActiveView and activeView to update the view state) */}
         <nav className="z-40">
-          <NavBar activeView={activeView} setActiveView={setActiveView} />
+          <NavBar
+            activeView={activeView}
+            setActiveView={
+              setActiveView
+            }
+          />
         </nav>
       </div>
     </section>

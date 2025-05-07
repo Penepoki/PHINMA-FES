@@ -25,7 +25,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
         <button
           onClick={() =>
             (
-              document.getElementById("modal_new_room") as HTMLDialogElement
+              document.getElementById("modal_new_schedule") as HTMLDialogElement
             )?.showModal()
           }
           className="bg-[#1c402a] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
@@ -33,19 +33,140 @@ function Schedules({ setActiveView }: SchedulesProps) {
           New Schedule
         </button>
 
-        <dialog id="modal_new_room" className="modal">
+        <dialog id="modal_new_schedule" className="modal">
           <div className="modal-box w-11/12 max-w-5xl">
-            <h3 className="font-bold text-lg">New Room</h3>
-            <p className="py-4">This is the modal for creating a new room.</p>
-            <div className="modal-action">
-              <form method="dialog">
-                <button type="submit" className="btn">
-                  Close
+            <h3 className="font-bold text-2xl mb-4 text-center">
+              Create New Schedule
+            </h3>
+
+            <form method="dialog" className="flex flex-col gap-6">
+              {/* Course */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <label className="md:w-1/4 text-lg font-bold text-left">
+                  Course:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter course"
+                  className="input input-bordered w-full"
+                  required
+                />
+              </div>
+
+              {/* Professor */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <label className="md:w-1/4 text-lg font-bold text-left">
+                  Professor:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter professor name"
+                  className="input input-bordered w-full"
+                  required
+                />
+              </div>
+
+              {/* Subject */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <label className="md:w-1/4 text-lg font-bold text-left">
+                  Subject:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter subject"
+                  className="input input-bordered w-full"
+                  required
+                />
+              </div>
+
+              {/* Room */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <label className="md:w-1/4 text-lg font-bold text-left">
+                  Room:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter room"
+                  className="input input-bordered w-full"
+                  required
+                />
+              </div>
+
+              {/* Title */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <label className="md:w-1/4 text-lg font-bold text-left">
+                  Title:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter title"
+                  className="input input-bordered w-full"
+                  required
+                />
+              </div>
+
+              {/* Time */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <label className="md:w-1/4 text-lg font-bold text-left">
+                  Time:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter time (e.g., 9:00 AM - 10:30 AM)"
+                  className="input input-bordered w-full"
+                  required
+                />
+              </div>
+
+              {/* Semester */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <label className="md:w-1/4 text-lg font-bold text-left">
+                  Semester:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter semester (e.g., 1st)"
+                  className="input input-bordered w-full"
+                  required
+                />
+              </div>
+
+              {/* Year */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <label className="md:w-1/4 text-lg font-bold text-left">
+                  Year:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter year (e.g., 2024)"
+                  className="input input-bordered w-full"
+                  required
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="modal-action">
+                <button type="submit" className="btn btn-success text-white">
+                  Submit
                 </button>
-              </form>
-            </div>
+                <button
+                  type="button"
+                  className="btn btn-cancel"
+                  onClick={() =>
+                    (
+                      document.getElementById(
+                        "modal_new_schedule"
+                      ) as HTMLDialogElement
+                    )?.close()
+                  }
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </dialog>
+
         <div className="flex flex-row justify-center">
           {/* Import Rooms Button */}
           <button

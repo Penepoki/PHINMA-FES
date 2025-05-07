@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Pie } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
 import YearCard from "../../../Components/Dashboard Components/Dean Components/Year Card";
 
 const PieChart = () => {
@@ -10,8 +15,16 @@ const PieChart = () => {
       {
         label: "My First Dataset",
         data: [33, 33, 33],
-        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
-        hoverBackgroundColor: ["#FF4365", "#2593D1", "#FFC130"],
+        backgroundColor: [
+          "#FF6384",
+          "#36A2EB",
+          "#FFCE56",
+        ],
+        hoverBackgroundColor: [
+          "#FF4365",
+          "#2593D1",
+          "#FFC130",
+        ],
       },
     ],
   };
@@ -45,22 +58,35 @@ const PieChart = () => {
           relative
         "
       >
-        <Pie data={data} options={options} />
+        <Pie
+          data={data}
+          options={options}
+        />
       </div>
     </div>
   );
 };
 
 // Register chart components
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend
+);
 
 interface HomeProps {
   activeView: string;
   setActiveView: (view: string) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
-  console.log("Active View:", activeView); // Debugging line
+const Home: React.FC<HomeProps> = ({
+  activeView,
+  setActiveView,
+}) => {
+  console.log(
+    "Active View:",
+    activeView
+  ); // Debugging line
 
   const yearData = [
     {
@@ -81,14 +107,25 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
     },
   ];
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [
+    currentIndex,
+    setCurrentIndex,
+  ] = useState(0);
 
   const prevCard = () => {
-    setCurrentIndex((prev) => (prev === 0 ? yearData.length - 1 : prev - 1));
+    setCurrentIndex((prev) =>
+      prev === 0
+        ? yearData.length - 1
+        : prev - 1
+    );
   };
 
   const nextCard = () => {
-    setCurrentIndex((prev) => (prev === yearData.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) =>
+      prev === yearData.length - 1
+        ? 0
+        : prev + 1
+    );
   };
 
   return (
@@ -141,12 +178,15 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
       </p>
 
       <div
-        onClick={() => setActiveView("evaluation")}
+        onClick={() =>
+          setActiveView("evaluation")
+        }
         className="
           flex flex-row overflow-x-auto
           w-full h-1/3
           items-center justify-center hover:scale-101
           sm:h-[30vh]
+          shadow-2xl
         "
       >
         <div
@@ -155,8 +195,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
             flex flex-col
             w-1/3 h-full
             p-5
-            rounded-xl
-            shadow-2xl
+            rounded-l-xl
             justify-center items-center backdrop-blur-lg backdrop-hue-rotate-100
           "
         >
@@ -198,8 +237,6 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
             w-1/3 h-full
             p-5
             text-white
-            rounded-xl
-            shadow-2xl
             backdrop-blur-lg backdrop-hue-rotate-300
           "
         >
@@ -211,8 +248,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
             w-1/3 h-full
             p-5
             text-white
-            rounded-xl
-            shadow-2xl
+            rounded-r-xl
             backdrop-blur-lg backdrop-hue-rotate-400
           "
         >
@@ -236,7 +272,8 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
 
           "
         >
-          Current SFF Status: Time and date
+          Current SFF Status: Time and
+          date
         </p>
 
         {/* Desktop View (Grid) */}
@@ -247,14 +284,18 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
             md:flex
           "
         >
-          {yearData.map(({ year, ratio }) => (
-            <YearCard
-              key={year}
-              year={year}
-              ratio={ratio}
-              setActiveView={setActiveView}
-            />
-          ))}
+          {yearData.map(
+            ({ year, ratio }) => (
+              <YearCard
+                key={year}
+                year={year}
+                ratio={ratio}
+                setActiveView={
+                  setActiveView
+                }
+              />
+            )
+          )}
         </div>
 
         {/* Mobile View (Carousel) */}
@@ -278,9 +319,17 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
           </button>
 
           <YearCard
-            year={yearData[currentIndex].year}
-            ratio={yearData[currentIndex].ratio}
-            setActiveView={setActiveView}
+            year={
+              yearData[currentIndex]
+                .year
+            }
+            ratio={
+              yearData[currentIndex]
+                .ratio
+            }
+            setActiveView={
+              setActiveView
+            }
           />
 
           <button

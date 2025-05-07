@@ -4,18 +4,36 @@ interface CreateStudentEvalProps {
   setActiveView: (view: string) => void;
 }
 
-function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
+function CreateStudentEvaluation({
+  setActiveView,
+}: CreateStudentEvalProps) {
   return (
     <div className="custom-container gap-y-6">
       <div className="breadcrumbs">
         <ul>
           <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
+            <a
+              onClick={() =>
+                setActiveView("home")
+              }
+            >
+              Home
+            </a>
           </li>
           <li>
-            <a onClick={() => setActiveView("evaluation")}>Evaluation</a>
+            <a
+              onClick={() =>
+                setActiveView(
+                  "evaluation"
+                )
+              }
+            >
+              Evaluation
+            </a>
           </li>
-          <li>Create Student Evaluations</li>
+          <li>
+            Create Student Evaluations
+          </li>
         </ul>
       </div>
       <h2 className="text-3xl font-bold mt-4 text-white ">
@@ -27,20 +45,28 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
         <button
           onClick={() =>
             (
-              document.getElementById("my_modal_4") as HTMLDialogElement
+              document.getElementById(
+                "create_student_eval"
+              ) as HTMLDialogElement
             )?.showModal()
           }
           className="flex bg-[#1c402a] shadow-xl text-white w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
         >
           Create New Student Evaluation
         </button>
-        <dialog id="my_modal_4" className="modal">
+        <dialog
+          id="create_student_eval"
+          className="modal"
+        >
           <div className="modal-box w-11/12 max-w-5xl">
             <h3 className="font-bold text-2xl mb-4 text-center">
               New Student Evaluation
             </h3>
 
-            <form method="dialog" className="flex flex-col gap-6">
+            <form
+              method="dialog"
+              className="flex flex-col gap-6"
+            >
               {/* Schedule */}
               <div className="flex flex-col md:flex-row md:items-center gap-2">
                 <label className="md:w-1/4 text-lg font-bold text-left">
@@ -106,15 +132,20 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
               {/* Action Buttons */}
               <div className="modal-action">
-                <button type="submit" className="btn btn-success text-white">
+                <button
+                  type="submit"
+                  className="btn btn-success text-white"
+                >
                   Submit
                 </button>
                 <button
                   type="button"
-                  className="btn"
+                  className="btn btn-cancel"
                   onClick={() =>
                     (
-                      document.getElementById("my_modal_4") as HTMLDialogElement
+                      document.getElementById(
+                        "create_student_eval"
+                      ) as HTMLDialogElement
                     )?.close()
                   }
                 >
@@ -159,7 +190,11 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
           <thead className="text-white text-xl font-bold bg-[#1c402a]/50 shadow-xl">
             <tr>
               <th>
-                <input type="checkbox" defaultChecked className="checkbox" />
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="checkbox"
+                />
               </th>
               <th>Title</th>
               <th></th>
@@ -172,39 +207,63 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
             {/* row 1 */}
             <tr className="hover:bg-[#1b2e3e]/50">
               <td>
-                <input type="checkbox" defaultChecked className="checkbox" />
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="checkbox"
+                />
               </td>
               <td>Renzo Cua</td>
               <td></td>
               <td></td>
               <td>
-                <input type="checkbox" defaultChecked className="toggle" />
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="toggle"
+                />
               </td>
               <td>Edit</td>
             </tr>
             {/* row 2 */}
             <tr className="hover:bg-[#1b2e3e]/50">
               <td>
-                <input type="checkbox" defaultChecked className="checkbox" />
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="checkbox"
+                />
               </td>
               <td>Martin Espineda</td>
               <td></td>
               <td></td>
               <td>
-                <input type="checkbox" defaultChecked className="toggle" />
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="toggle"
+                />
               </td>
               <td>Edit</td>
             </tr>
             {/* row 3 */}
             <tr className="hover:bg-[#1b2e3e]/50">
               <td>
-                <input type="checkbox" defaultChecked className="checkbox" />
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="checkbox"
+                />
               </td>
               <td>Chester Espineda</td>
               <td></td>
               <td></td>
               <td>
-                <input type="checkbox" defaultChecked className="toggle" />
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="toggle"
+                />
               </td>
               <td>Edit</td>
             </tr>

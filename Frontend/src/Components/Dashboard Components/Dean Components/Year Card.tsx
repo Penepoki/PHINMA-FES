@@ -17,7 +17,7 @@ const YearCard: React.FC<YearCardProps> = ({ year, ratio, setActiveView }) => {
       className="flex items-center justify-center h-54 w-54 md:h-[14vw] md:w-[14vw] backdrop-blur-lg backdrop-hue-rotate-700 rounded-full shadow-2xl hover:scale-105 cursor-pointer"
     >
       <div
-        className="radial-progress h-50 w-50 md:h-[14vw] md:w-[14vw] text-white"
+        className="radial-progress h-50 w-50 md:h-[14vw] md:w-[14vw] text-white shadow-2xl"
         style={{ "--value": percentage } as React.CSSProperties}
         aria-valuenow={percentage}
         role="progressbar"
