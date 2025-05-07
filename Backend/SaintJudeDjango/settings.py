@@ -39,6 +39,14 @@ EMAIL_HOST_PASSWORD = 'ntbr iwon kajq xqjk'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5174",  # Your frontend running on Vite
+    "http://127.0.0.1:5174",  # You can add this as well if applicable (alternative forms)
+]
+
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -63,6 +71,7 @@ JAZZMIN_SETTINGS = {
 }
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

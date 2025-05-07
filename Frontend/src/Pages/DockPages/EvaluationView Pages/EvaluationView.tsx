@@ -114,6 +114,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                         {/* Copus 2 */}
                         <label className="btn bg-white text-black cursor-pointer">
                           <input
+
                             name={`copus-${index}`}
                             className="hidden"
                             onClick={() => console.log("Copus 2 clicked")}
@@ -122,6 +123,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                         </label>
 
                         {/* Copus 3 */}
+
                         <label className="btn bg-white text-black cursor-pointer">
                           <input
                             name={`copus-${index}`}

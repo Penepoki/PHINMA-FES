@@ -1,3 +1,4 @@
+
 import {
   EnvelopeIcon,
   UserIcon,
@@ -57,7 +58,16 @@ function LoginCard() {
   const otpRefs = useRef<
     (HTMLInputElement | null)[]
   >([]);
+
   const navigate = useNavigate();
+
+      // Utility function to validate email format
+    const isValidEmail = (email: string): boolean => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Simple regex for email validation
+      return emailRegex.test(email);
+    };
+
+
 
   const handleLogin = async () => {
     try {
@@ -239,7 +249,11 @@ function LoginCard() {
           setError(
             "Unexpected error during sign-up"
           );
+
         }
+      } catch (err) {
+        setLoading(false);
+        console.error("Error verifying OTP:", err)
       }
     };
 
@@ -359,7 +373,13 @@ function LoginCard() {
         );
       }
     }
-  };
+  } catch (err) {
+    setLoading(false);
+    //Changes here
+    console.error("Error Verify Otp Function:", err);
+    setError("Error resetting password. Please try again.");
+  }
+};
 
   return (
     <div className="card card-border bg-white w-[90%] max-w-[28rem] shadow-2xl mx-auto lg:mr-40 opacity-95 hover:opacity-100 transition-opacity duration-300 ease-in-out z-50">
@@ -374,6 +394,7 @@ function LoginCard() {
 
         {!isSignUp &&
         !isForgotPassword ? (
+
           <>
             {/* Login Fields */}
             <div className="relative floating-label">
@@ -391,6 +412,7 @@ function LoginCard() {
                     e.target.value
                   )
                 }
+
               />
             </div>
 
@@ -407,6 +429,7 @@ function LoginCard() {
                     e.target.value
                   )
                 }
+
               />
             </div>
 
@@ -463,8 +486,11 @@ function LoginCard() {
                 }
               >
                 Force OTP View
+
               </button>
             </div>
+
+            {error && <p className="text-red-500 text-center">{error}</p>}
           </>
         ) : isForgotPassword ? (
           <>
@@ -673,6 +699,7 @@ function LoginCard() {
                       e.target.value
                     )
                   }
+
                 />
               </div>
             </div>
@@ -719,6 +746,7 @@ function LoginCard() {
 
             <div className="relative floating-label">
               <span>Password</span>
+
               <div className="relative">
                 <input
                   type="password"

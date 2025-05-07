@@ -33,6 +33,9 @@ def verify_otp_view(request):
     email = request.data.get('email')
     input_code = request.data.get('otp')
 
+    print(f"Received email: {email}")  # Check if the email is being sent from the frontend
+    print(f"Received input_code: {input_code}")  # Check if the OTP is being received
+
     try:
         user = User.objects.get(email=email)
         if verify_otp(user, input_code):
@@ -66,9 +69,7 @@ def signup_view(request):
 
     return Response(result, status=status.HTTP_201_CREATED)
 
-@api_view(['POST'])
-def reset_password_view(request):
-    return Response(reset_password(request.data))
+
 
 #Evaluation View
 @api_view(['GET'])
