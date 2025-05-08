@@ -1,6 +1,7 @@
 import { JSX, useState } from "react";
 import Background from "../assets/Landing Page Assets/Background4.png";
-import NavBar from "../Components/Dashboard Components/Navbar";
+import NavbarHR from "../Components/Dashboard Components/Navbar HR";
+import NavbarStudent from "../Components/Dashboard Components/Navbar Student";
 import DashboardAnimation from "../Components/Dashboard Components/Dashboard Anim";
 
 // Import your view components (create them as needed)
@@ -128,12 +129,23 @@ function Dashboard({
 
         {/* NavBar (passing setActiveView and activeView to update the view state) */}
         <nav className="z-40">
-          <NavBar
-            activeView={activeView}
-            setActiveView={
-              setActiveView
-            }
-          />
+          {role === "Dean" ||
+          role === "HR" ||
+          role === "Program Head" ? (
+            <NavbarHR
+              activeView={activeView}
+              setActiveView={
+                setActiveView
+              }
+            />
+          ) : role === "Student" ? (
+            <NavbarStudent
+              activeView={activeView}
+              setActiveView={
+                setActiveView
+              }
+            />
+          ) : null}
         </nav>
       </div>
     </section>
