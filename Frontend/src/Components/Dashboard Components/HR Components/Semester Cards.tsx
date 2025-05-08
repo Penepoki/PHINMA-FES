@@ -33,7 +33,7 @@ const SemesterCard: React.FC<
       className="flex items-center justify-center backdrop-blur-lg backdrop-hue-rotate-700 rounded-full shadow-2xl hover:scale-105 cursor-pointer"
     >
       <div
-        className="radial-progress h-80 w-80 text-white shadow-2xl"
+        className="radial-progress h-40 w-40 md:h-80 md:w-80 text-white shadow-2xl"
         style={
           {
             "--value": percentage,

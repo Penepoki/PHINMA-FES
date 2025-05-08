@@ -9,7 +9,7 @@ const DashboardAnimation = () => {
         src={Shape_1}
         id="Shape-3"
         alt="Shape"
-        className="absolute top-0 left-[-200px] w-auto h-screen opacity-80 z-10 blur-lg"
+        className="absolute top-0 left-[-200px] w-auto h-screen opacity-80 z-10 blur-lg backdrop"
       />
       <img
         src={Shape_2}

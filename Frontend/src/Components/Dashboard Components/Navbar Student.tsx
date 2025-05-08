@@ -72,7 +72,7 @@ const NavbarStudent: React.FC<
     ${isDockVisible ? "left-4" : "left-2"}
     ${
       isDockVisible
-        ? "bottom-38 md:bottom-20"
+        ? "bottom-20 md:bottom-20"
         : isDockVisible
           ? "bottom-20"
           : "bottom-0"

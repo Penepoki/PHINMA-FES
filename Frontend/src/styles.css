@@ -240,6 +240,7 @@ html {
   border-radius: 0.5rem; /* Tailwind's 'rounded-lg' = 8px */
   z-index: 10;
   @apply shadow-2xl;
+  @apply overflow-y-clip;
 }
 
 .breadcrumbs {
@@ -271,4 +272,7 @@ html {
 
 .tooltip {
   --tt-bg: var(--color-primary);
+}
+.breadcrumbs {
+  @apply overflow-x-clip;
 }

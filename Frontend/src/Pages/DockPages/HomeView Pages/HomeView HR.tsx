@@ -1,16 +1,16 @@
-import SubjectCarousel from "../../../Components/Dashboard Components/Student Components/Subject Cards";
+import CollegeCards from "../../../Components/Dashboard Components/HR Components/College Cards";
 
 const subjects = [
-  { name: "Mathematics", image: null },
-  { name: "Biology", image: null },
-  { name: "Chemistry", image: null },
-  { name: "Chemistry", image: null },
-  { name: "Chemistry", image: null },
-  { name: "Chemistry", image: null },
-  { name: "Chemistry", image: null },
-  { name: "Chemistry", image: null },
-  { name: "Chemistry", image: null },
-  { name: "Chemistry", image: null },
+  { name: "CITE", image: null },
+  { name: "CAHS", image: null },
+  { name: "CMA", image: null },
+  { name: "CCJE", image: null },
+  { name: "COED", image: null },
+  { name: "SHS", image: null },
+  { name: "etc", image: null },
+  { name: "etc", image: null },
+  { name: "etc", image: null },
+  { name: "etc", image: null },
   // ...more subjects
 ];
 
@@ -49,7 +49,7 @@ function Home() {
         <p className="text-gray-300 text-lg mt-0">
           Subject List:
         </p>
-        <SubjectCarousel
+        <CollegeCards
           subjects={subjects}
         />
       </div>

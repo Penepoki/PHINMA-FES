@@ -79,7 +79,7 @@ function Profile({
 
   return (
     <div className="custom-container">
-      <div className="breadcrumbs text-md text-white">
+      <div className="breadcrumbs text-white">
         <ul>
           <li>
             <a
@@ -95,11 +95,11 @@ function Profile({
           </li>
         </ul>
       </div>
-      <div className="profile-page flex flex-col lg:flex-row items-start w-full min-h-screen z-10 gap-6 px-4 py-6 md:px-8 md:py-10">
+      <div className="profile-page flex flex-col md:flex-row justify-center items-center w-full h-full z-10 gap-6 p-4 md:p-8">
         {/* Profile Card Section */}
-        <div className="w-full md:w-1/2 h-full flex flex-col items-center justify-center backdrop-blur-lg p-6 rounded-xl shadow-2xl text-white">
+        <div className="w-full md:w-1/2 h-1/2 md:h-full flex flex-col items-center justify-center backdrop-blur-lg p-6 rounded-xl shadow-2xl text-white">
           <div className="avatar">
-            <div className="w-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+            <div className="w-20 md:w-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
               <img
                 src={ProfilePic}
                 alt="User Avatar"
@@ -114,12 +114,12 @@ function Profile({
           </p>
           <input
             type="file"
-            className="file-input file-input-ghost mt-4"
+            className="file-input file-input-md file-input-primary file-input-ghost file:text-white mt-4"
           />
         </div>
 
         {/* Profile Details Section */}
-        <div className="w-full md:w-1/2 h-full backdrop-blur-lg text-white p-6 rounded-xl shadow-2xl">
+        <div className="w-full md:w-1/2 h-full backdrop-blur-lg text-white p-6 mb-10 rounded-xl shadow-2xl overflow-y-auto overflow-x-clip">
           <h3 className="text-2xl font-bold mb-4">
             Profile Information
           </h3>

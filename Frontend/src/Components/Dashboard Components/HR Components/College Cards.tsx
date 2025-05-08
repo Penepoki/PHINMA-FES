@@ -1,12 +1,12 @@
-type Subject = {
+type College = {
   name: string;
   image?: string | null;
   bgColor?: string;
   textColor?: string;
 };
 
-const SubjectCard: React.FC<
-  Subject
+const CollegeCard: React.FC<
+  College
 > = ({
   name,
   image,
@@ -44,8 +44,8 @@ const SubjectCard: React.FC<
   );
 };
 
-const SubjectCards: React.FC<{
-  subjects: Subject[];
+const CollegeCards: React.FC<{
+  subjects: College[];
 }> = ({ subjects }) => {
   return (
     <>
@@ -57,7 +57,7 @@ const SubjectCards: React.FC<{
               key={idx}
               className="w-full sm:w-1/2 lg:w-1/4"
             >
-              <SubjectCard
+              <CollegeCard
                 {...subject}
               />
             </div>
@@ -68,4 +68,4 @@ const SubjectCards: React.FC<{
   );
 };
 
-export default SubjectCards;
+export default CollegeCards;
