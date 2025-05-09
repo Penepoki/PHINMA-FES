@@ -1,6 +1,7 @@
 import { useState } from "react";
 import SubjectCards from "../../../Components/Dashboard Components/Student Components/Subject Cards";
 import SemesterCard from "../../../Components/Dashboard Components/HR Components/Semester Cards";
+import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 
 function Home() {
   const [openModal, setOpenModal] =
@@ -131,43 +132,24 @@ function Home() {
   return (
     <div className="home-page flex flex-col justify-center items-center w-full h-full gap-y-6 z-10">
       {/* Header */}
-      <header className="flex z-1 w-full h-[15%] pl-12 border-gray-600 border-b-2 shadow-2xl absolute top-0 justify-start items-end backdrop-blur-lg gap-6">
-        <h1 className="text-5xl font-bold text-white sm:text-6xl">
-          Hi, Renzo
-        </h1>
-        <p className="text-lg text-gray-300 sm:text-xl">
-          Welcome to the Home Page
-        </p>
-      </header>
+      <DashboardHeader />
 
       {/* Content */}
-      <div className="flex flex-row items-start justify-center w-auto h-auto overflow-y-auto mt-35 mb-20 md:mr-100 gap-4">
+      <div className="flex flex-col-reverse md:flex-row items-start justify-center w-auto h-auto overflow-y-auto mt-35 md:mr-103 gap-4 ml-3">
         {/* Subject List */}
-        <div className="flex flex-col items-center">
-          <p className="text-gray-300 text-lg">
-            Subject List:
-          </p>
-          <SubjectCards
-            subjects={subjects}
-            onClick={(subjectName) =>
-              setOpenModal(subjectName)
-            }
-            completedSubjects={
-              completedSubjects
-            }
-          />
-        </div>
+
+        <SubjectCards
+          subjects={subjects}
+          onClick={(subjectName) =>
+            setOpenModal(subjectName)
+          }
+          completedSubjects={
+            completedSubjects
+          }
+        />
 
         {/* Progress Bar */}
-        <div
-          className="
-            hidden absolute flex-col
-            justify-center items-center gap-6
-            md:flex
-            mt-16
-            right-25
-          "
-        >
+        <div className="flex md:absolute flex-row md:flex-col justify-center items-center gap-6 w-full md:w-auto md:mt-26 md:right-20">
           {semesterData.map(
             ({ semester, ratio }) => (
               <SemesterCard

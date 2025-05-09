@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import { Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -7,6 +8,7 @@ import {
   Legend,
 } from "chart.js";
 import YearCard from "../../../Components/Dashboard Components/Dean Components/Year Card";
+import Clock from "../../../Components/Dashboard Components/Dean Components/Clock";
 
 const PieChart = () => {
   const data = {
@@ -37,10 +39,10 @@ const PieChart = () => {
   return (
     <div
       className="
-        flex flex-col
-        w-full h-full
-        text-center
-        justify-center items-center
+      flex flex-col
+      w-full h-full
+      text-center
+      justify-center items-center
       "
     >
       <h3
@@ -134,42 +136,16 @@ const Home: React.FC<HomeProps> = ({
         flex flex-col z-10
         w-full h-full
         home-page justify-center items-center
-      "
-    >
-      <header
-        className="
-          flex z-1
-          w-full h-[15%]
-          pl-12
-          border-gray-600 border-b-2
-          shadow-2xl
-          absolute top-0 justify-start items-end backdrop-blur-lg gap-6
         "
-      >
-        <h1
-          className="
-            text-5xl font-bold text-white
-            sm:text-6xl
-          "
-        >
-          Hi, Renzo
-        </h1>
-        <p
-          className="
-            text-lg text-gray-300
-            sm:text-xl
-          "
-        >
-          Welcome to the Home Page
-        </p>
-      </header>
+    >
+      <DashboardHeader />
 
       <p
         className="
-        mt-12  
-        md:mt-20
-          mb-4
-          md:mb-8
+        mt-0
+        md:mt-18
+          mb-2
+          md:mb-6
           text-lg text-gray-300
           sm:text-xl
         "
@@ -182,11 +158,12 @@ const Home: React.FC<HomeProps> = ({
           setActiveView("evaluation")
         }
         className="
-          flex flex-row overflow-x-auto
+          flex flex-row
           w-full h-1/3
           items-center justify-center hover:scale-101
           sm:h-[30vh]
           shadow-2xl
+    
         "
       >
         <div
@@ -262,20 +239,7 @@ const Home: React.FC<HomeProps> = ({
           text-center
         "
       >
-        <p
-          className="
-            text-lg text-gray-300
-            sm:text-xl
-            mb-3
-            md:mb-8
-            md:mt-3
-
-          "
-        >
-          Current SFF Status: Time and
-          date
-        </p>
-
+        <Clock />
         {/* Desktop View (Grid) */}
         <div
           className="

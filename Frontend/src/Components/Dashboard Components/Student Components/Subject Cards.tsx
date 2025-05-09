@@ -66,23 +66,34 @@ const SubjectCards: React.FC<{
   completedSubjects,
 }) => {
   return (
-    <div className="flex flex-wrap justify-center gap-6 mx-6 md:mx-0 mt-6">
-      {subjects.map((subject, idx) => (
-        <div
-          key={idx}
-          className="w-full sm:w-1/2 lg:w-1/4"
-        >
-          <SubjectCard
-            {...subject}
-            onClick={() =>
-              onClick?.(subject.name)
-            }
-            isCompleted={completedSubjects.has(
-              subject.name
-            )}
-          />
+    <div className="w-full bg-black/15 rounded-xl">
+      <div className="flex flex-col items-center">
+        <p className="text-gray-300 text-xl mt-6">
+          Subject List:
+        </p>
+        <div className="flex flex-wrap justify-center px-6 md:px-0 gap-6 py-6 md:mt-6">
+          {subjects.map(
+            (subject, idx) => (
+              <div
+                key={idx}
+                className="w-full sm:w-1/2 lg:w-1/4"
+              >
+                <SubjectCard
+                  {...subject}
+                  onClick={() =>
+                    onClick?.(
+                      subject.name
+                    )
+                  }
+                  isCompleted={completedSubjects.has(
+                    subject.name
+                  )}
+                />
+              </div>
+            )
+          )}
         </div>
-      ))}
+      </div>
     </div>
   );
 };

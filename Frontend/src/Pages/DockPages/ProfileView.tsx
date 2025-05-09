@@ -99,7 +99,7 @@ function Profile({
         {/* Profile Card Section */}
         <div className="w-full md:w-1/2 h-full flex flex-col items-center justify-center backdrop-blur-lg p-6 rounded-xl shadow-2xl text-white">
           <div className="avatar">
-            <div className="w-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+            <div className="w-20 md:w-46 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
               <img
                 src={ProfilePic}
                 alt="User Avatar"
@@ -119,7 +119,7 @@ function Profile({
         </div>
 
         {/* Profile Details Section */}
-        <div className="w-full md:w-1/2 h-full backdrop-blur-lg text-white p-6 rounded-xl shadow-2xl">
+        <div className="w-full md:w-1/2 h-full backdrop-blur-lg text-white p-6 rounded-xl shadow-2xl overflow-y-auto overflow-x-clip">
           <h3 className="text-2xl font-bold mb-4">
             Profile Information
           </h3>

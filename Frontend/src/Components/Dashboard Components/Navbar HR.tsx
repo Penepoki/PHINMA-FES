@@ -119,7 +119,7 @@ const NavbarHR: React.FC<
       >
         {/* Primary Dock */}
         <div
-          className={`dock dock-xl w-[95%] mx-auto bottom-2 rounded-xl shadow-2xl transition-transform duration-300 ease-in-out z-[500] ${
+          className={`dock dock-xl w-[95%] mx-auto bottom-2 rounded-xl shadow-2xl transition-transform duration-300 ease-in-out z-[500] border-1 border-[#1c402a] ${
             isDockVisible
               ? "translate-x-0"
               : "-translate-x-full"
@@ -183,7 +183,7 @@ const NavbarHR: React.FC<
         {/* Secondary Dock */}
         {secondaryDockVisible && (
           <div
-            className={`dock dock-lg w-[90%] mx-auto bottom-23 rounded-xl shadow-xl transition-all duration-500 ease-in-out z-[499] 
+            className={`dock dock-lg w-[90%] mx-auto bottom-23 rounded-xl shadow-xl transition-all duration-500 ease-in-out z-[499] border-1 border-[#1c402a]
           ${
             isDockVisible
               ? "translate-x-0 translate-y-0 opacity-100"

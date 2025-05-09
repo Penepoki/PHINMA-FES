@@ -62,6 +62,13 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'hrapp',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+    )
+}
+
 AUTH_USER_MODEL = "hrapp.user"
 JAZZMIN_SETTINGS = {
     "site_title": "Admin Dashboard",

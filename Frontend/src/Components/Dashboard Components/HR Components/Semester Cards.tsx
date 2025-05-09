@@ -30,7 +30,7 @@ const SemesterCard: React.FC<
       onClick={() =>
         setActiveView?.("studentEval")
       }
-      className="flex items-center justify-center backdrop-blur-lg backdrop-hue-rotate-700 rounded-full shadow-2xl hover:scale-105 cursor-pointer"
+      className="flex items-center justify-center backdrop-blur-lg backdrop-hue-rotate-700 rounded-full shadow-2xl"
     >
       <div
         className="radial-progress h-80 w-80 text-white shadow-2xl"

@@ -33,7 +33,7 @@ const YearCard: React.FC<
       className="flex items-center justify-center backdrop-blur-lg backdrop-hue-rotate-700 rounded-full shadow-2xl hover:scale-105 cursor-pointer"
     >
       <div
-        className="radial-progress h-64 w-64 md:h-[14vw] md:w-[14vw] text-white shadow-2xl"
+        className="radial-progress h-60 w-60 md:h-[14vw] md:w-[14vw] text-white shadow-2xl"
         style={
           {
             "--value": percentage,
