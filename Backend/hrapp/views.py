@@ -1,5 +1,5 @@
 from urllib import request
-
+from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from .utils import *
 from rest_framework import status
 from django.contrib.auth import get_user_model
+from utils.evaluation_utils import *
+from django.views.decorators.http import require_http_methods
 
 User = get_user_model()
 
@@ -98,3 +100,21 @@ def user_view_dashboard(request):
 @permission_classes([IsAuthenticated])
 def user_view_profile(request):
     return Response(user_profile(request))
+
+
+
+
+@require_http_methods(["POST"])
+@login_required
+@role_required(allowed_roles=["HR", "Dean", "Program Head"],
+               required_permission="add_evaluation")
+@permission_required("hrapp.add_evaluation", raise_exception=True)
+def create_evaluation_view(request):
+    #Parse data (JSON payload current)
+    data = request.POST.dict()
+    try:
+        evaluation = create_evaluation(data)
+        return JsonResponse({"message": " Copus evaluation successfuly", "id": evaluation.id},
+            status=201)
+    except Exception as e:
+        return JsonResponse({"message": str(e)}, status=400)
