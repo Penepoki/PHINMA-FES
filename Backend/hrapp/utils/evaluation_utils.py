@@ -1,11 +1,9 @@
-from hrapp.models import Evaluation, User
+from hrapp.models import Evaluation, EvaluationEvaluator, EvaluationInstructor
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
-from django.http import JsonResponse
-from django.core.exceptions import PermissionDenied
-from django.contrib.auth.models import Permission
-from django.db.models import Prefetch
+
+
 
 
 def format_evaluation(evaluation):
@@ -20,35 +18,45 @@ def format_evaluation(evaluation):
         'student_comments': evaluation.student_comments or [],
         'instructor_comments': evaluation.instructor_comments or [],
         'date': evaluation.observation_date,
+
     }
 
+def format_multiple_evaluations(evaluations):
+    return [format_evaluation(evaluation) for evaluation in evaluations]
 
 
-def get_latest_evaluation():
-    try:
-        evaluation = Evaluation.objects.prefetch_related('evaluators', 'instructors').latest('id')
-        return {'data': format_evaluation(evaluation)}
 
-    except Evaluation.DoesNotExist:
-        return {'error': 'No evaluations found'}
-
+#CRUD BELOW
+#CREATE
+#-------------------------------------------------------------
 def create_evaluation(data):
     evaluators = data.pop('evaluators', [])
     instructors = data.pop('instructors', [])
 
+    # In case of failure, the database remains unchanged
     with transaction.atomic():
-        # In case of failure, the database remains unchanged
+
+        # Create the evaluation
         evaluation = Evaluation.objects.create(**data)
 
-        # Safely link related objects
-        evaluation.evaluators.set(evaluators)
-        evaluation.instructors.set(instructors)
+        # Manually link evaluators through the EvaluationEvaluator model
+        for evaluator in evaluators:
+            EvaluationEvaluator.objects.create(evaluation=evaluation,
+                evaluator=evaluator)
+
+       # Manually link instructors through the EvaluationInstructor model
+        for instructor in instructors:
+            EvaluationInstructor.objects.create(evaluation=evaluation,
+                instructor=instructor)
 
     return evaluation
+#----------------------------------------------------------------
 
-
+#UPDATE
+#-------------------------------------------------------
 def update_evaluation(evaluation_id, data):
-    evaluation = get_object_or_404(Evaluation, pk=evaluation_id, is_deleted=False)
+    evaluation = get_object_or_404(Evaluation, pk=evaluation_id,
+            is_deleted=False)
 
     evaluators = data.pop("evaluators", None)
     instructors = data.pop("instructors", None)
@@ -59,16 +67,32 @@ def update_evaluation(evaluation_id, data):
             if hasattr(evaluation, field):
                 setattr(evaluation, field, value)
 
+        # Update evaluators
         if evaluators is not None:
-            evaluation.evaluators.set(evaluators)
+            # Clear old Relationships evaluator
+            EvaluationEvaluator.objects.filter(evaluation=evaluation).delete()
+            # Add new Relationship
+            for evaluator in evaluators:
+                EvaluationEvaluator.objects.create(evaluation=evaluation,
+                    evaluator=evaluator)
+        #Update instructors
         if instructors is not None:
-            evaluation.instructors.set(instructors)
+            # Clear old Relationship for instructor
+            EvaluationInstructor.objects.filter(
+                evaluation=evaluation
+            ).delete()
+            # Add new Relationship
+            for instructor in instructors:
+                EvaluationInstructor.objects.create(evaluation=evaluation,
+                    instructor=instructor)
 
         evaluation.save()
 
     return evaluation
+#--------------------------------------------------------
 
-
+#DELETE (The app does SOFT DELETE
+#--------------------------------------------------------
 def delete_evaluation(evaluation_id, soft_delete=True):
     evaluation = get_object_or_404(Evaluation, pk=evaluation_id)
 
@@ -83,7 +107,8 @@ def delete_evaluation(evaluation_id, soft_delete=True):
         evaluation.delete()  # Hard delete
     return evaluation
 
-
+#RESTORE (FOR DELETED DATAS
+#----------------------------------------------------------
 def restore_evaluation(evaluation_id):
     evaluation = get_object_or_404(Evaluation, pk=evaluation_id, is_deleted=True)
 
@@ -94,46 +119,33 @@ def restore_evaluation(evaluation_id):
     evaluation.is_deleted = False
     evaluation.save()
     return evaluation
+#-----------------------------------------------------------
 
-
+#READ or RETRIEVE
+#-----------------------------------------------------------
 def get_evaluations(active_only=True):
 
     if active_only:
         return Evaluation.objects.filter(is_deleted=False)
     return Evaluation.objects.all()
 
-
-def get_all_evaluations(request=None):  # Add `request` param even if unused
-    # your code...
-    return {"message": "All evaluations"}  # dummy example
-
-#Custom Decorators related to Evaluation and User. For permissions of CRUD and other restricted Functions Look Here!
-def role_required(allowed_roles, required_permission=None):
-    def decorator(view_func):
-        def wrapper(request, *args, **kwargs):
-            if not request.user.is_authenticated:
-                return JsonResponse({"Unauthorized"}, status=401)
-
-            user_groups = request.user.groups.filter(
-                name__in=allowed_roles)
-            if not user_groups.exists():
-                raise PermissionDenied("You don't have permission to access this resource.")
-
-            # Dynamically check if any of the user's groups has the required permission
-            if required_permission:
-                has_permission = (
-                    Permission.objects.filter(
-                        group__in=user_groups,
-                        codename=required_permission
-                    ).exists()
-                )
-                if not has_permission:
-                    raise PermissionDenied("You don't have permission to access this resource.")
+def get_evaluations_deleted_included():
+    evaluations = Evaluation.objects.prefetch_related('evaluators', 'instructors').all()
+    if evaluations.exists():
+        return {'data': format_multiple_evaluations(evaluations)}
+    return {'error': 'No evaluations found'}
 
 
+#READ or RETRIEVE for latest, single data and the max ID
+def get_latest_evaluation():
+    try:
+        evaluation = Evaluation.objects.prefetch_related('evaluators', 'instructors').latest('id')
+        return {'data': format_evaluation(evaluation)}
 
-            return view_func(request, *args, **kwargs)
+    except Evaluation.DoesNotExist:
+        return {'error': 'No evaluations found'}
+#----------------------------------------------------------
 
-        return wrapper
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#END OF CRUD CODE
 
-    return decorator
