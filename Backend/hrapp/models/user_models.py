@@ -38,13 +38,15 @@ class User(AbstractUser):
     supervisor = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)
     is_deleted = models.BooleanField(default=False)
 
+    #ByteISO or Image (Profile PICTURE!!!)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
+
 
     def restore(self):
         """Restore a soft-deleted user."""
         self.is_deleted = False
         self.save()
     objects = UserManager()  # Custom manager   # Only active users
-
     all_objects = models.Manager()  # this to get all users (including deleted)
     active_objects = ActiveManager()
     soft_deleted_objects = SoftDeleteManager()

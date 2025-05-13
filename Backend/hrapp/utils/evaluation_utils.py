@@ -1,6 +1,7 @@
 from hrapp.models import *
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from hrapp.serializers import EvaluationSerializer
 from django.db import transaction
 
 
@@ -33,9 +34,11 @@ def create_evaluation(data):
     evaluators = data.pop('evaluators', [])
     instructors = data.pop('instructors', [])
 
+    serializer = EvaluationSerializer(data=data)
+    serializer.is_valid(raise_exception=True)
     # In case of failure, the database remains unchanged
     with transaction.atomic():
-
+        evaluation = serializer.save()
         # Create the evaluation
         evaluation = Evaluation.objects.create(**data)
 
@@ -63,9 +66,8 @@ def update_evaluation(evaluation_id, data):
 
     with transaction.atomic():
         # Ensure atomic update
-        for field, value in data.items():
-            if hasattr(evaluation, field):
-                setattr(evaluation, field, value)
+        serializer = EvaluationSerializer(evaluation, data=data, partial=True)
+        updated_evaluation = serializer.save()
 
         # Update evaluators
         if evaluators is not None:
@@ -86,9 +88,9 @@ def update_evaluation(evaluation_id, data):
                 EvaluationInstructor.objects.create(evaluation=evaluation,
                     instructor=instructor)
 
-        evaluation.save()
 
-    return evaluation
+
+    return updated_evaluation
 #--------------------------------------------------------
 
 #DELETE (The app does SOFT DELETE
@@ -127,20 +129,29 @@ def get_evaluations(active_only=True):
 
     if active_only:
         return Evaluation.objects.filter(is_deleted=False)
-    return Evaluation.objects.all()
+    else:
+        evaluations = Evaluation.objects.all()
+
+    serializer = EvaluationSerializer(evaluations, many=True)
+    return serializer.data
 
 def get_evaluations_deleted_included():
     evaluations = Evaluation.objects.prefetch_related('evaluators', 'instructors').all()
     if evaluations.exists():
-        return {'data': format_multiple_evaluations(evaluations)}
+        serializer = EvaluationSerializer(evaluations, many=True)
+        return {'data': serializer.data}
+
     return {'error': 'No evaluations found'}
 
 
 #READ or RETRIEVE for latest, single data and the max ID
 def get_latest_evaluation():
     try:
-        evaluation = Evaluation.objects.prefetch_related('evaluators', 'instructors').latest('id')
-        return {'data': format_evaluation(evaluation)}
+        evaluation = Evaluation.objects.prefetch_related(
+            'evaluators', 'instructors'
+        ).latest('id')
+        serializer = EvaluationSerializer(evaluation)
+        return {'data': serializer.data}
 
     except Evaluation.DoesNotExist:
         return {'error': 'No evaluations found'}

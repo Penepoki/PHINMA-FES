@@ -9,6 +9,7 @@ from hrapp.utils.decorators import *
 from rest_framework import status, viewsets
 from django.contrib.auth import get_user_model
 from django.views.decorators.http import require_http_methods
+from hrapp.serializers.user_serializer import *
 import json
 
 
@@ -49,8 +50,6 @@ def verify_otp_view(request):
         return Response({'message': 'User does not exist'}, status=404)
 
 
-
-
 @api_view(['POST'])
 def set_new_password_view(request):
     email = request.data.get('email')
@@ -73,25 +72,21 @@ def signup_view(request):
 
     return Response(result, status=status.HTTP_201_CREATED)
 
-
-
-
-
-
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_view_dashboard(request):
     #Returns the basic info of the currently logged user
-    user_data = user_dashboard(request)
-    return Response(user_data)
+    user = request.user
+    serializer = UserSerializer(user, context={'request': request})
+    return Response(serializer.data)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_view_profile(request):
-    return Response(user_profile(request))
+    user = request.user
+    serializer = UserSerializer(user, context={'request': request})
+    return Response(serializers.data)
 
 #Evaluation View
 #CRUD BELOW
