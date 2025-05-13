@@ -1,101 +1,82 @@
 type Subject = {
-  name: string;
-  image?: string | null;
-  bgColor?: string;
-  textColor?: string;
+	name: string;
+	image?: string | null;
+	bgColor?: string;
+	textColor?: string;
 };
 
 const SubjectCard: React.FC<
-  Subject & {
-    onClick?: () => void;
-    isCompleted: boolean;
-  }
+	Subject & {
+		onClick?: () => void;
+		isCompleted: boolean;
+	}
 > = ({
-  name,
-  image,
-  bgColor = "backdrop-hue-700",
-  textColor = "text-white",
-  onClick,
-  isCompleted,
+	name,
+	image,
+	bgColor = "backdrop-hue-700",
+	textColor = "text-white",
+	onClick,
+	isCompleted,
 }) => {
-  return (
-    <div
-      onClick={onClick}
-      className={`flex flex-col justify-center items-center w-full h-full p-5 backdrop-blur-lg backdrop-hue-rotate-100 rounded-xl shadow-2xl hover:scale-105 cursor-pointer transition-transform ${
-        isCompleted
-          ? "backdrop-hue-rotate-700"
-          : bgColor
-      }`}
-    >
-      <div className="flex flex-col items-center">
-        <div className="text-neutral-content size-30 rounded-full flex items-center justify-center">
-          {image ? (
-            <img
-              src={image}
-              alt={name}
-              className="w-full h-full rounded-full object-cover"
-            />
-          ) : (
-            <span className="text-[80px]">
-              {name?.charAt(0) || "?"}
-            </span>
-          )}
-        </div>
+	return (
+		<div
+			onClick={onClick}
+			className={`flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-xl p-5 shadow-2xl backdrop-blur-lg backdrop-hue-rotate-100 transition-transform hover:scale-105 ${
+				isCompleted ? "backdrop-hue-rotate-700" : bgColor
+			}`}
+		>
+			<div className="flex flex-col items-center">
+				<div className="text-neutral-content flex size-30 items-center justify-center rounded-full">
+					{image ? (
+						<img
+							src={image}
+							alt={name}
+							className="h-full w-full rounded-full object-cover"
+						/>
+					) : (
+						<span className="text-[80px]">
+							{name?.charAt(0) || "?"}
+						</span>
+					)}
+				</div>
 
-        <div className="mt-4 text-center">
-          <span
-            className={`text-3xl font-bold ${isCompleted ? "text-white" : textColor}`}
-          >
-            {name}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+				<div className="mt-4 text-center">
+					<span
+						className={`text-3xl font-bold ${isCompleted ? "text-white" : textColor}`}
+					>
+						{name}
+					</span>
+				</div>
+			</div>
+		</div>
+	);
 };
 
 const SubjectCards: React.FC<{
-  subjects: Subject[];
-  onClick?: (
-    subjectName: string
-  ) => void;
-  completedSubjects: Set<string>;
-}> = ({
-  subjects,
-  onClick,
-  completedSubjects,
-}) => {
-  return (
-    <div className="w-full bg-black/15 rounded-xl">
-      <div className="flex flex-col items-center">
-        <p className="text-gray-300 text-xl mt-6">
-          Subject List:
-        </p>
-        <div className="flex flex-wrap justify-center px-6 md:px-0 gap-6 py-6 md:mt-6">
-          {subjects.map(
-            (subject, idx) => (
-              <div
-                key={idx}
-                className="w-full sm:w-1/2 lg:w-1/4"
-              >
-                <SubjectCard
-                  {...subject}
-                  onClick={() =>
-                    onClick?.(
-                      subject.name
-                    )
-                  }
-                  isCompleted={completedSubjects.has(
-                    subject.name
-                  )}
-                />
-              </div>
-            )
-          )}
-        </div>
-      </div>
-    </div>
-  );
+	subjects: Subject[];
+	onClick?: (subjectName: string) => void;
+	completedSubjects: Set<string>;
+}> = ({ subjects, onClick, completedSubjects }) => {
+	return (
+		<div className="w-full rounded-xl bg-black/15">
+			<div className="flex flex-col items-center">
+				<p className="mt-6 text-xl text-gray-300">Subject List:</p>
+				<div className="flex flex-wrap justify-center gap-6 px-6 py-6 md:mt-6 md:px-0">
+					{subjects.map((subject, idx) => (
+						<div key={idx} className="w-full sm:w-1/2 lg:w-1/4">
+							<SubjectCard
+								{...subject}
+								onClick={() => onClick?.(subject.name)}
+								isCompleted={completedSubjects.has(
+									subject.name,
+								)}
+							/>
+						</div>
+					))}
+				</div>
+			</div>
+		</div>
+	);
 };
 
 export default SubjectCards;

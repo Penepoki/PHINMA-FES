@@ -1,291 +1,266 @@
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { FunnelIcon } from "@heroicons/react/24/solid";
 
 interface CreateStudentEvalProps {
-  setActiveView: (view: string) => void;
+	setActiveView: (view: string) => void;
 }
 
 interface User {
-  id: number;
-  name: string;
+	id: number;
+	name: string;
 }
 
-function CreateStudentEvaluation({
-  setActiveView,
-}: CreateStudentEvalProps) {
-  return (
-    <div className="custom-container gap-y-6">
-      {/* Breadcrumbs */}
-      <div className="breadcrumbs">
-        <ul>
-          <li>
-            <a
-              onClick={() =>
-                setActiveView("home")
-              }
-            >
-              Home
-            </a>
-          </li>
-          <li>
-            <a
-              onClick={() =>
-                setActiveView(
-                  "evaluation"
-                )
-              }
-            >
-              Evaluation
-            </a>
-          </li>
-          <li>
-            Create Student Evaluations
-          </li>
-        </ul>
-      </div>
-      <h2 className="text-3xl font-bold mt-4 text-white ">
-        Create Student Evaluation
-      </h2>
-      {/* Create New Evaluation Button */}
+function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
+	return (
+		<div className="custom-container gap-y-6">
+			{/* Breadcrumbs */}
+			<div className="breadcrumbs">
+				<ul>
+					<li>
+						<a onClick={() => setActiveView("home")}>Home</a>
+					</li>
+					<li>
+						<a onClick={() => setActiveView("evaluation")}>
+							Evaluation
+						</a>
+					</li>
+					<li>Create Student Evaluations</li>
+				</ul>
+			</div>
+			<h2 className="mt-4 text-3xl font-bold text-white">
+				Create Student Evaluation
+			</h2>
+			{/* Create New Evaluation Button */}
 
-      <div className="flex w-full justify-center md:justify-end items-start pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
-        <button
-          onClick={() =>
-            (
-              document.getElementById(
-                "create_student_eval"
-              ) as HTMLDialogElement
-            )?.showModal()
-          }
-          className="flex bg-[#1c402a] shadow-xl text-white w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
-        >
-          Create New Student Evaluation
-        </button>
-        <dialog
-          id="create_student_eval"
-          className="modal"
-        >
-          <div className="modal-box w-11/12 max-w-5xl">
-            <h3 className="font-bold text-2xl mb-4 text-center">
-              New Student Evaluation
-            </h3>
+			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl md:justify-end">
+				<button
+					onClick={() =>
+						(
+							document.getElementById(
+								"create_student_eval",
+							) as HTMLDialogElement
+						)?.showModal()
+					}
+					className="flex w-auto rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105"
+				>
+					Create New Student Evaluation
+				</button>
+				<dialog id="create_student_eval" className="modal">
+					<div className="modal-box w-11/12 max-w-5xl">
+						<h3 className="mb-4 text-center text-2xl font-bold">
+							New Student Evaluation
+						</h3>
 
-            <form
-              method="dialog"
-              className="flex flex-col gap-6"
-            >
-              {/* Schedule */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Schedule:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter schedule"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+						<form method="dialog" className="flex flex-col gap-6">
+							{/* Schedule */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Schedule:
+								</label>
+								<input
+									type="text"
+									placeholder="Enter schedule"
+									className="input input-bordered w-full"
+									required
+								/>
+							</div>
 
-              {/* Title */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Title:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter title"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+							{/* Title */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Title:
+								</label>
+								<input
+									type="text"
+									placeholder="Enter title"
+									className="input input-bordered w-full"
+									required
+								/>
+							</div>
 
-              {/* Description */}
-              <div className="flex flex-col md:flex-row md:items-start gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left pt-2">
-                  Description:
-                </label>
-                <textarea
-                  placeholder="Enter description"
-                  className="textarea textarea-bordered w-full"
-                  required
-                />
-              </div>
+							{/* Description */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-start">
+								<label className="pt-2 text-left text-lg font-bold md:w-1/4">
+									Description:
+								</label>
+								<textarea
+									placeholder="Enter description"
+									className="textarea textarea-bordered w-full"
+									required
+								/>
+							</div>
 
-              {/* Questions */}
-              <div className="flex flex-col md:flex-row md:items-start gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left pt-2">
-                  Questions:
-                </label>
-                <textarea
-                  placeholder="Enter questions separated by commas"
-                  className="textarea textarea-bordered w-full"
-                  required
-                />
-              </div>
+							{/* Questions */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-start">
+								<label className="pt-2 text-left text-lg font-bold md:w-1/4">
+									Questions:
+								</label>
+								<textarea
+									placeholder="Enter questions separated by commas"
+									className="textarea textarea-bordered w-full"
+									required
+								/>
+							</div>
 
-              {/* Type */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Type:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter type (e.g., Midterm, Final)"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+							{/* Type */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Type:
+								</label>
+								<input
+									type="text"
+									placeholder="Enter type (e.g., Midterm, Final)"
+									className="input input-bordered w-full"
+									required
+								/>
+							</div>
 
-              {/* Action Buttons */}
-              <div className="modal-action">
-                <button
-                  type="submit"
-                  className="btn btn-success text-white"
-                >
-                  Submit
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-cancel"
-                  onClick={() =>
-                    (
-                      document.getElementById(
-                        "create_student_eval"
-                      ) as HTMLDialogElement
-                    )?.close()
-                  }
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </dialog>
-      </div>
+							{/* Action Buttons */}
+							<div className="modal-action">
+								<button
+									type="submit"
+									className="btn btn-success text-white"
+								>
+									Submit
+								</button>
+								<button
+									type="button"
+									className="btn btn-cancel"
+									onClick={() =>
+										(
+											document.getElementById(
+												"create_student_eval",
+											) as HTMLDialogElement
+										)?.close()
+									}
+								>
+									Cancel
+								</button>
+							</div>
+						</form>
+					</div>
+				</dialog>
+			</div>
 
-      {/* Search and Filter */}
-      <div className="flex w-full justify-center items-start pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
-        <input
-          type="text"
-          className="input w-full max-w-md border border-gray-300 rounded-lg"
-          placeholder="Search"
-        />
-        <div className="dropdown dropdown-end ml-2">
-          <div
-            tabIndex={0}
-            role="button"
-            className="btn shadow-xl bg-[#1c402a] border-0 text-white"
-          >
-            <FunnelIcon className="h-5 w-5" />
-          </div>
-          <ul
-            tabIndex={0}
-            className="dropdown-content menu bg-base-100 rounded-box z-10 w-52 p-2 shadow-sm"
-          >
-            <li>
-              <a href="#">Item 1</a>
-            </li>
-            <li>
-              <a href="#">Item 2</a>
-            </li>
-          </ul>
-        </div>
-      </div>
+			{/* Search and Filter */}
+			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
+				<input
+					type="text"
+					className="input w-full max-w-md rounded-lg border border-gray-300"
+					placeholder="Search"
+				/>
+				<div className="dropdown dropdown-end ml-2">
+					<div
+						tabIndex={0}
+						role="button"
+						className="btn border-0 bg-[#1c402a] text-white shadow-xl"
+					>
+						<FunnelIcon className="h-5 w-5" />
+					</div>
+					<ul
+						tabIndex={0}
+						className="dropdown-content menu bg-base-100 rounded-box z-10 w-52 p-2 shadow-sm"
+					>
+						<li>
+							<a href="#">Item 1</a>
+						</li>
+						<li>
+							<a href="#">Item 2</a>
+						</li>
+					</ul>
+				</div>
+			</div>
 
-      {/* Table Section */}
-      <div className="overflow-x-auto w-full text-white backdrop-blur-lg shadow-xl">
-        <table className="table">
-          {/* head */}
-          <thead className="text-white text-xl font-bold bg-[#1c402a]/50 shadow-xl">
-            <tr>
-              <th>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="checkbox"
-                />
-              </th>
-              <th>Title</th>
-              <th></th>
-              <th></th>
-              <th>Publish</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody className="text-gray-300 text-lg">
-            {/* row 1 */}
-            <tr className="hover:bg-[#1b2e3e]/50">
-              <td>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="checkbox"
-                />
-              </td>
-              <td>Renzo Cua</td>
-              <td></td>
-              <td></td>
-              <td>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="toggle"
-                />
-              </td>
-              <td>Edit</td>
-            </tr>
-            {/* row 2 */}
-            <tr className="hover:bg-[#1b2e3e]/50">
-              <td>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="checkbox"
-                />
-              </td>
-              <td>Martin Espineda</td>
-              <td></td>
-              <td></td>
-              <td>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="toggle"
-                />
-              </td>
-              <td>Edit</td>
-            </tr>
-            {/* row 3 */}
-            <tr className="hover:bg-[#1b2e3e]/50">
-              <td>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="checkbox"
-                />
-              </td>
-              <td>Chester Espineda</td>
-              <td></td>
-              <td></td>
-              <td>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="toggle"
-                />
-              </td>
-              <td>Edit</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+			{/* Table Section */}
+			<div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg">
+				<table className="table">
+					{/* head */}
+					<thead className="bg-[#1c402a]/50 text-xl font-bold text-white shadow-xl">
+						<tr>
+							<th>
+								<input
+									type="checkbox"
+									defaultChecked
+									className="checkbox"
+								/>
+							</th>
+							<th>Title</th>
+							<th></th>
+							<th></th>
+							<th>Publish</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody className="text-lg text-gray-300">
+						{/* row 1 */}
+						<tr className="hover:bg-[#1b2e3e]/50">
+							<td>
+								<input
+									type="checkbox"
+									defaultChecked
+									className="checkbox"
+								/>
+							</td>
+							<td>Renzo Cua</td>
+							<td></td>
+							<td></td>
+							<td>
+								<input
+									type="checkbox"
+									defaultChecked
+									className="toggle"
+								/>
+							</td>
+							<td>Edit</td>
+						</tr>
+						{/* row 2 */}
+						<tr className="hover:bg-[#1b2e3e]/50">
+							<td>
+								<input
+									type="checkbox"
+									defaultChecked
+									className="checkbox"
+								/>
+							</td>
+							<td>Martin Espineda</td>
+							<td></td>
+							<td></td>
+							<td>
+								<input
+									type="checkbox"
+									defaultChecked
+									className="toggle"
+								/>
+							</td>
+							<td>Edit</td>
+						</tr>
+						{/* row 3 */}
+						<tr className="hover:bg-[#1b2e3e]/50">
+							<td>
+								<input
+									type="checkbox"
+									defaultChecked
+									className="checkbox"
+								/>
+							</td>
+							<td>Chester Espineda</td>
+							<td></td>
+							<td></td>
+							<td>
+								<input
+									type="checkbox"
+									defaultChecked
+									className="toggle"
+								/>
+							</td>
+							<td>Edit</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	);
 }
 
 export default CreateStudentEvaluation;

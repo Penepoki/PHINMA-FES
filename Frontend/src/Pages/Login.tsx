@@ -5,26 +5,26 @@ import { AnimatedHeading } from "../Components/Login Components/Landing Page Ani
 import LoginCard from "../Components/Login Components/Login Card.tsx";
 
 function Login() {
-  return (
-    <section id="login-section" data-theme="SJC">
-      {/* Background Animation */}
-      <BackgroundAnimation />
+	return (
+		<section id="login-section" data-theme="SJC">
+			{/* Background Animation */}
+			<BackgroundAnimation />
 
-      {/* Login Background */}
-      <div
-        className="min-h-screen flex justify-center items-center text-center bg-cover bg-center"
-        style={{ backgroundImage: `url(${Background})` }}
-      >
-        <LoginHeader />
+			{/* Login Background */}
+			<div
+				className="flex min-h-screen items-center justify-center bg-cover bg-center text-center"
+				style={{ backgroundImage: `url(${Background})` }}
+			>
+				<LoginHeader />
 
-        {/* Using AnimatedHeading here */}
-        <AnimatedHeading />
+				{/* Using AnimatedHeading here */}
+				<AnimatedHeading />
 
-        {/* Login or SignUp Form */}
-        <LoginCard />
-      </div>
-    </section>
-  );
+				{/* Login or SignUp Form */}
+				<LoginCard />
+			</div>
+		</section>
+	);
 }
 
 export default Login;
