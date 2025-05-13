@@ -7,9 +7,8 @@ urlpatterns = [
 
     path('signup/', signup_view),
 
-    path('latest-evaluation/', latest_evaluation),
+    path('latest-evaluation/', get_latest_evaluation),
 
-    path('all-evaluation/', get_evaluations),
 
     path('user-dashboard/', user_view_dashboard, name='user-dashboard'),
 
