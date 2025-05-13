@@ -77,7 +77,7 @@ def signup_view(request):
 def user_view_dashboard(request):
     #Returns the basic info of the currently logged user
     user = request.user
-    serializer = UserSerializer(user, context={'request': request})
+    serializer = UserDashboardSerializer(user, context={'request': request})
     return Response(serializer.data)
 
 
