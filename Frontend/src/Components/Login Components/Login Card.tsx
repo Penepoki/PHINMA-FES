@@ -27,6 +27,7 @@ function LoginCard() {
 	const navigate = useNavigate();
 
 	const handleLogin = async () => {
+		setIsLoading(true); // Start loading
 		try {
 			const response = await axios.post(
 				"http://127.0.0.1:8000/api/login/",
@@ -59,11 +60,18 @@ function LoginCard() {
 		} catch (error) {
 			console.error("Login failed:", error);
 			setError("Handle Error");
+		} finally {
+			setIsLoading(false); // Stop loading
 		}
 	};
 
 	const handleSignUp = async () => {
+		setIsLoading(true); // Start loading
 		try {
+			if (password !== confirmSignupPassword) {
+				setError("Passwords do not match");
+				return;
+			}
 			const response = await axios.post(
 				"http://127.0.0.1:8000/api/signup/",
 				{
@@ -90,12 +98,14 @@ function LoginCard() {
 			} else {
 				setError("Unexpected error during sign-up");
 			}
+		} finally {
+			setIsLoading(false); // Stop loading
 		}
 	};
 
 	const handleResetPassword = async () => {
+		setIsLoading(true); // Start loading
 		try {
-			// example: send request to your API to send OTP
 			await axios.post("http://127.0.0.1:8000/api/forgot-password/", {
 				email,
 			});
@@ -103,6 +113,8 @@ function LoginCard() {
 		} catch (error) {
 			console.error(error);
 			setError("Failed to send OTP");
+		} finally {
+			setIsLoading(false); // Stop loading
 		}
 	};
 
@@ -197,6 +209,7 @@ function LoginCard() {
 	const verifyOtp = async () => {
 		const enteredOtp = otp.join("");
 		console.log("Verifying OTP:", enteredOtp);
+		setIsLoading(true); // Start loading
 
 		try {
 			const response = await axios.post(
@@ -206,7 +219,7 @@ function LoginCard() {
 					otp: enteredOtp,
 				},
 			);
-			if (response.data.mesage == "OTP verified") {
+			if (response.data.message === "OTP verified") {
 				setIsOtpVerified(true);
 				setError("");
 			} else {
@@ -217,12 +230,18 @@ function LoginCard() {
 			if (error.response?.status === 400) {
 				setError("Missing required fields");
 			} else if (error.response?.status === 409) {
-				setError("Username already exists");
+				setError("Username does not exist");
 			} else {
-				setError("Unexpected error during sign-up");
+				setError("Unexpected error during OTP verification");
 			}
+		} finally {
+			setIsLoading(false); // Stop loading
 		}
 	};
+
+	const [confirmSignupPassword, setConfirmSignupPassword] = useState("");
+
+	const [isLoading, setIsLoading] = useState(false);
 
 	return (
 		<div className="card card-border z-50 mx-auto w-[90%] max-w-[28rem] bg-white opacity-95 shadow-2xl transition-opacity duration-300 ease-in-out hover:opacity-100 lg:mr-40">
@@ -266,7 +285,7 @@ function LoginCard() {
 							<label className="flex cursor-pointer items-center">
 								<input
 									type="checkbox"
-									className="checkbox mr-2"
+									className="checkbox mr-2 bg-[#1c402a]"
 								/>
 								<span>Remember me</span>
 							</label>
@@ -281,9 +300,10 @@ function LoginCard() {
 						<div className="card-actions justify-center">
 							<button
 								onClick={handleLogin}
+								disabled={isLoading}
 								className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
 							>
-								Log In
+								{isLoading ? "Logging In..." : "Login"}
 							</button>
 							{error && <p className="text-red-500">{error}</p>}
 						</div>
@@ -320,9 +340,12 @@ function LoginCard() {
 								<div className="card-actions justify-center">
 									<button
 										onClick={handleResetPassword}
+										disabled={isLoading}
 										className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
 									>
-										Send OTP
+										{isLoading
+											? "Sending OTP..."
+											: "Send OTP"}
 									</button>
 								</div>
 							</>
@@ -354,9 +377,12 @@ function LoginCard() {
 								<div className="flex flex-col gap-2">
 									<button
 										onClick={verifyOtp}
+										disabled={isLoading}
 										className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
 									>
-										Verify OTP
+										{isLoading
+											? "Verifying OTP..."
+											: "Verify OTP"}
 									</button>
 									<button
 										onClick={handleResendOtp}
@@ -515,6 +541,10 @@ function LoginCard() {
 									type="password"
 									placeholder="Confirm Password"
 									className="input w-full pr-10"
+									value={confirmSignupPassword}
+									onChange={(e) =>
+										setConfirmSignupPassword(e.target.value)
+									}
 								/>
 								<div className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-500">
 									<LockClosedIcon className="h-5 w-5" />
@@ -525,9 +555,10 @@ function LoginCard() {
 						<div className="card-actions justify-center">
 							<button
 								onClick={handleSignUp}
+								disabled={isLoading}
 								className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
 							>
-								Sign Up
+								{isLoading ? "Signing Up..." : "Sign Up"}
 							</button>
 						</div>
 

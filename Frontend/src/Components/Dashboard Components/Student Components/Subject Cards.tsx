@@ -58,7 +58,7 @@ const SubjectCards: React.FC<{
 	completedSubjects: Set<string>;
 }> = ({ subjects, onClick, completedSubjects }) => {
 	return (
-		<div className="w-full rounded-xl bg-black/15">
+		<div className="w-full rounded-xl bg-black/20">
 			<div className="flex flex-col items-center">
 				<p className="mt-6 text-xl text-gray-300">Subject List:</p>
 				<div className="flex flex-wrap justify-center gap-6 px-6 py-6 md:mt-6 md:px-0">

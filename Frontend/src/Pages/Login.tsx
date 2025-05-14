@@ -6,7 +6,7 @@ import LoginCard from "../Components/Login Components/Login Card.tsx";
 
 function Login() {
 	return (
-		<section id="login-section" data-theme="SJC">
+		<section id="login-section" data-theme="SJC" className="relative">
 			{/* Background Animation */}
 			<BackgroundAnimation />
 
@@ -22,6 +22,12 @@ function Login() {
 
 				{/* Login or SignUp Form */}
 				<LoginCard />
+
+				{/* Minimalistic Bottom Center Filter */}
+				<div className="fixed bottom-3 z-10 text-xs text-gray-400 md:text-sm">
+					© 2025 PHINMA Saint Jude College Manila. All rights
+					reserved.
+				</div>
 			</div>
 		</section>
 	);

@@ -280,7 +280,7 @@ function Courses({ setActiveView }: CoursesProps) {
 							<th>Title</th>
 							<th></th>
 							<th></th>
-							<th>Publish</th>
+							<th>Is Active</th>
 							<th></th>
 						</tr>
 					</thead>

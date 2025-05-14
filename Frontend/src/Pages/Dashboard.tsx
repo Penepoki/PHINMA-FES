@@ -46,7 +46,7 @@ function Dashboard({ role }: { role: string }) {
 			<CreateStudentEvaluation setActiveView={setActiveView} />
 		),
 		studentEval: <StudentEvaluation setActiveView={setActiveView} />,
-		evalSummary: <EvaluationSummary />,
+		evalSummary: <EvaluationSummary setActiveView={setActiveView} />,
 		// Resource Group sub-components
 		courses: <Courses setActiveView={setActiveView} />,
 		rooms: <Rooms setActiveView={setActiveView} />,

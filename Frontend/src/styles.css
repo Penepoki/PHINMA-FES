@@ -73,9 +73,9 @@ html {
 .checkbox {
 	@apply transition-all duration-300 ease-in-out;
 	@apply hover:scale-110 hover:shadow-lg;
-	color: white;
+	color: #1c402a;
+	@apply border-[#1c402a] bg-white;
 }
-
 .btn {
 	@apply transition-all duration-300 ease-in-out;
 	@apply rounded-box hover:scale-105 hover:shadow-lg;
@@ -209,11 +209,13 @@ html {
 	border-radius: 0.5rem; /* Tailwind's 'rounded-lg' = 8px */
 	z-index: 10;
 	@apply shadow-2xl;
+	@apply overflow-clip;
 }
 
 .breadcrumbs {
-	font-size: 1rem; /* Assuming 'text-md' was meant to be 'text-base' */
 	color: #d1d5db; /* Equivalent to Tailwind's text-gray-300 */
+	@apply overflow-clip;
+	@apply text-sm;
 }
 
 .dock-label {
@@ -240,4 +242,10 @@ html {
 
 .tooltip {
 	--tt-bg: var(--color-primary);
+}
+
+.collapse-content {
+	transition:
+		padding 0.3s ease-in-out,
+		background-color 0.3s ease-in-out;
 }

@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
 import { FunnelIcon } from "@heroicons/react/24/solid";
+import StudentEvaluationRow from "../../../Components/Evaluation Components/Student Evaluation Row";
 
 interface CreateStudentEvalProps {
 	setActiveView: (view: string) => void;
 }
 
-interface User {
-	id: number;
-	name: string;
-}
-
 function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
+	const rows = [
+		{ name: "Renzo Cua", isActive: true },
+		{ name: "Martin Espineda", isActive: true },
+		{ name: "Chester Espineda", isActive: false },
+	];
+
 	return (
 		<div className="custom-container gap-y-6">
 			{/* Breadcrumbs */}
@@ -143,6 +143,10 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 				</dialog>
 			</div>
 
+			<dialog id="edit_student_eval" className="modal">
+				<div className="modal-box w-11/12 max-w-5xl"></div>
+			</dialog>
+
 			{/* Search and Filter */}
 			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
 				<input
@@ -173,7 +177,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 			</div>
 
 			{/* Table Section */}
-			<div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg">
+			<div className="w-full overflow-x-auto text-nowrap text-white shadow-xl backdrop-blur-lg">
 				<table className="table">
 					{/* head */}
 					<thead className="bg-[#1c402a]/50 text-xl font-bold text-white shadow-xl">
@@ -188,74 +192,24 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 							<th>Title</th>
 							<th></th>
 							<th></th>
-							<th>Publish</th>
+							<th>Is Active</th>
 							<th></th>
 						</tr>
 					</thead>
 					<tbody className="text-lg text-gray-300">
-						{/* row 1 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Renzo Cua</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
-						{/* row 2 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Martin Espineda</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
-						{/* row 3 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Chester Espineda</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
+						{rows.map((row, index) => (
+							<StudentEvaluationRow
+								key={index}
+								name={row.name}
+								isActive={row.isActive}
+								onToggle={() => {
+									console.log(`${row.name} toggle clicked`);
+								}}
+								onEdit={() => {
+									console.log(`Edit ${row.name}`);
+								}}
+							/>
+						))}
 					</tbody>
 				</table>
 			</div>

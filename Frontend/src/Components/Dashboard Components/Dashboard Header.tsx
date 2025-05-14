@@ -51,7 +51,7 @@ const DashboardHeader = () => {
 				onClick={() => {
 					localStorage.clear(); // optional: clear all user data
 					alert("Logged out!");
-					window.location.href = "/"; // or use navigate('/')
+					window.location.replace("/"); // or use navigate('/')
 				}}
 			>
 				Logout

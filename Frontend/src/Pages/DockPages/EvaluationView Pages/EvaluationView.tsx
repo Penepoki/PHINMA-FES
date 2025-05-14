@@ -158,7 +158,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 													Copus 3
 												</label>
 											</div>
-											<div className="collapse-content flex text-lg">
+											<div className="collapse-content flex bg-black/20 text-lg">
 												<div className="avatar mt-5">
 													<div className="w-24 rounded-full">
 														<img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
