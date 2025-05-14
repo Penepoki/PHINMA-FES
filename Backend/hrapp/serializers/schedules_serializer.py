@@ -4,7 +4,8 @@ from hrapp.utils import role_required
 
 
 class CourseSerializer(serializers.ModelSerializer):
-    professors = serializers.PrimaryKeyRelatedField(many=True, write_only=True)
+    professors = serializers.PrimaryKeyRelatedField(many=True, write_only=True,
+                                                    queryset=CourseProfessor.objects.all())
 
     class Meta:
         model = Course
@@ -14,7 +15,7 @@ class CourseSerializer(serializers.ModelSerializer):
     def get_professors(self, obj):
         professors = CourseProfessor.objects.filter(
             course=obj).select_related('professor')
-        return [{"id": cp.professor.id, "name": cp.professor.full_name} for cp in professors]
+        return [{"id": cp.professor.id, "name": cp.professor.get_full_name()} for cp in professors]
 
 class CourseProfessorSerializer(serializers.ModelSerializer):
     class Meta:
