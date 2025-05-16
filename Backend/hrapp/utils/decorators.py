@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import Permission
+from functools import wraps
 
 def role_required(allowed_roles, required_permission=None):
     """
@@ -16,6 +17,7 @@ def role_required(allowed_roles, required_permission=None):
                     Code goes here...
         """
     def decorator(view_func):
+        @wraps(view_func)
         def wrapper(request, *args, **kwargs):
             #Authentication for user
             if not request.user.is_authenticated:

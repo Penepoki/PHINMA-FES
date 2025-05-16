@@ -65,8 +65,12 @@ class User(AbstractUser):
 
         ]
 
+    def get_full_name(user):
+        return f"{user.first_name} {user.last_name}".strip()
 
-
-
+    @property
+    def full_name(self):
+        """A shorter way to access the full name."""
+        return self.get_full_name()
 
 

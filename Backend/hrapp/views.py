@@ -221,13 +221,9 @@ class CourseViewSet(viewsets.ModelViewSet):
         #DRF CREATE METHOD also handles intermediate models
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        course = serializer.save()
-
-        professors = self.request.data.get("professors", [])
-        for professor_id in professors:
-            CourseProfessor.objects.create(course=course, professor_id=professor_id)
-
+        self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
     @action(detail=True, methods=['put', 'patch'])
     @role_required(allowed_roles=["HR", "Dean", "Program Head"], required_permission="hrapp.change_course")
@@ -235,12 +231,14 @@ class CourseViewSet(viewsets.ModelViewSet):
         #DRF UPDATE METHOD
         course = serializer.save()
 
-        professors = self.request.data.get("professors", None)
+        professors = self.request.data.get('professors', None)
         if professors is not None:
-            # clear existing relationships and assign new ones
             CourseProfessor.objects.filter(course=course).delete()
-            for professor_id in professors:
-                CourseProfessor.objects.create(course=course, professor_id=professor_id)
+            CourseProfessor.objects.bulk_create([
+                CourseProfessor(course=course,
+                                professor_id=prof_id)
+                                for prof_id in professors
+            ])
 
     def destroy(self, request, *args, **kwargs):
         course = self.get_object()

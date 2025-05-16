@@ -1,14 +1,31 @@
 from rest_framework import serializers
 from hrapp.models.user_models import User
+from hrapp.utils import get_full_name
 
+
+
+# USER SERIALIZER SPECIFICALLY FOR COURSEPROFESSOR TABLE THAT GETS NECESSARY DETAILS NEEDED
+class UserCourseProfessorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['last_name', 'first_name', 'full_name']
+
+    def get_full_name(self, obj):
+        return get_full_name(obj)
+
+
+# USER SERIALIZER THATS GETS ALL THE SELECTED FIELDS LOOK AT META CLASS BELOW THE FIELDS
 class UserSerializer(serializers.ModelSerializer):
     profile_picture_url = serializers.SerializerMethodField()
     #Provides a URL for the Image
 
+    full_name_professor = serializers.SerializerMethodField()
+
     class Meta:
+        model = User
         fields = [
             'id', 'email', 'last_name', 'first_name', 'profile_picture_url',
-            'profile_picture','role'
+            'profile_picture','role', 'full_name_professor'
         ] #DICT FOR FIELDS YOU WANT TO SHOW
 
     def get_profile_picture_url(self, obj):
@@ -17,6 +34,7 @@ class UserSerializer(serializers.ModelSerializer):
         if obj.profile_picture and request:
             return request.build_absolute_uri(obj.profile_picture.url)
         return None
+
 
 class UserDashboardSerializer(serializers.ModelSerializer):
     profile_picture_url = serializers.SerializerMethodField()
@@ -30,3 +48,7 @@ class UserDashboardSerializer(serializers.ModelSerializer):
         if obj.profile_picture and request:
             return request.build_absolute_uri(obj.profile_picture.url)
         return None
+
+    def get_full_name_professor(self, obj):
+        # Call the model method, or use the "full_name" property
+        return obj.full_name

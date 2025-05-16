@@ -35,7 +35,8 @@ def user_signup(data):
         "token" : token.key
     }
 
-
+def get_full_name(user):
+    return f"{user.first_name} {user.last_name}".strip()
 
 def reset_password(data):
     email = data.get('email')

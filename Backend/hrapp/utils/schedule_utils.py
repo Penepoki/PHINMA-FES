@@ -1,3 +1,4 @@
+"""""
 from django.shortcuts import get_object_or_404
 from hrapp.models.schedules_models import *
 from django.utils.timezone import now
@@ -59,4 +60,4 @@ def restore_course(course_id):
     course = get_object_or_404(Course, id=course_id, deleted_at__isnull=False)
     course.deleted_at = None
     course.is_active = True
-    course.save()
+    course.save()"""
