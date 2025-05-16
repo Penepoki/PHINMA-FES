@@ -24,6 +24,7 @@ import Subject from "./DockPages/ResourceGroup Pages/Subject";
 function Dashboard({ role }: { role: string }) {
 	// Default view is "home"
 	const [activeView, setActiveView] = useState("home");
+	const [isDockVisible, setIsDockVisible] = useState(true);
 	const viewComponents: Record<string, JSX.Element> = {
 		home:
 			role === "Dean" || role === "Program Head" ? (
@@ -54,6 +55,7 @@ function Dashboard({ role }: { role: string }) {
 		subject: <Subject setActiveView={setActiveView} />,
 	};
 
+	// Calculate if secondary dock should be shown
 	return (
 		<section id="dashboard-section" data-theme="SJC">
 			<div
@@ -72,27 +74,58 @@ function Dashboard({ role }: { role: string }) {
 					}}
 				></header>
 
-				{/* Main Content: Render dynamic view based on activeView */}
-				<main className="z-40 flex h-screen w-screen p-3 md:p-10">
-					{viewComponents[activeView] || <div>View not found</div>}
-				</main>
+				<div className="flex h-screen flex-col overflow-hidden">
+					{/* Header (optional) */}
+					<header className="..."></header>
 
-				{/* NavBar (passing setActiveView and activeView to update the view state) */}
-				<nav className="z-40">
-					{role === "Dean" ||
-					role === "HR" ||
-					role === "Program Head" ? (
-						<NavbarHR
-							activeView={activeView}
-							setActiveView={setActiveView}
-						/>
-					) : role === "Student" ? (
-						<NavbarStudent
-							activeView={activeView}
-							setActiveView={setActiveView}
-						/>
-					) : null}
-				</nav>
+					{/* Main content that grows to fill available space */}
+					<main
+						className={`z-40 flex-1 overflow-y-auto px-3 transition-all duration-300 md:px-10 ${
+							isDockVisible
+								? activeView === "evaluation" ||
+									activeView === "resourceGroup" ||
+									activeView === "createStudentEval" ||
+									activeView === "studentEval" ||
+									activeView === "evalSummary" ||
+									activeView === "courses" ||
+									activeView === "rooms" ||
+									activeView === "schedules" ||
+									activeView === "subject"
+									? "pb-13 md:pb-13"
+									: "pb-0 md:pb-0"
+								: "pb-0"
+						}`}
+					>
+						{viewComponents[activeView] || (
+							<div>View not found</div>
+						)}
+					</main>
+
+					{/* Dock: height transition controlled */}
+					<nav
+						className={`transition-all duration-300 ${
+							isDockVisible ? "h-[80px] md:h-[100px]" : "h-0"
+						} overflow-hidden`}
+					>
+						{role === "Dean" ||
+						role === "HR" ||
+						role === "Program Head" ? (
+							<NavbarHR
+								activeView={activeView}
+								setActiveView={setActiveView}
+								isDockVisible={isDockVisible}
+								setIsDockVisible={setIsDockVisible}
+							/>
+						) : role === "Student" ? (
+							<NavbarStudent
+								activeView={activeView}
+								setActiveView={setActiveView}
+								isDockVisible={isDockVisible}
+								setIsDockVisible={setIsDockVisible}
+							/>
+						) : null}
+					</nav>
+				</div>
 			</div>
 		</section>
 	);

@@ -81,13 +81,13 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
 		<div className="home-page z-10 flex h-full w-full flex-col items-center justify-center">
 			<DashboardHeader />
 
-			<p className="mt-18 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
+			<p className="mt-35 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
 				Recently Evaluated Faculty:
 			</p>
 
 			<div
 				onClick={() => setActiveView("evaluation")}
-				className="flex h-1/3 w-full flex-row items-center justify-center shadow-2xl hover:scale-101 sm:h-[30vh]"
+				className="float-breathe flex h-1/3 w-full flex-row items-center justify-center shadow-2xl hover:scale-101 sm:h-[30vh]"
 			>
 				<div
 					id="box1"
@@ -128,7 +128,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
 			<div className="mt-5 text-center">
 				<Clock />
 				{/* Desktop View (Grid) */}
-				<div className="hidden flex-row items-center justify-center gap-6 md:flex">
+				<div className="float-breathe hidden flex-row items-center justify-center gap-6 md:flex">
 					{yearData.map(({ year, ratio }) => (
 						<YearCard
 							key={year}

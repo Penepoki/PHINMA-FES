@@ -10,11 +10,14 @@ function Home() {
 		{
 			name: "Mathematics",
 			teacher: "Mr. Smith",
-			questions: Array.from(
-				{ length: 10 },
-				() =>
-					`I understand the lessons with the help of activities provided by my teacher.`,
-			),
+			questions: [
+				"I understand the lessons with the help of activities provided by my teacher.",
+				"I receive guidance from my teacher on how to complete the activities/tasks/modules.",
+				"I feel comfortable asking questions and sharing ideas in our class.",
+				"I participate in class because my teacher asks interesting and challenging questions.",
+				"I receive feedback from my teacher on how to improve my work, both in class and during consultation hours.",
+				"I have been able to apply the lessons from this class to real-life situations",
+			],
 			image: null,
 		},
 		{
@@ -152,18 +155,32 @@ function Home() {
 						openModal === subject.name ? (
 							<div
 								key={subject.name}
-								className="modal-box h-[80%] w-11/12 max-w-5xl text-left text-black"
+								className="modal-box flex h-[80%] w-[90%] max-w-5xl flex-col text-black md:w-11/12"
 							>
-								<h3 className="mb-2 text-center text-2xl font-bold text-black">
-									{subject.name}
-								</h3>
-								<p className="text-md mb-4 text-center">
-									Teacher: <strong>{subject.teacher}</strong>
-								</p>
+								{/* Sticky Header */}
+								<div className="sticky top-0 z-10 flex items-start justify-between px-6 py-3">
+									<div className="text-left">
+										<h3 className="text-2xl font-bold">
+											{subject.name}
+										</h3>
+										<p className="text-md text-gray-400">
+											Teacher:{" "}
+											<strong>{subject.teacher}</strong>
+										</p>
+									</div>
+									<button
+										type="button"
+										className="btn btn-sm btn-error mt-2 h-9 text-white"
+										onClick={() => setOpenModal(null)}
+									>
+										Cancel
+									</button>
+								</div>
 
+								{/* Scrollable Questions */}
 								<form
 									method="dialog"
-									className="flex h-[85%] flex-col gap-12 overflow-x-clip overflow-y-auto"
+									className="mb-6 flex-1 overflow-y-scroll border-t-3 px-6 shadow-[inset_0_30px_20px_-20px_rgba(0,0,0,0.35)]"
 									onSubmit={(e) => {
 										e.preventDefault();
 										setCompletedSubjects((prev) => {
@@ -178,77 +195,54 @@ function Home() {
 										);
 									}}
 								>
-									{subject.questions.map(
-										(question, index) => (
-											<div
-												key={index}
-												className="flex flex-col gap-2 md:flex-row md:items-start"
-											>
-												<label className="pt-2 text-lg font-semibold md:w-1/3">
-													{question}
-												</label>
-												<label className="flex items-center gap-2">
-													<input
-														type="radio"
-														name={`question-${index}`}
-														value="Strongly Agree"
-														className="radio"
-													/>
-													Strongly Agree
-												</label>
-												<label className="flex items-center gap-2">
-													<input
-														type="radio"
-														name={`question-${index}`}
-														value="Agree"
-														className="radio"
-													/>
-													Agree
-												</label>
-												<label className="flex items-center gap-2">
-													<input
-														type="radio"
-														name={`question-${index}`}
-														value="Neutral"
-														className="radio"
-													/>
-													Neutral
-												</label>
-												<label className="flex items-center gap-2">
-													<input
-														type="radio"
-														name={`question-${index}`}
-														value="Disagree"
-														className="radio"
-													/>
-													Disagree
-												</label>
-												<label className="flex items-center gap-2">
-													<input
-														type="radio"
-														name={`question-${index}`}
-														value="Strongly Disagree"
-														className="radio"
-													/>
-													Strongly Disagree
-												</label>
-											</div>
-										),
-									)}
+									<div className="flex flex-col gap-12">
+										{subject.questions.map(
+											(question, index) => (
+												<div
+													key={index}
+													className="flex flex-col gap-2 md:items-start"
+												>
+													<label className="w-full pt-2 text-lg font-semibold">
+														{question}
+													</label>
+													{[
+														"Strongly Agree",
+														"Agree",
+														"Neutral",
+														"Disagree",
+													].map((val, i) => (
+														<label
+															key={i}
+															className="flex items-center gap-2"
+														>
+															<input
+																type="radio"
+																name={`question-${index}`}
+																value={val}
+																className="radio"
+															/>
+															{
+																[
+																	"Almost Always (Halos Palagi)",
+																	"Often (Madalas)",
+																	"Sometimes (Paminsan-minsan)",
+																	"Rarely (Madalang)",
+																][i]
+															}
+														</label>
+													))}
+												</div>
+											),
+										)}
+									</div>
 
-									<div className="modal-action">
+									{/* Sticky Footer */}
+									<div className="modal-action bottom-0 pt-3">
 										<button
 											type="submit"
 											className="btn btn-success text-white"
 										>
 											Submit
-										</button>
-										<button
-											type="button"
-											className="btn btn-cancel"
-											onClick={() => setOpenModal(null)}
-										>
-											Cancel
 										</button>
 									</div>
 								</form>
