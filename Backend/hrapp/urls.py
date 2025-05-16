@@ -1,8 +1,14 @@
-from django.urls import path
-from . import views  # Ensure this does not cause a circular import
+from django.urls import path, include
 from .views import *
+from rest_framework.routers import DefaultRouter
 
+course_router = DefaultRouter()
+course_router.register(r'courses', CourseViewSet, basename='course')
+course_router.register(r'course-professors',
+                CourseProfessorViewSet, basename='course-professor')
 urlpatterns = [
+    path('', include(course_router.urls)),
+
     path('login/', login_view),
 
     path('signup/', signup_view),

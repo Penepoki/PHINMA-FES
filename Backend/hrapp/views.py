@@ -2,14 +2,18 @@ from django.contrib.auth.decorators import login_required, permission_required
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from hrapp.serializers.schedules_serializer import *
+
 from hrapp.utils.evaluation_utils import *
 from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
 from hrapp.utils.decorators import *
+from hrapp.utils.schedule_utils import *
 from rest_framework import status, viewsets
 from django.contrib.auth import get_user_model
 from django.views.decorators.http import require_http_methods
 from hrapp.serializers.user_serializer import *
+from hrapp.serializers.schedules_serializer import *
 import json
 
 
@@ -77,7 +81,7 @@ def signup_view(request):
 def user_view_dashboard(request):
     #Returns the basic info of the currently logged user
     user = request.user
-    serializer = UserSerializer(user, context={'request': request})
+    serializer = UserDashboardSerializer(user, context={'request': request})
     return Response(serializer.data)
 
 
@@ -89,7 +93,7 @@ def user_view_profile(request):
     return Response(serializers.data)
 
 #Evaluation View
-#CRUD BELOW
+#CRUD BELOW FOR EVALUATION (COPUS)----------------------------------------------
 #Create
 @require_http_methods(["POST"])
 @login_required
@@ -191,3 +195,76 @@ def restore_evaluation_view(request, evaluation_id):
         return JsonResponse({"message": " Copus evaluation restored successfully"}, status=200)
     except Exception as e:
         return JsonResponse({"message": str(e)}, status=400)
+
+#END OF CRUD EVALUATION -----------------------------------------
+
+#START OF CRUD COURSE -------------------------------------------
+
+from django.shortcuts import get_object_or_404
+from hrapp.models.schedules_models import *
+from django.utils.timezone import now
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from hrapp.serializers import CourseSerializer
+
+
+# THE CRUD UTILITY  FOR SCHEDULE(ROOMS, SUBJECTS,
+# COURSE
+class CourseViewSet(viewsets.ModelViewSet):
+
+    queryset = Course.objects.filter(deleted_at__isnull=True)
+    serializer_class = CourseSerializer
+    @action(detail=True, methods=['post'])
+    @role_required(allowed_roles=["HR", "Dean", "Program Head"])
+    def create_with_professor(self, request, *args, **kwargs):
+        #DRF CREATE METHOD also handles intermediate models
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+    @action(detail=True, methods=['put', 'patch'])
+    @role_required(allowed_roles=["HR", "Dean", "Program Head"], required_permission="hrapp.change_course")
+    def perform_update(self, serializer):
+        #DRF UPDATE METHOD
+        course = serializer.save()
+
+        professors = self.request.data.get('professors', None)
+        if professors is not None:
+            CourseProfessor.objects.filter(course=course).delete()
+            CourseProfessor.objects.bulk_create([
+                CourseProfessor(course=course,
+                                professor_id=prof_id)
+                                for prof_id in professors
+            ])
+
+    def destroy(self, request, *args, **kwargs):
+        course = self.get_object()
+        course.deleted_at = now()
+        course.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # RETRIEVE OR READ data fetching for all courses including the deleted ones
+    @action(detail=False, methods=['get'])
+    def course_all(self, request, *args, **kwargs):
+        include_deleted = request.query_params.get('include_deleted', 'false').lower() == 'true'
+        if include_deleted:
+            queryset = Course.objects.all()
+        else:
+            queryset = Course.objects.filter(deleted_at__isnull=True)
+        serializer = CourseSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    #RESTORE
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        course = get_object_or_404(Course, pk=pk, deleted_at__isnull=False)
+        course.restore()
+        return Response(self.get_serializer(course).data, status=status.HTTP_200_OK)
+
+
+class CourseProfessorViewSet(viewsets.ModelViewSet):
+    queryset = CourseProfessor.objects.all()
+    serializer_class = CourseProfessorSerializer
