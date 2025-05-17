@@ -222,7 +222,7 @@ html {
 	font-size: 1.1rem; /* Default font size for larger screens */
 }
 .dock {
-	@apply bg-[#1b2e3e]/50;
+	@apply bg-[#13202b];
 	@apply text-white;
 	@apply md:text-nowrap;
 }
@@ -257,10 +257,10 @@ html {
 @keyframes floatBreathe {
 	0%,
 	100% {
-		transform: translateY(0) translateX(-3) scale(1);
+		transform: translateY(3px) translateX(-5px) scale(1);
 	}
 	50% {
-		transform: translateY(-4px) translateX(9px) scale(1.01);
+		transform: translateY(-1px) translateX(3px) scale(1.01);
 	}
 }
 

@@ -1,7 +1,65 @@
 import { useState } from "react";
+import { Pie } from "react-chartjs-2";
+import {
+	Chart as ChartJS,
+	ArcElement,
+	Tooltip,
+	Legend,
+	ChartOptions,
+} from "chart.js";
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+const pieData = {
+	labels: ["Activity A", "Activity B", "Activity C"],
+	datasets: [
+		{
+			label: "Teacher Activities",
+			data: [12, 19, 3],
+			backgroundColor: ["#36A2EB", "#FFCE56", "#FF6384"],
+			borderWidth: 1,
+		},
+	],
+};
+
+const pieData2 = {
+	labels: ["Engaged", "Distracted", "Group Work"],
+	datasets: [
+		{
+			label: "Student Engagement",
+			data: [20, 5, 10],
+			backgroundColor: ["#4BC0C0", "#9966FF", "#FF9F40"],
+			borderWidth: 1,
+		},
+	],
+};
+
+const pieOptions: ChartOptions<"pie"> = {
+	responsive: true,
+	plugins: {
+		legend: {
+			position: "bottom",
+		},
+	},
+};
 
 interface EvalProps {
 	setActiveView: (view: string) => void;
+}
+
+function ToggleBox({ label }: { label: string }) {
+	const [active, setActive] = useState(false);
+
+	return (
+		<button
+			className={`min-w-[140px] rounded-xl px-6 py-3 text-center text-base font-semibold text-white transition-colors ${
+				active ? "bg-green-600" : "bg-red-600"
+			}`}
+			onClick={() => setActive(!active)}
+		>
+			{label}
+		</button>
+	);
 }
 
 function Evaluation({ setActiveView }: EvalProps) {
@@ -10,6 +68,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 			course: "Renzo Cua",
 			roomSubject: "403 SSP",
 			yearSem: "2023 2nd Sem",
+			department: "Computer Science",
 		},
 		{
 			course: "Martin Espineda",
@@ -109,7 +168,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 												{row.course}
 											</div>
 											<div
-												className="flex items-center justify-center gap-x-3 bg-[#1c402a]/50 py-3"
+												className="z-50 flex items-center justify-center gap-x-3 bg-[#1c402a]/50 py-3"
 												onClick={(e) =>
 													e.stopPropagation()
 												} // Stop collapse toggle
@@ -159,17 +218,187 @@ function Evaluation({ setActiveView }: EvalProps) {
 												</label>
 											</div>
 											<div className="collapse-content flex bg-black/20 text-lg">
-												<div className="avatar mt-5">
-													<div className="w-24 rounded-full">
-														<img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+												<div className="flex h-full w-full flex-col justify-center">
+													<div className="flex flex-row">
+														<div className="avatar mt-3">
+															<div className="h-24 w-24 rounded-full">
+																<img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+															</div>
+														</div>
+														<div className="ml-6 flex w-full flex-col justify-center border-b-2 border-gray-300">
+															<div>
+																Department:{" "}
+																<strong>
+																	{
+																		row.department
+																	}
+																</strong>
+															</div>
+															<div>
+																Room and
+																Subject:{" "}
+																<strong>
+																	{
+																		row.roomSubject
+																	}
+																</strong>
+															</div>
+															<div>
+																Year and
+																Semester:{" "}
+																<strong>
+																	{
+																		row.yearSem
+																	}
+																</strong>
+															</div>
+														</div>
 													</div>
-												</div>
-												<div className="ml-6 flex items-center">
-													Room and Subject:{" "}
-													{row.roomSubject}
-													<br />
-													Year and Semester:{" "}
-													{row.yearSem}
+													<div className="mt-3">
+														<table className="table w-full border-b-2 border-gray-300">
+															<thead className="text-gray-300">
+																<tr>
+																	<th>
+																		Evaluated
+																		Subject
+																	</th>
+																	<th>
+																		Schedule
+																	</th>
+																</tr>
+															</thead>
+															<tbody>
+																<tr>
+																	<td>
+																		Introduction
+																		to
+																		Computing
+																	</td>
+																	<td>
+																		7:30 AM
+																		to
+																		9:00PM
+																		Teusday
+																		& Friday
+																		Room1
+																	</td>
+																</tr>
+															</tbody>
+														</table>
+														<div className="mt-6 flex flex-col items-center justify-center gap-6 md:flex-row">
+															{/* Pie Chart 1 + Table */}
+															<div className="flex w-full flex-col items-center gap-4 md:w-1/4">
+																<h3 className="text-xl font-semibold text-white">
+																	Student
+																	Doing
+																</h3>
+																<Pie
+																	data={
+																		pieData
+																	}
+																	options={
+																		pieOptions
+																	}
+																/>
+																<table className="table w-full border border-gray-600 text-center text-white">
+																	<thead className="bg-[#1c402a]/80 text-white">
+																		<tr>
+																			<th className="py-2">
+																				Student
+																				Actions
+																			</th>
+																			<th className="py-2">
+																				Tally
+																			</th>
+																		</tr>
+																	</thead>
+																	<tbody className="bg-black/30">
+																		<tr>
+																			<td>
+																				Listening
+																			</td>
+																			<td>
+																				12
+																			</td>
+																		</tr>
+																		<tr>
+																			<td>
+																				Group
+																				Work
+																			</td>
+																			<td>
+																				7
+																			</td>
+																		</tr>
+																		<tr>
+																			<td>
+																				Asking
+																				Questions
+																			</td>
+																			<td>
+																				5
+																			</td>
+																		</tr>
+																	</tbody>
+																</table>
+															</div>
+
+															{/* Pie Chart 2 + Table */}
+															<div className="flex w-full flex-col items-center gap-4 md:w-1/4">
+																<h3 className="text-xl font-semibold text-white">
+																	Teacher
+																	Doing
+																</h3>
+																<Pie
+																	data={
+																		pieData2
+																	}
+																	options={
+																		pieOptions
+																	}
+																/>
+																<table className="table w-full border border-gray-600 text-center text-white">
+																	<thead className="bg-[#1c402a]/80 text-white">
+																		<tr>
+																			<th className="py-2">
+																				Teacher
+																				Actions
+																			</th>
+																			<th className="py-2">
+																				Tally
+																			</th>
+																		</tr>
+																	</thead>
+																	<tbody className="bg-black/30">
+																		<tr>
+																			<td>
+																				Lecturing
+																			</td>
+																			<td>
+																				15
+																			</td>
+																		</tr>
+																		<tr>
+																			<td>
+																				Demonstrating
+																			</td>
+																			<td>
+																				8
+																			</td>
+																		</tr>
+																		<tr>
+																			<td>
+																				Guiding
+																			</td>
+																			<td>
+																				10
+																			</td>
+																		</tr>
+																	</tbody>
+																</table>
+															</div>
+														</div>
+													</div>
 												</div>
 											</div>
 										</div>
@@ -208,11 +437,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 																readOnly
 																className="input input-bordered w-full"
 															/>
-															<input
-																type="text"
-																placeholder="Professor Name"
-																className="input input-bordered w-full"
-															/>
+
 															<input
 																type="text"
 																placeholder="Room"
@@ -233,68 +458,69 @@ function Evaluation({ setActiveView }: EvalProps) {
 												</div>
 
 												{/* COPUS Matrix */}
-												<div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
-													<input type="checkbox" />
-													<div className="collapse-title text-lg font-semibold">
-														COPUS Matrix
+												<div className="mb-4 rounded-lg border border-gray-300 p-4">
+													<div className="mb-4 flex items-center justify-center gap-3">
+														<button className="text-xl font-bold">
+															&larr;
+														</button>
+														<h2 className="text-xl font-bold">
+															Minute 2
+														</h2>
+														<button className="text-xl font-bold">
+															&rarr;
+														</button>
 													</div>
-													<div className="collapse-content">
-														<div className="mb-4">
-															<label className="mb-1 block font-medium">
-																Teacher Doing
-															</label>
-															<select className="select select-bordered w-full">
-																<option
-																	disabled
-																	selected
-																>
-																	Select an
-																	activity
-																</option>
-																<option>
-																	Lecturing
-																</option>
-																<option>
-																	Demonstrating
-																</option>
-																<option>
-																	Moving and
-																	guiding
-																</option>
-																<option>
-																	Writing on
-																	board
-																</option>
-															</select>
-														</div>
-														<div>
-															<label className="mb-1 block font-medium">
-																Student Doing
-															</label>
-															<select className="select select-bordered w-full">
-																<option
-																	disabled
-																	selected
-																>
-																	Select an
-																	activity
-																</option>
-																<option>
-																	Listening
-																</option>
-																<option>
-																	Group Work
-																</option>
-																<option>
-																	Answering
-																	Questions
-																</option>
-																<option>
-																	Using
-																	Clickers
-																</option>
-															</select>
-														</div>
+
+													<div className="mb-6 text-center text-lg font-semibold text-gray-700">
+														Students Doing
+													</div>
+													<div className="float-breathe mb-4 flex flex-wrap justify-center gap-2">
+														{[
+															"Listening",
+															"Individual Thinking",
+															"Group Activity",
+															"Answer Questions",
+															"Ask Questions",
+															"Whole Class Discussion",
+															"Student Presentations",
+															"Test/Quiz",
+															"Waiting",
+															"Other",
+														].map(
+															(label, index) => (
+																<ToggleBox
+																	key={index}
+																	label={
+																		label
+																	}
+																/>
+															),
+														)}
+													</div>
+
+													<div className="mb-6 text-center text-lg font-semibold text-gray-700">
+														Teacher Doing
+													</div>
+													<div className="float-breathe flex flex-wrap justify-center gap-2">
+														{[
+															"Lecture",
+															"Real-time Writing",
+															"Follow-up Questions",
+															"Demonstrating",
+															"Guiding",
+															"Administrative Tasks",
+															"Waiting",
+															"Other",
+														].map(
+															(label, index) => (
+																<ToggleBox
+																	key={index}
+																	label={
+																		label
+																	}
+																/>
+															),
+														)}
 													</div>
 												</div>
 

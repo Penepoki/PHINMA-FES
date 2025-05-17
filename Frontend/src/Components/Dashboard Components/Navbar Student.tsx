@@ -57,7 +57,7 @@ const NavbarStudent: React.FC<NavbarProps> = ({
 			>
 				<div className="tooltip tooltip-left">
 					<button
-						className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-300 bg-[#1b2e3e]/50 text-white shadow-2xl hover:scale-110"
+						className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-300 bg-[#13202b] text-white shadow-2xl hover:scale-110"
 						onClick={() => setIsDockVisible(!isDockVisible)}
 					>
 						{isDockVisible ? (
@@ -77,7 +77,7 @@ const NavbarStudent: React.FC<NavbarProps> = ({
 			<nav data-theme="SJC" className="flex">
 				{/* Primary Dock */}
 				<div
-					className={`dock dock-sm bottom-0 w-full transition-transform duration-300 ease-in-out ${
+					className={`dock dock-xs bottom-0 w-full transition-transform duration-300 ease-in-out ${
 						isDockVisible ? "translate-y-0" : "translate-y-full"
 					}`}
 				>

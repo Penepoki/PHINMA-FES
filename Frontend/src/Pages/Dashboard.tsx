@@ -55,6 +55,20 @@ function Dashboard({ role }: { role: string }) {
 		subject: <Subject setActiveView={setActiveView} />,
 	};
 
+	const expandedViews = [
+		"evaluation",
+		"resourceGroup",
+		"createStudentEval",
+		"studentEval",
+		"evalSummary",
+		"courses",
+		"rooms",
+		"schedules",
+		"subject",
+	];
+
+	const isExpandedDock = expandedViews.includes(activeView);
+
 	// Calculate if secondary dock should be shown
 	return (
 		<section id="dashboard-section" data-theme="SJC">
@@ -80,18 +94,10 @@ function Dashboard({ role }: { role: string }) {
 
 					{/* Main content that grows to fill available space */}
 					<main
-						className={`z-40 flex-1 overflow-y-auto px-3 transition-all duration-300 md:px-10 ${
+						className={`z-40 flex-1 overflow-y-auto px-3 pt-6 pb-6 transition-all duration-300 md:px-10 ${
 							isDockVisible
-								? activeView === "evaluation" ||
-									activeView === "resourceGroup" ||
-									activeView === "createStudentEval" ||
-									activeView === "studentEval" ||
-									activeView === "evalSummary" ||
-									activeView === "courses" ||
-									activeView === "rooms" ||
-									activeView === "schedules" ||
-									activeView === "subject"
-									? "pb-13 md:pb-13"
+								? isExpandedDock
+									? "pb-6 md:pb-6"
 									: "pb-0 md:pb-0"
 								: "pb-0"
 						}`}
@@ -103,8 +109,12 @@ function Dashboard({ role }: { role: string }) {
 
 					{/* Dock: height transition controlled */}
 					<nav
-						className={`transition-all duration-300 ${
-							isDockVisible ? "h-[80px] md:h-[100px]" : "h-0"
+						className={`z-41 transition-all duration-300 ${
+							isDockVisible
+								? isExpandedDock
+									? "h-[100px]"
+									: "h-[50px]"
+								: "h-0"
 						} overflow-hidden`}
 					>
 						{role === "Dean" ||

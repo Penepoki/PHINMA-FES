@@ -14,7 +14,7 @@ function StudentEvaluationRow({
 	onEdit,
 }: StudentEvaluationRowProps) {
 	return (
-		<tr className="bg-black/20 hover:bg-[#1b2e3e]/50">
+		<tr className="bg-black/20 text-wrap hover:bg-[#1b2e3e]/50">
 			<td>
 				<input type="checkbox" className="checkbox" />
 			</td>
