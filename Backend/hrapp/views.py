@@ -1,20 +1,28 @@
 from django.contrib.auth.decorators import login_required, permission_required
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from hrapp.serializers.schedules_serializer import *
-
+from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth import get_user_model
+from django.views.decorators.http import require_http_methods
+from django.utils.timezone import now
+from django.db import transaction
+from django.shortcuts import get_object_or_404
 from hrapp.utils.evaluation_utils import *
+from hrapp.serializers import CourseSerializer
 from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
 from hrapp.utils.decorators import *
-from hrapp.utils.schedule_utils import *
-from rest_framework import status, viewsets
-from django.contrib.auth import get_user_model
-from django.views.decorators.http import require_http_methods
 from hrapp.serializers.user_serializer import *
 from hrapp.serializers.schedules_serializer import *
+from hrapp.models.schedules_models import *
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser
+from rest_framework.exceptions import ValidationError
 import json
+import pandas as pd
+
 
 
 User = get_user_model()
@@ -195,18 +203,10 @@ def restore_evaluation_view(request, evaluation_id):
         return JsonResponse({"message": " Copus evaluation restored successfully"}, status=200)
     except Exception as e:
         return JsonResponse({"message": str(e)}, status=400)
-
 #END OF CRUD EVALUATION -----------------------------------------
 
 #START OF CRUD COURSE -------------------------------------------
 
-from django.shortcuts import get_object_or_404
-from hrapp.models.schedules_models import *
-from django.utils.timezone import now
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from hrapp.serializers import CourseSerializer
 
 
 # THE CRUD UTILITY  FOR SCHEDULE(ROOMS, SUBJECTS,
@@ -215,14 +215,96 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     queryset = Course.objects.filter(deleted_at__isnull=True)
     serializer_class = CourseSerializer
+    parser_classes = [MultiPartParser]
     @action(detail=True, methods=['post'])
     @role_required(allowed_roles=["HR", "Dean", "Program Head"])
-    def create_with_professor(self, request, *args, **kwargs):
-        #DRF CREATE METHOD also handles intermediate models
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def create(self, request, *args, **kwargs):
+        """
+        HANDLE BULK CREATION OR SINGLE OF COURSES
+            WITH INTERMEDIATE TABLE(COURSEPROFESSOR)
+            INPUT CAN BE SINGLE OR LIST OF COURSES
+        """
+        data = request.data
+
+        #HANDLE BULK CREATION
+        if isinstance(data, list):
+            course_to_create = []
+            relationships = []
+
+            for course_data in data:
+                serializer = self.get_serializer(data=course_data)
+                serializer.is_valid(raise_exception=True)
+                validated_data = serializer.validated_data
+
+            professors = validated_data.pop('professors', [])
+            course = Course(**validated_data)
+            course_to_create.append(course)
+
+            for professor_id in professors:
+                relationships.append(CourseProfessor(course=course, professor_id=professor_id))
+            # BULK CREATION FOR ALL COURSES
+            created_courses = Course.objects.bulk_create(course_to_create)
+            # UPDATE RELATIONSHIP WITH THE NEWLY CREATED COURSES
+            for course, data in zip(created_courses, data):
+                for professor_id in data.get('professors', []):
+                    relationships.append(CourseProfessor(course=course, professor_id=professor_id))
+            # BULT CREATION FOR ALL RELATIONSHIPS IN THE COURSEPROFESSOR TABLE
+            CourseProfessor.objects.bulk_create(relationships)
+
+            return Response(
+                {"message": f"Courses created successfully "
+                            f"{len(created_courses)} courses"}, status=status.HTTP_201_CREATED,
+            )
+        return super().create(request, *args, **kwargs)
+
+    @action(detail=False, methods=['post'],
+            url_path='search')
+    def import_course_from_csv(self, request, *args, **kwargs):
+        """
+            IMPORT COURSES AND THEIR RELATIONSHIPS FROM A CSV FILE.
+            EXPECTED CSV FORMAT:
+            NAME, CODE, PROFESSORS
+        """
+        csv_file = request.FILES.get('file')
+        if not csv_file:
+            raise ValidationError({"No file was provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Load CSV file into the Pandas DataFrame
+            df = pd.read_csv(csv_file)
+            if "name" not in df.columns or "code" not in df.columns or "professor_idss" not in df.columns:
+                return Response(
+                        {"error": "CSV file must contain 'name', 'code', and 'professors' columns."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            courses_to_create = []
+            relationships = []
+
+            # Loop through the DataFrame rows to prepare data for bulk creation
+            for _, row in df.iterrows():
+                course = Course(name=row["name"], code=row["code"])
+                courses_to_create.append(course)
+
+            with transaction.atomic():
+                # Bulk create courses
+                created_courses = Course.objects.bulk_create(courses_to_create)
+
+                # Create relationships for each course
+                for course, (_, row) in zip(created_courses, df.iterrows()):
+                    professor_ids = map(int, row["professor_ids"].split("|"))  # Parse professor IDs
+                    for professor_id in professor_ids:
+                        relationships.append(CourseProfessor(course=course, professor_id=professor_id))
+
+                # Bulk create relationships
+                CourseProfessor.objects.bulk_create(relationships)
+
+            return Response(
+                {"message": f"Successfully imported {len(created_courses)} courses from CSV."},
+                status=status.HTTP_201_CREATED,
+            )
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
     @action(detail=True, methods=['put', 'patch'])
@@ -268,3 +350,33 @@ class CourseViewSet(viewsets.ModelViewSet):
 class CourseProfessorViewSet(viewsets.ModelViewSet):
     queryset = CourseProfessor.objects.all()
     serializer_class = CourseProfessorSerializer
+
+
+# SCHEDULES CRUD BELOW v------------------------
+class ScheduleViewSet(viewsets.ModelViewSet):
+    queryset = Schedule.objects.filter(is_active=True)
+    serializer_class = ScheduleSerializer
+
+    @action(detail=True, methods=['post'])
+    @login_required
+    @role_required(allowed_roles=["Dean", "HR", "Program Head"],
+                   required_permission="add_schedule")
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        # HANDLES BULK IF THE INPUT IS A LIST
+        if isinstance(data, list):
+            validated_schedules = []
+            for schedule_data in data:
+                serializer = self.serializer_class(data=schedule_data)
+                serializer.is_valid(raise_exception=True)
+                validated_schedules.append(Schedule(**serializer.validated_data))
+
+            with transaction.atomic():
+                Schedule.objects.bulk_create(validated_schedules)
+
+            return Response(
+                {"message": "Schedules created successfully",
+                 "count": len(validated_schedules)},status=status.HTTP_201_CREATED,
+            )
+
+        return super().create(request, *args, **kwargs)
