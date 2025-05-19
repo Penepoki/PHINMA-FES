@@ -1,65 +1,8 @@
 import { useState } from "react";
-import { Pie } from "react-chartjs-2";
-import {
-	Chart as ChartJS,
-	ArcElement,
-	Tooltip,
-	Legend,
-	ChartOptions,
-} from "chart.js";
-
-ChartJS.register(ArcElement, Tooltip, Legend);
-
-const pieData = {
-	labels: ["Activity A", "Activity B", "Activity C"],
-	datasets: [
-		{
-			label: "Teacher Activities",
-			data: [12, 19, 3],
-			backgroundColor: ["#36A2EB", "#FFCE56", "#FF6384"],
-			borderWidth: 1,
-		},
-	],
-};
-
-const pieData2 = {
-	labels: ["Engaged", "Distracted", "Group Work"],
-	datasets: [
-		{
-			label: "Student Engagement",
-			data: [20, 5, 10],
-			backgroundColor: ["#4BC0C0", "#9966FF", "#FF9F40"],
-			borderWidth: 1,
-		},
-	],
-};
-
-const pieOptions: ChartOptions<"pie"> = {
-	responsive: true,
-	plugins: {
-		legend: {
-			position: "bottom",
-		},
-	},
-};
-
+import CopusMatrix from "../../../Components/Evaluation Components/Copus Matrix";
+import PieChartWithTable from "../../../Components/Evaluation Components/Piechart with Table";
 interface EvalProps {
 	setActiveView: (view: string) => void;
-}
-
-function ToggleBox({ label }: { label: string }) {
-	const [active, setActive] = useState(false);
-
-	return (
-		<button
-			className={`min-w-[140px] rounded-xl px-6 py-3 text-center text-base font-semibold text-white transition-colors ${
-				active ? "bg-green-600" : "bg-red-600"
-			}`}
-			onClick={() => setActive(!active)}
-		>
-			{label}
-		</button>
-	);
 }
 
 function Evaluation({ setActiveView }: EvalProps) {
@@ -174,7 +117,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 												} // Stop collapse toggle
 											>
 												{/* Copus 1 */}
-												<label className="btn cursor-pointer text-black">
+												<label className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300">
 													<input
 														name={`copus-${index}`}
 														className="hidden"
@@ -190,7 +133,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 												</label>
 
 												{/* Copus 2 */}
-												<label className="btn cursor-pointer bg-white text-black">
+												<label className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300">
 													<input
 														name={`copus-${index}`}
 														className="hidden"
@@ -204,7 +147,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 												</label>
 
 												{/* Copus 3 */}
-												<label className="btn cursor-pointer bg-white text-black">
+												<label className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300">
 													<input
 														name={`copus-${index}`}
 														className="hidden"
@@ -287,116 +230,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 														</table>
 														<div className="mt-6 flex flex-col items-center justify-center gap-6 md:flex-row">
 															{/* Pie Chart 1 + Table */}
-															<div className="flex w-full flex-col items-center gap-4 md:w-1/4">
-																<h3 className="text-xl font-semibold text-white">
-																	Student
-																	Doing
-																</h3>
-																<Pie
-																	data={
-																		pieData
-																	}
-																	options={
-																		pieOptions
-																	}
-																/>
-																<table className="table w-full border border-gray-600 text-center text-white">
-																	<thead className="bg-[#1c402a]/80 text-white">
-																		<tr>
-																			<th className="py-2">
-																				Student
-																				Actions
-																			</th>
-																			<th className="py-2">
-																				Tally
-																			</th>
-																		</tr>
-																	</thead>
-																	<tbody className="bg-black/30">
-																		<tr>
-																			<td>
-																				Listening
-																			</td>
-																			<td>
-																				12
-																			</td>
-																		</tr>
-																		<tr>
-																			<td>
-																				Group
-																				Work
-																			</td>
-																			<td>
-																				7
-																			</td>
-																		</tr>
-																		<tr>
-																			<td>
-																				Asking
-																				Questions
-																			</td>
-																			<td>
-																				5
-																			</td>
-																		</tr>
-																	</tbody>
-																</table>
-															</div>
-
-															{/* Pie Chart 2 + Table */}
-															<div className="flex w-full flex-col items-center gap-4 md:w-1/4">
-																<h3 className="text-xl font-semibold text-white">
-																	Teacher
-																	Doing
-																</h3>
-																<Pie
-																	data={
-																		pieData2
-																	}
-																	options={
-																		pieOptions
-																	}
-																/>
-																<table className="table w-full border border-gray-600 text-center text-white">
-																	<thead className="bg-[#1c402a]/80 text-white">
-																		<tr>
-																			<th className="py-2">
-																				Teacher
-																				Actions
-																			</th>
-																			<th className="py-2">
-																				Tally
-																			</th>
-																		</tr>
-																	</thead>
-																	<tbody className="bg-black/30">
-																		<tr>
-																			<td>
-																				Lecturing
-																			</td>
-																			<td>
-																				15
-																			</td>
-																		</tr>
-																		<tr>
-																			<td>
-																				Demonstrating
-																			</td>
-																			<td>
-																				8
-																			</td>
-																		</tr>
-																		<tr>
-																			<td>
-																				Guiding
-																			</td>
-																			<td>
-																				10
-																			</td>
-																		</tr>
-																	</tbody>
-																</table>
-															</div>
+															<PieChartWithTable />
 														</div>
 													</div>
 												</div>
@@ -458,71 +292,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 												</div>
 
 												{/* COPUS Matrix */}
-												<div className="mb-4 rounded-lg border border-gray-300 p-4">
-													<div className="mb-4 flex items-center justify-center gap-3">
-														<button className="text-xl font-bold">
-															&larr;
-														</button>
-														<h2 className="text-xl font-bold">
-															Minute 2
-														</h2>
-														<button className="text-xl font-bold">
-															&rarr;
-														</button>
-													</div>
-
-													<div className="mb-6 text-center text-lg font-semibold text-gray-700">
-														Students Doing
-													</div>
-													<div className="float-breathe mb-4 flex flex-wrap justify-center gap-2">
-														{[
-															"Listening",
-															"Individual Thinking",
-															"Group Activity",
-															"Answer Questions",
-															"Ask Questions",
-															"Whole Class Discussion",
-															"Student Presentations",
-															"Test/Quiz",
-															"Waiting",
-															"Other",
-														].map(
-															(label, index) => (
-																<ToggleBox
-																	key={index}
-																	label={
-																		label
-																	}
-																/>
-															),
-														)}
-													</div>
-
-													<div className="mb-6 text-center text-lg font-semibold text-gray-700">
-														Teacher Doing
-													</div>
-													<div className="float-breathe flex flex-wrap justify-center gap-2">
-														{[
-															"Lecture",
-															"Real-time Writing",
-															"Follow-up Questions",
-															"Demonstrating",
-															"Guiding",
-															"Administrative Tasks",
-															"Waiting",
-															"Other",
-														].map(
-															(label, index) => (
-																<ToggleBox
-																	key={index}
-																	label={
-																		label
-																	}
-																/>
-															),
-														)}
-													</div>
-												</div>
+												<CopusMatrix />
 
 												{/* Additional Information */}
 												<div className="collapse-arrow collapse mb-4 border-1 border-gray-300">

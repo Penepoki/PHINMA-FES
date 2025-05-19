@@ -57,7 +57,7 @@ const NavbarStudent: React.FC<NavbarProps> = ({
 			>
 				<div className="tooltip tooltip-left">
 					<button
-						className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-300 bg-[#13202b] text-white shadow-2xl hover:scale-110"
+						className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-300 bg-[#102418] text-white shadow-2xl hover:scale-110"
 						onClick={() => setIsDockVisible(!isDockVisible)}
 					>
 						{isDockVisible ? (

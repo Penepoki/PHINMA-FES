@@ -222,7 +222,7 @@ html {
 	font-size: 1.1rem; /* Default font size for larger screens */
 }
 .dock {
-	@apply bg-[#13202b];
+	@apply bg-[#102418];
 	@apply text-white;
 	@apply md:text-nowrap;
 }
