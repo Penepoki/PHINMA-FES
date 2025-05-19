@@ -1,7 +1,10 @@
+from django.db.models import Q
+from requests import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
 from hrapp.models.schedules_models import *
 from hrapp.serializers import UserSerializer, UserCourseProfessorSerializer
-from hrapp.utils import role_required
+
 
 # COURSE SERIALIZER
 class CourseSerializer(serializers.ModelSerializer):
@@ -144,3 +147,62 @@ class ScheduleSerializer(serializers.ModelSerializer):
         model = Schedule
         fields = ['section_name', 'subject_name', 'room_name', 'course_name', 'name' ,'start_time','end_time', 'semester']
         read_only_fields = ['deleted_at', 'created_at', 'updated_at']
+
+    def validate_start_time(self, value):
+            # Get end_time input
+        end_time = self.initial_data.get('end_time')
+
+        if end_time:
+            try:
+                from datetime import time
+                end_time = time.fromisoformat(end_time)
+            except ValueError:
+                raise serializers.ValidationError("Invalid end time format. Use HH:MM:SS.")
+
+            if value >= end_time:
+                raise serializers.ValidationError("Start time must be before end time.")
+
+        return value
+
+    def validate_end_time(self, value):
+        start_time = self.initial_data.get('start_time')
+
+        if start_time:
+            try:
+                from datetime import time
+                start_time = time.fromisoformat(start_time)
+            except ValueError:
+                raise serializers.ValidationError("Invalid start time format. Use HH:MM:SS.")
+
+            if value <= start_time:
+                raise serializers.ValidationError("End time must be after start time.")
+
+        return value
+
+    # DATA VALIDATION FOR CONFLICTING TIME SCHEDULES
+    def validate(self, attrs):
+        section = attrs.get('section')
+        room = attrs.get('room')
+        start_time = attrs.get('start_time')
+        end_time = attrs.get('end_time')
+
+        conflicting_schedules = Schedule.objects.filter(
+            Q(section=section) & Q(room=room) &
+            Q(start_time__lt=end_time) & # checker for overlaps with end time
+            Q(end_time__gt=start_time)# checker for overlaps with start time
+            )
+        if self.instance:
+            conflicting_schedules = conflicting_schedules.exclude(id=self.instance.id)
+
+        if conflicting_schedules.exists():
+            raise serializers.ValidationError(
+                f"Schedule conflict detected for section '{section.name}' and room '{room.name}' "
+                f"from {start_time} to {end_time}."
+            )
+
+        return attrs
+
+
+
+
+
