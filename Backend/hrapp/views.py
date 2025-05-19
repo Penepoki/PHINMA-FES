@@ -216,7 +216,8 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.filter(deleted_at__isnull=True)
     serializer_class = CourseSerializer
     parser_classes = [MultiPartParser]
-    @action(detail=True, methods=['post'])
+
+    @transaction.atomic
     @role_required(allowed_roles=["HR", "Dean", "Program Head"])
     def create(self, request, *args, **kwargs):
         """

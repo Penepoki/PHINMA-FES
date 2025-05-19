@@ -4,7 +4,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
 from hrapp.models.schedules_models import *
 from hrapp.serializers import UserSerializer, UserCourseProfessorSerializer
-from hrapp.utils import role_required
+
 
 # COURSE SERIALIZER
 class CourseSerializer(serializers.ModelSerializer):
