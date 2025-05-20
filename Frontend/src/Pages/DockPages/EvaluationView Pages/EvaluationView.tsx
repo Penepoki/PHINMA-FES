@@ -1,5 +1,6 @@
 import { useState } from "react";
-
+import CopusMatrix from "../../../Components/Evaluation Components/Copus Matrix";
+import PieChartWithTable from "../../../Components/Evaluation Components/Piechart with Table";
 interface EvalProps {
 	setActiveView: (view: string) => void;
 }
@@ -10,6 +11,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 			course: "Renzo Cua",
 			roomSubject: "403 SSP",
 			yearSem: "2023 2nd Sem",
+			department: "Computer Science",
 		},
 		{
 			course: "Martin Espineda",
@@ -109,13 +111,13 @@ function Evaluation({ setActiveView }: EvalProps) {
 												{row.course}
 											</div>
 											<div
-												className="flex items-center justify-center gap-x-3 bg-[#1c402a]/50 py-3"
+												className="z-50 flex items-center justify-center gap-x-3 bg-[#1c402a]/50 py-3"
 												onClick={(e) =>
 													e.stopPropagation()
 												} // Stop collapse toggle
 											>
 												{/* Copus 1 */}
-												<label className="btn cursor-pointer text-black">
+												<label className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300">
 													<input
 														name={`copus-${index}`}
 														className="hidden"
@@ -131,7 +133,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 												</label>
 
 												{/* Copus 2 */}
-												<label className="btn cursor-pointer bg-white text-black">
+												<label className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300">
 													<input
 														name={`copus-${index}`}
 														className="hidden"
@@ -145,7 +147,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 												</label>
 
 												{/* Copus 3 */}
-												<label className="btn cursor-pointer bg-white text-black">
+												<label className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300">
 													<input
 														name={`copus-${index}`}
 														className="hidden"
@@ -159,17 +161,78 @@ function Evaluation({ setActiveView }: EvalProps) {
 												</label>
 											</div>
 											<div className="collapse-content flex bg-black/20 text-lg">
-												<div className="avatar mt-5">
-													<div className="w-24 rounded-full">
-														<img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+												<div className="flex h-full w-full flex-col justify-center">
+													<div className="flex flex-row">
+														<div className="avatar mt-3">
+															<div className="h-24 w-24 rounded-full">
+																<img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+															</div>
+														</div>
+														<div className="ml-6 flex w-full flex-col justify-center border-b-2 border-gray-300">
+															<div>
+																Department:{" "}
+																<strong>
+																	{
+																		row.department
+																	}
+																</strong>
+															</div>
+															<div>
+																Room and
+																Subject:{" "}
+																<strong>
+																	{
+																		row.roomSubject
+																	}
+																</strong>
+															</div>
+															<div>
+																Year and
+																Semester:{" "}
+																<strong>
+																	{
+																		row.yearSem
+																	}
+																</strong>
+															</div>
+														</div>
 													</div>
-												</div>
-												<div className="ml-6 flex items-center">
-													Room and Subject:{" "}
-													{row.roomSubject}
-													<br />
-													Year and Semester:{" "}
-													{row.yearSem}
+													<div className="mt-3">
+														<table className="table w-full border-b-2 border-gray-300">
+															<thead className="text-gray-300">
+																<tr>
+																	<th>
+																		Evaluated
+																		Subject
+																	</th>
+																	<th>
+																		Schedule
+																	</th>
+																</tr>
+															</thead>
+															<tbody>
+																<tr>
+																	<td>
+																		Introduction
+																		to
+																		Computing
+																	</td>
+																	<td>
+																		7:30 AM
+																		to
+																		9:00PM
+																		Teusday
+																		& Friday
+																		Room1
+																	</td>
+																</tr>
+															</tbody>
+														</table>
+														<div className="mt-6 flex flex-col items-center justify-center gap-6 md:flex-row">
+															{/* Pie Chart 1 + Table */}
+															<PieChartWithTable />
+														</div>
+													</div>
 												</div>
 											</div>
 										</div>
@@ -208,11 +271,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 																readOnly
 																className="input input-bordered w-full"
 															/>
-															<input
-																type="text"
-																placeholder="Professor Name"
-																className="input input-bordered w-full"
-															/>
+
 															<input
 																type="text"
 																placeholder="Room"
@@ -233,70 +292,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 												</div>
 
 												{/* COPUS Matrix */}
-												<div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
-													<input type="checkbox" />
-													<div className="collapse-title text-lg font-semibold">
-														COPUS Matrix
-													</div>
-													<div className="collapse-content">
-														<div className="mb-4">
-															<label className="mb-1 block font-medium">
-																Teacher Doing
-															</label>
-															<select className="select select-bordered w-full">
-																<option
-																	disabled
-																	selected
-																>
-																	Select an
-																	activity
-																</option>
-																<option>
-																	Lecturing
-																</option>
-																<option>
-																	Demonstrating
-																</option>
-																<option>
-																	Moving and
-																	guiding
-																</option>
-																<option>
-																	Writing on
-																	board
-																</option>
-															</select>
-														</div>
-														<div>
-															<label className="mb-1 block font-medium">
-																Student Doing
-															</label>
-															<select className="select select-bordered w-full">
-																<option
-																	disabled
-																	selected
-																>
-																	Select an
-																	activity
-																</option>
-																<option>
-																	Listening
-																</option>
-																<option>
-																	Group Work
-																</option>
-																<option>
-																	Answering
-																	Questions
-																</option>
-																<option>
-																	Using
-																	Clickers
-																</option>
-															</select>
-														</div>
-													</div>
-												</div>
+												<CopusMatrix />
 
 												{/* Additional Information */}
 												<div className="collapse-arrow collapse mb-4 border-1 border-gray-300">

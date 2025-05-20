@@ -221,7 +221,11 @@ html {
 .dock-label {
 	font-size: 1.1rem; /* Default font size for larger screens */
 }
-
+.dock {
+	@apply bg-[#102418];
+	@apply text-white;
+	@apply md:text-nowrap;
+}
 @media (max-width: 639px) {
 	.dock-label {
 		font-size: 0.875rem; /* Smaller font size for mobile screens */
@@ -241,11 +245,25 @@ html {
 }
 
 .tooltip {
-	--tt-bg: var(--color-primary);
+	--tt-bg: #1c402a;
 }
 
 .collapse-content {
 	transition:
 		padding 0.3s ease-in-out,
 		background-color 0.3s ease-in-out;
+}
+
+@keyframes floatBreathe {
+	0%,
+	100% {
+		transform: translateY(3px) translateX(-5px) scale(1);
+	}
+	50% {
+		transform: translateY(-1px) translateX(3px) scale(1.01);
+	}
+}
+
+.float-breathe {
+	animation: floatBreathe 7s cubic-bezier(0.42, 0, 0.58, 1) infinite;
 }

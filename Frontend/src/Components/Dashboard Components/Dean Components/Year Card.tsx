@@ -13,10 +13,21 @@ const YearCard: React.FC<YearCardProps> = ({ year, ratio, setActiveView }) => {
 			? Math.round((num / denom) * 100)
 			: 0;
 
+	// Randomize animation duration between 3s to 5s
+	// const duration = (Math.random() * 2 + 3).toFixed(2); // e.g., 3.47s
+
+	// Optional: Random delay for more variation
+	const delay = (Math.random() * 2).toFixed(2); // e.g., 0.83s
+
 	return (
 		<div
 			onClick={() => setActiveView?.("studentEval")}
-			className="flex cursor-pointer items-center justify-center rounded-full shadow-2xl backdrop-blur-lg backdrop-hue-rotate-700 hover:scale-105"
+			className="tooltip float-breathe flex cursor-pointer items-center justify-center rounded-full shadow-2xl backdrop-blur-lg backdrop-hue-rotate-700 hover:scale-105"
+			data-tip="Click to view student evaluation page"
+			style={{
+				// animationDuration: `${duration}s`,
+				animationDelay: `${delay}s`,
+			}}
 		>
 			<div
 				className="radial-progress h-45 w-45 text-white shadow-2xl md:h-[14vw] md:w-[14vw]"

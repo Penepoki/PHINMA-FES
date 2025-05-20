@@ -7,9 +7,18 @@ interface CreateStudentEvalProps {
 
 function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 	const rows = [
-		{ name: "Renzo Cua", isActive: true },
-		{ name: "Martin Espineda", isActive: true },
-		{ name: "Chester Espineda", isActive: false },
+		{
+			name: "I understand the lessons with the help of activities provided by my teacher.",
+			isActive: true,
+		},
+		{
+			name: "I receive guidance from my teacher on how to complete the activities/tasks/modules.",
+			isActive: true,
+		},
+		{
+			name: "I feel comfortable asking questions and sharing ideas in our class.",
+			isActive: false,
+		},
 	];
 
 	return (
@@ -189,7 +198,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 									className="checkbox"
 								/>
 							</th>
-							<th>Title</th>
+							<th>Questions</th>
 							<th></th>
 							<th></th>
 							<th>Is Active</th>

@@ -84,7 +84,7 @@ function Profile({ setActiveView }: ProfileProps) {
 				</div>
 
 				{/* Profile Details Section */}
-				<div className="mb-10 h-full w-full overflow-x-clip overflow-y-auto rounded-xl p-6 text-white shadow-2xl backdrop-blur-lg md:w-1/2">
+				<div className="h-full w-full overflow-x-clip overflow-y-auto rounded-xl p-6 text-white shadow-2xl backdrop-blur-lg md:w-1/2">
 					<h3 className="mb-4 text-2xl font-bold">
 						Profile Information
 					</h3>

@@ -1,27 +1,30 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
+import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
 interface NavbarProps {
 	activeView: string;
 	setActiveView: (view: string) => void;
+	isDockVisible: boolean;
+	setIsDockVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const NavbarStudent: React.FC<NavbarProps> = ({
 	activeView,
 	setActiveView,
+	isDockVisible,
+	setIsDockVisible,
 }) => {
-	const [isDockVisible, setIsDockVisible] = useState<boolean>(true);
-
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			const target = e.target as HTMLElement;
 			const tagName = target.tagName.toLowerCase();
 
-			const isTyping =
+			if (
 				tagName === "input" ||
 				tagName === "textarea" ||
-				target.isContentEditable;
-
-			if (isTyping) return;
+				target.isContentEditable
+			)
+				return;
 
 			if (e.code === "Space" || e.key === " ") {
 				e.preventDefault();
@@ -33,7 +36,7 @@ const NavbarStudent: React.FC<NavbarProps> = ({
 		return () => {
 			window.removeEventListener("keydown", handleKeyDown);
 		};
-	}, []);
+	}, [setIsDockVisible]);
 
 	const handleClick = (page: string) => {
 		setActiveView(page);
@@ -46,20 +49,22 @@ const NavbarStudent: React.FC<NavbarProps> = ({
 		<>
 			{/* Toggle Button - Now Outside Navbar */}
 			<div
-				className={`fixed z-[501] -translate-y-1/2 transform transition-all duration-300 ${isDockVisible ? "left-4" : "left-2"} ${
+				className={`fixed z-[501] -translate-y-1/2 transform transition-all duration-300 ${isDockVisible ? "right-2" : "right-2"} ${
 					isDockVisible
-						? "bottom-20 md:bottom-20"
-						: isDockVisible
-							? "bottom-20"
-							: "bottom-0"
+						? "bottom-10 md:bottom-10"
+						: "bottom-0 md:bottom-0"
 				} `}
 			>
-				<div className="tooltip tooltip-right">
+				<div className="tooltip tooltip-left">
 					<button
-						className="bg-primary h-12 rounded-xl border-1 border-gray-300 px-4 text-xl text-white shadow-2xl hover:scale-110"
+						className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-300 bg-[#102418] text-white shadow-2xl hover:scale-110"
 						onClick={() => setIsDockVisible(!isDockVisible)}
 					>
-						{isDockVisible ? "◀" : "▶"}
+						{isDockVisible ? (
+							<ChevronDownIcon className="h-6 w-6" />
+						) : (
+							<ChevronUpIcon className="h-6 w-6" />
+						)}
 					</button>
 					<div className="tooltip-content hidden text-sm whitespace-pre-line sm:block">
 						Open/Close Dock
@@ -69,11 +74,11 @@ const NavbarStudent: React.FC<NavbarProps> = ({
 				</div>
 			</div>
 
-			<nav data-theme="SJC" className="relative">
+			<nav data-theme="SJC" className="flex">
 				{/* Primary Dock */}
 				<div
-					className={`dock dock-xl bottom-2 z-[500] mx-auto w-[95%] rounded-xl border-1 border-[#1c402a] shadow-2xl transition-transform duration-300 ease-in-out ${
-						isDockVisible ? "translate-x-0" : "-translate-x-full"
+					className={`dock dock-xs bottom-0 w-full transition-transform duration-300 ease-in-out ${
+						isDockVisible ? "translate-y-0" : "translate-y-full"
 					}`}
 				>
 					<button

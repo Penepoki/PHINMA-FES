@@ -1,5 +1,5 @@
 from django.db.models import Q
-from requests import Response
+
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
 from hrapp.models.schedules_models import *
