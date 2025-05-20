@@ -2,10 +2,15 @@ import random
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import BasePermission
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 from django.core.cache import cache
 from django.core.mail import send_mail
-
-from hrapp.models import User
+from django.db import IntegrityError
+from django.conf import settings
+from django.utils.timezone import now
+from datetime import timedelta
+from hrapp.models import User, Token
 
 
 def authenticate_user(data):
@@ -20,17 +25,14 @@ def authenticate_user(data):
 
     user = authenticate(username=username, password=password)
     if user:
-        token, _ = Token.objects.get_or_create(user=user)
-        roles = list(user.groups.values_list('name', flat=True))
-        print(f"Authenticated user: {user.username}, Email {user.email} , Roles: {roles}")  # <-- Debugging
+        Token.objects.filter(user=user).delete()
 
-        return {'token': token.key, 'roles': roles }
+        token = Token.objects.create(user=user)
+
+        roles = list(user.groups.values_list('name', flat=True))
+        return {'token': token.key, 'roles': roles}
     else:
-        print("Login attempt with:")
-        print("Resolved username for auth:", username)
-        print("User found:", user)
-    return {'error': 'Invalid credentials'
-            }
+        return {'error': 'Invalid credentials'}
 
 def generate_otp_code():
     return str(random.randint(100000, 999999))
@@ -63,3 +65,21 @@ class IsDean(BasePermission):
 class IsProgramHead(BasePermission):
     def has_permission(self, request, view):
         return request.user.groups.filter(name='Program Head').exists()
+
+class ExpiredTokenAuthentication(TokenAuthentication):
+    """
+    Custom token authentication that checks for token expiry.
+    """
+    model = Token
+
+    def authenticate_credentials(self, key):
+        try:
+            token = self.model.objects.select_related('user').get(key=key)
+        except self.model.DoesNotExist:
+            raise AuthenticationFailed("Invalid Token")
+
+        # Check expiry
+        if token.has_expired():
+            raise AuthenticationFailed("Token has expired. Please log in again.")
+
+        return (token.user, token)

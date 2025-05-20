@@ -1,3 +1,7 @@
+from datetime import timedelta
+from rest_framework.authtoken.models import Token as DefaultToken
+from django.conf import settings
+from django.utils.timezone import now
 from django.db import models
 from django.contrib.auth.models import AbstractUser, Permission
 from django.contrib.auth.base_user import BaseUserManager
@@ -74,3 +78,19 @@ class User(AbstractUser):
         return self.get_full_name()
 
 
+#TOKEN
+class Token(DefaultToken):
+    expires_at = models.DateTimeField(null=True, blank=True)
+    def has_expired(self):
+        if self.expires_at:
+            return now()> self.expires_at
+        return False
+
+    def regenerate_expiry(self, duration=settings.TOKEN_EXPIRY_DURATION):
+        self.expires_at = now() + timedelta(seconds=duration)
+        self.save()
+
+    def save(self, *args, **kwargs):
+        if self.expires_at is None:
+            self.expires_at = now() + timedelta(seconds=settings.TOKEN_EXPIRY_DURATION)
+        super().save(*args, **kwargs)

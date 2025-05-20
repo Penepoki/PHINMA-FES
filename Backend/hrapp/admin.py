@@ -5,7 +5,10 @@ from django.contrib.auth.models import User
 from hrapp.models.evaluation_models import *
 from hrapp.models.schedules_models import *
 
-
+@admin.register(Token)
+class TokenAdmin(admin.ModelAdmin):
+    list_display = ('key', 'user', 'created', 'expires_at')
+    search_fields = ('user__username', 'key')
 
 
 class CustomUserAdmin(UserAdmin):

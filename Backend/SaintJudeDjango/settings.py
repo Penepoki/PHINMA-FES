@@ -66,9 +66,11 @@ INSTALLED_APPS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
+
     )
 }
-
+AUTH_TOKEN_MODEL = 'hrapp.Token'
+TOKEN_EXPIRY_DURATION = 6 * 60 * 60
 AUTH_USER_MODEL = "hrapp.user"
 JAZZMIN_SETTINGS = {
     "site_title": "Admin Dashboard",
