@@ -22,7 +22,8 @@ const YearCard: React.FC<YearCardProps> = ({ year, ratio, setActiveView }) => {
 	return (
 		<div
 			onClick={() => setActiveView?.("studentEval")}
-			className="float-breathe flex cursor-pointer items-center justify-center rounded-full shadow-2xl backdrop-blur-lg backdrop-hue-rotate-700 hover:scale-105"
+			className="tooltip float-breathe flex cursor-pointer items-center justify-center rounded-full shadow-2xl backdrop-blur-lg backdrop-hue-rotate-700 hover:scale-105"
+			data-tip="Click to view student evaluation page"
 			style={{
 				// animationDuration: `${duration}s`,
 				animationDelay: `${delay}s`,

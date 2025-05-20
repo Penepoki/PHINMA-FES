@@ -245,7 +245,7 @@ html {
 }
 
 .tooltip {
-	--tt-bg: var([#1b2e3e]);
+	--tt-bg: #1c402a;
 }
 
 .collapse-content {

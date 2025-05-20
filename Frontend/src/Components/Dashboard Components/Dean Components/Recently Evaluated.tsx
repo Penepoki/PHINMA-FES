@@ -44,44 +44,48 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
 			<p className="mt-35 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
 				Recently Evaluated Faculty:
 			</p>
-
 			<div
-				onClick={() => setActiveView && setActiveView("evaluation")}
-				className="float-breathe flex h-1/3 w-full flex-row items-center justify-center shadow-2xl hover:scale-101 sm:h-[30vh]"
+				className="tooltip tooltip-top flex w-full flex-col items-center justify-center"
+				data-tip="Click to view evaluation page"
 			>
 				<div
-					id="box1"
-					className="flex h-full w-1/3 flex-col items-center justify-center rounded-l-xl p-5 backdrop-blur-lg backdrop-hue-rotate-100"
+					onClick={() => setActiveView && setActiveView("evaluation")}
+					className="float-breathe flex h-1/3 w-full flex-row items-center justify-center shadow-2xl hover:scale-101 sm:h-[30vh]"
 				>
-					<div className="flex flex-col items-center">
-						{" "}
-						{/* Ensure vertical stacking */}
-						<div className="avatar">
-							<div className="w-24 rounded-full">
-								<img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+					<div
+						id="box1"
+						className="flex h-full w-1/3 flex-col items-center justify-center rounded-l-xl p-5 backdrop-blur-lg backdrop-hue-rotate-100"
+					>
+						<div className="flex flex-col items-center">
+							{" "}
+							{/* Ensure vertical stacking */}
+							<div className="avatar">
+								<div className="w-24 rounded-full">
+									<img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+								</div>
+							</div>
+							<div className="text-center md:mt-4">
+								{" "}
+								{/* Add spacing & center text */}
+								<span className="text-3xl font-bold text-white">
+									Dylan Smalls
+								</span>
 							</div>
 						</div>
-						<div className="text-center md:mt-4">
-							{" "}
-							{/* Add spacing & center text */}
-							<span className="text-3xl font-bold text-white">
-								Dylan Smalls
-							</span>
-						</div>
 					</div>
-				</div>
 
-				<div
-					id="box2"
-					className="h-full w-1/3 p-5 text-white backdrop-blur-lg backdrop-hue-rotate-300"
-				>
-					<PieChart />
-				</div>
-				<div
-					id="box3"
-					className="h-full w-1/3 rounded-r-xl p-5 text-white backdrop-blur-lg backdrop-hue-rotate-400"
-				>
-					<PieChart />
+					<div
+						id="box2"
+						className="h-full w-1/3 p-5 text-white backdrop-blur-lg backdrop-hue-rotate-300"
+					>
+						<PieChart />
+					</div>
+					<div
+						id="box3"
+						className="h-full w-1/3 rounded-r-xl p-5 text-white backdrop-blur-lg backdrop-hue-rotate-400"
+					>
+						<PieChart />
+					</div>
 				</div>
 			</div>
 		</>

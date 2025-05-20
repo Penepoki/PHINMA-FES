@@ -50,14 +50,8 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
 			<DashboardHeader />
 
 			{/*Recently Evaluated*/}
-			<div className="tooltip tooltip-info flex w-full flex-col items-center justify-center">
-				<RecentlyEvaluatedFaculty setActiveView={setActiveView} />
-				<div className="tooltip-content hidden text-sm whitespace-pre-line sm:block">
-					Open/Close Dock
-					<br />
-					(Shortcut: Space)
-				</div>
-			</div>
+
+			<RecentlyEvaluatedFaculty setActiveView={setActiveView} />
 
 			<div className="mt-5 text-center">
 				<Clock />
