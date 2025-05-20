@@ -1,6 +1,7 @@
 import random
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
+from rest_framework.permissions import BasePermission
 from django.core.cache import cache
 from django.core.mail import send_mail
 
@@ -49,3 +50,16 @@ def send_otp_via_email(user):
 def verify_otp(user, input_code):
     expected_code = cache.get(f'otp_{user.id}')
     return expected_code == input_code
+
+#ROLE FOR DRF
+class IsHR(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.groups.filter(name='HR').exists()
+
+class IsDean(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.groups.filter(name='Dean').exists()
+
+class IsProgramHead(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.groups.filter(name='Program Head').exists()

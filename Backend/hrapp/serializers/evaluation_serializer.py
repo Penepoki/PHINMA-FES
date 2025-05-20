@@ -8,9 +8,8 @@ class EvaluationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Evaluation
         fields = '__all__'
+        read_only_fields = ['is_deleted','deleted_at', 'created_at', 'updated_at']
 
     def validate(self, attrs):
-        if 'is_deleted' in attrs and not attrs['is_deleted'] and attrs.get('deleted_at'):
-            raise serializers.ValidationError("Cannot set deleted_at without is_deleted")
-        return attrs
+        return super().validate(attrs)
 

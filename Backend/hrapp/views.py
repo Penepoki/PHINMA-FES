@@ -19,7 +19,7 @@ from rest_framework.decorators import action
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, PermissionDenied
 import json
 import pandas as pd
 
@@ -34,6 +34,16 @@ def login_view(request):
     # calls a utility function here
     result = authenticate_user(request.data)
     return Response(result)
+
+
+@login_required
+def logout_view(request):
+    try:
+        token = Token.objects.get(user=request.user)  # Fetch token
+        token.delete()  # Delete the token
+        return JsonResponse({"message": "Logged out successfully."}, status=200)
+    except Token.DoesNotExist:
+        return JsonResponse({"error": "No active token found for user."}, status=400)
 
 @api_view(['POST'])
 def forgot_password_view(request):
@@ -103,106 +113,82 @@ def user_view_profile(request):
 #Evaluation View
 #CRUD BELOW FOR EVALUATION (COPUS)----------------------------------------------
 #Create
-@require_http_methods(["POST"])
-@login_required
-@role_required(allowed_roles=["HR", "Dean", "Program Head"],
-               required_permission="add_evaluation")
-@permission_required("hrapp.add_evaluation", raise_exception=True)
-def create_evaluation_view(request):
-    #Parse data (JSON payload current)
-    #data for handling large payloads and if client sends a JSON-encoded data
-    data = json.loads(request.body)
+class EvaluationViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for managing evaluation.
+    Includes soft delete, restore, and custom creation with evaluatiors and instructor
+    """
+    queryset = Evaluation.objects.filter(deleted_at__isnull=True).prefetch_related('evaluators', 'instructor')
+    serializer_class = EvaluationSerializer
+    permission_classes = [IsHR | IsDean | IsProgramHead]
 
-    #Remove comment if client send raw and not encoded
-    """data = request.POST.dict()"""
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        evaluators = data.pop('evaluators', [])
+        instructors = data.pop('instructors', [])
 
-    try:
-        evaluation = create_evaluation(data)
-        if "some_required_field" not in data:
-            raise ValueError("Missing required field: some_required_field")
-        return JsonResponse({"message": " Copus evaluation successfuly", "id": evaluation.id},
-            status=201)
-    except Exception as e:
-        return JsonResponse({"message": str(e)}, status=400)
+        with transaction.atomic():
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            evaluation = serializer.save() # Create the eval model
 
+            #CREATE RELATIONSHIP FOR RELATED TABLES ( EVALUATOR AND INSTRUCTOR)
+            for evaluator_id in evaluators:
+                EvaluationEvaluator.objects.create(evaluation=evaluation, evaluator_id=evaluator_id)
+            for instructor_id in instructors:
+                EvaluationInstructor.objects.create(evaluation=evaluation, instructor_id=instructor_id)
 
-#Read or Retrieve
-@require_http_methods(["GET"])
-@login_required
-@role_required(allowed_roles=["HR", "Dean", "Program Head"])
-@permission_required("hrapp.view_evaluation", raise_exception=True)
-# GET ALL INCLUDED THE SOFT DELETED
-def get_evaluation_view(request):
-    try:
-        evaluation = get_evaluations_deleted_included()
-        if evaluation.get('error'):
-            return JsonResponse({"data": None, "error": evaluation['error']}, status=404)
-        return JsonResponse({"data": evaluation['data'], "error": None}, status=200)
-    except Exception as e:
-        return JsonResponse({"message": str(e)}, status=404)
+        return Response(
+            {"Message": "Evaluation created successfully", "data": serializer.data},
+            status=status.HTTP_201_CREATED,
+        )
 
+    def destroy(self, request, *args, **kwargs):
+        """Custom Soft Delete"""
+        evaluation = self.get_object()
 
-# GET ALL EVALUATION WITH TRUE ACTIVE ONLY
-def get_except_deleted_evaluation_view(request):
-    try:
-        evaluation = get_evaluations()
-        if evaluation.get('error'):
-            return JsonResponse({"data": None, "error": evaluation['error']}, status=404)
-        return JsonResponse({"data": evaluation['data'], "error": None}, status=200)
+        if evaluation.is_deleted:
+            return Response({"Message": "Evaluation already deleted"}, status=status.HTTP_400_BAD_REQUEST)
 
-    except Exception as e:
-        return JsonResponse({"message": str(e)}, status=404)
-# LATEST GET EVALUATION
-def get_latest_evaluation_view(request):
-    try:
-        evaluation = get_latest_evaluation()
-        if evaluation.get('error'):
-            return JsonResponse({"data": None, "error": evaluation['error']}, status=404)
-        return JsonResponse({"data": evaluation['data'], "error": None}, status=200)
-    except Exception as e:
-        return JsonResponse({"message": str(e)}, status=404)
+        evaluation.is_deleted = True
+        evaluation.deleted_at = timezone.now()
+        evaluation.save()
 
-#UPDATE
-@require_http_methods(["PUT", "PATCH"])
-@login_required
-@role_required(allowed_roles=["HR", "Dean", "Program Head"],
-               required_permission="change_evaluation")
-@permission_required("hrapp.change_evaluation", raise_exception=True)
-def update_evaluation_view(request, evaluation_id):
-    data = request.POST.dict()
-    try:
-        evaluation = update_evaluation(evaluation_id, data)
-        return JsonResponse({"message": " Copus evaluation successfuly", "id": evaluation.id}, status=200)
-    except Exception as e:
-        return JsonResponse({"message": str(e)}, status=400)
+        return Response(
+            {"Message": "Evaluation deleted successfully"},
+            status=status.HTTP_200_OK,
+        )
 
-#DELETE (Soft Delete)
-@require_http_methods(["DELETE"])
-@login_required
-@role_required(allowed_roles=["HR", "Dean", "Program Head"],
-               required_permission="delete_evaluation")
-@permission_required("hrapp.delete_evaluation", raise_exception=True)
-def delete_evaluation_view(request, evaluation_id):
-    try:
-        result = delete_evaluation(evaluation_id, soft_delete=True)
-        if isinstance(result, dict) and 'error' in result:
-            return JsonResponse({"message": result['error']}, status=400)
-        return JsonResponse({"message": " Copus evaluation deleted successfully"}, status=200)
-    except Exception as e:
-        return JsonResponse({"message": str(e)}, status=400)
+    @action(detail=True, methods=["POST"], url_path="restore")
+    def restore(self, request, pk=None):
+        """Custom Restore"""
+        evaluation = get_object_or_404(Evaluation, pk=pk, deleted_at__isnull=False)
 
-#RESTORE (Restore soft deleted objects(data)
-@require_http_methods(["POST"])
-@login_required
-@role_required(allowed_roles=["HR", "Dean", "Program Head"],
-               required_permission="restore_evaluation")
-@permission_required("hrapp.restore_evaluation", raise_exception=True)
-def restore_evaluation_view(request, evaluation_id):
-    try:
-        restore_evaluation(evaluation_id)
-        return JsonResponse({"message": " Copus evaluation restored successfully"}, status=200)
-    except Exception as e:
-        return JsonResponse({"message": str(e)}, status=400)
+        evaluation.is_deleted = False
+        evaluation.deleted_at = None
+        evaluation.save()
+
+        serializer = self.get_serializer(evaluation)
+        return Response(
+            {"Message": "Evaluation has been restored", "data": serializer.data}, status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["GET"], url_path="latest")
+    def latest_evaluation(self, request):
+        """
+        Get the latest evaluation for a specific course
+        """
+        try:
+            evaluation = Evaluation.object.filter(
+                is_deleted=False).latest('id')
+            serializer = self.get_serializer(evaluation)
+            return Response(
+                {"data": serializer.data}, status=status.HTTP_200_OK,
+            )
+        except Evaluation.DoesNotExist:
+            return Response(
+                {"error": "No evaluation found"}, status=status.HTTP_404_NOT_FOUND,
+            )
 #END OF CRUD EVALUATION -----------------------------------------
 
 #START OF CRUD COURSE -------------------------------------------
@@ -358,11 +344,16 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.filter(is_active=True)
     serializer_class = ScheduleSerializer
 
-    @action(detail=True, methods=['post'])
+
     @login_required
+    @permission_classes([IsAuthenticated])
     @role_required(allowed_roles=["Dean", "HR", "Program Head"],
                    required_permission="add_schedule")
     def create(self, request, *args, **kwargs):
+        user = request.user
+
+        if not user.groups.filter(name__in=["Dean", "HR", "Program Head"]).exists():
+            raise PermissionDenied("You do not have permission to create schedules.")
         data = request.data
         # HANDLES BULK IF THE INPUT IS A LIST
         if isinstance(data, list):
@@ -381,3 +372,61 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             )
 
         return super().create(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        """RETRIVE A SPECIFIC DATA BASED ON NAME or ID"""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        """UPDATE AN EXISTING SCHEDULE"""
+        partial = kwargs.pop('partial', False) # Check if this is a partial update (PATCH)
+        instance = self.get_object() # GET THE DATA TO BE UPDATED (SCHEDULE)
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        """SOFT DELETE A ATA BY MAKING THE IS_ACTIVE FIELD FALSE"""
+
+        instance = self.get_object() # GET THE DATA
+        instance.is_active = False
+        instance.deleted_at = timezone.now()
+        instance.save()
+
+        return Response({"message": "Schedule deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+    def list(self, request, *args, **kwargs):
+        """Retrieve and filter schedules.
+        Filter by semester, course, section, or other fields."""
+        queryset = self.filter_queryset(self.get_queryset()) #Apply global filters
+
+        # Apply custom filters
+        semester = request.query_params.get('semester', None)
+        course = request.query_params.get('course', None)
+        section = request.query_params.get('section', None)
+        subject = request.query_params.get('subject', None)
+
+        if semester:
+            queryset = queryset.filter(semester=semester)
+        if course:
+            queryset = queryset.filter(course=course)
+        if section:
+            queryset = queryset.filter(section=section)
+        if subject:
+            queryset = queryset.filter(subject=subject)
+
+        # PAGINATE THE RESPONSE
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
