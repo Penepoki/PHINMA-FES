@@ -125,6 +125,12 @@ const NavbarHR: React.FC<NavbarProps> = ({
 					>
 						<span className="dock-label">Resource Group</span>
 					</button>
+					<button
+						className={buttonClasses("leansixsigma")}
+						onClick={() => handleClick("leansixsigma")}
+					>
+						<span className="dock-label">Lean Six Sigma</span>
+					</button>
 				</div>
 
 				{/* Secondary Dock */}

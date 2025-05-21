@@ -19,3 +19,5 @@ TODO Renzo:
 Scroll Bug
 Name BUg
 Scroll indication
+
+Work on student modal after copus presentation

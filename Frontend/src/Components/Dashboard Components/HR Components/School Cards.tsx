@@ -1,17 +1,19 @@
-type Subject = {
+type Schools = {
 	name: string;
 	image?: string | null;
 	bgColor?: string;
 	textColor?: string;
 	isAddCard?: boolean;
+	onClick?: () => void;
 };
 
-const SubjectCard: React.FC<Subject> = ({
+const SchoolCard: React.FC<Schools> = ({
 	name,
 	image,
 	bgColor = "backdrop-hue-700",
 	textColor = "text-white",
 	isAddCard = false,
+	onClick,
 }) => {
 	if (isAddCard) {
 		return (
@@ -36,7 +38,10 @@ const SubjectCard: React.FC<Subject> = ({
 
 	// Regular card
 	return (
-		<div className="flex h-full w-full flex-col items-center justify-center rounded-xl p-5 shadow-2xl backdrop-blur-lg backdrop-hue-rotate-300 hover:scale-105">
+		<div
+			className="flex h-full w-full flex-col items-center justify-center rounded-xl p-5 shadow-2xl backdrop-blur-lg backdrop-hue-rotate-400 hover:scale-105"
+			onClick={onClick}
+		>
 			<div className="flex flex-col items-center">
 				<div
 					className={`${bgColor} text-neutral-content flex size-30 items-center justify-center rounded-full`}
@@ -64,21 +69,24 @@ const SubjectCard: React.FC<Subject> = ({
 	);
 };
 
-const SubjectCards: React.FC<{
-	subjects: Subject[];
-}> = ({ subjects }) => {
+const SchoolCards: React.FC<{
+	school: Schools[];
+	onSchoolClick?: (schoolName: string) => void;
+}> = ({ school, onSchoolClick }) => {
 	return (
-		<>
-			{/* Desktop View: 4 Cards Per Row */}
-			<div className="mx-6 mt-6 flex h-full flex-wrap justify-center gap-6">
-				{subjects.map((subject, idx) => (
-					<div key={idx} className="w-full sm:w-1/2 lg:w-1/4">
-						<SubjectCard {...subject} />
-					</div>
-				))}
-			</div>
-		</>
+		<div className="mt-6 flex h-full w-screen flex-col flex-wrap justify-center gap-6 md:flex-row">
+			{school.map((school, idx) => (
+				<div key={idx} className="h-1/2 w-full md:w-1/5">
+					<SchoolCard
+						{...school}
+						onClick={() =>
+							!school.isAddCard && onSchoolClick?.(school.name)
+						}
+					/>
+				</div>
+			))}
+		</div>
 	);
 };
 
-export default SubjectCards;
+export default SchoolCards;

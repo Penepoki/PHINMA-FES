@@ -212,7 +212,7 @@ const CopusMatrix = () => {
 		<div className="mb-4 rounded-lg border border-gray-300 p-4">
 			{" "}
 			<div className="mb-4 text-center text-sm font-semibold text-gray-700">
-				<div className="flex w-full flex-col justify-between md:flex-row">
+				<div className="flex w-full flex-row justify-between">
 					<span>Current Time: {currentTime}</span>
 					<span>|</span>
 					<span>
@@ -231,6 +231,7 @@ const CopusMatrix = () => {
 					<div className="text-center text-sm text-gray-400">
 						The Observer must select an option for both the student
 						and teacher doing in order to complete the minute.
+						<br /> Timer will start after the selecting an option.
 					</div>
 					{/* Navigation */}
 					<div className="flex items-center justify-center gap-4">

@@ -315,7 +315,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 															type="submit"
 															className="btn bg-[#1c402a] text-white"
 														>
-															Save
+															Submit
 														</button>
 														<button
 															type="submit"

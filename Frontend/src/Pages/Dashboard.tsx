@@ -20,6 +20,7 @@ import Courses from "./DockPages/ResourceGroup Pages/Courses";
 import Rooms from "./DockPages/ResourceGroup Pages/Rooms";
 import Schedules from "./DockPages/ResourceGroup Pages/Schedules";
 import Subject from "./DockPages/ResourceGroup Pages/Subject";
+import LeanSixSigma from "./DockPages/Lean Six Sigma";
 
 function Dashboard({ role }: { role: string }) {
 	// Default view is "home"
@@ -40,19 +41,21 @@ function Dashboard({ role }: { role: string }) {
 				<div>Home</div>
 			),
 		profile: <Profile setActiveView={setActiveView} />,
+		//Evaluation sub-components
 		evaluation: <Evaluation setActiveView={setActiveView} />,
-		resourceGroup: <ResourceGroup setActiveView={setActiveView} />,
-		// subComponents
 		createStudentEval: (
 			<CreateStudentEvaluation setActiveView={setActiveView} />
 		),
 		studentEval: <StudentEvaluation setActiveView={setActiveView} />,
 		evalSummary: <EvaluationSummary setActiveView={setActiveView} />,
 		// Resource Group sub-components
+		resourceGroup: <ResourceGroup setActiveView={setActiveView} />,
 		courses: <Courses setActiveView={setActiveView} />,
 		rooms: <Rooms setActiveView={setActiveView} />,
 		schedules: <Schedules setActiveView={setActiveView} />,
 		subject: <Subject setActiveView={setActiveView} />,
+		//Lean Six Sigma
+		leansixsigma: <LeanSixSigma setActiveView={setActiveView} />,
 	};
 
 	const expandedViews = [
