@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 djangorestframework = "*"
 markdown = "*"
-django-filter = "*"
 django-cors-headers = "*"
 mysqlclient = "*"
 django-simple-history = "*"
@@ -14,6 +13,7 @@ django-jazzmin = "*"
 django-decouple = "*"
 python-decouple = "*"
 pandas = "*"
+django-filter = "*"
 
 [dev-packages]
 

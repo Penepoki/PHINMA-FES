@@ -1,12 +1,6 @@
-from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
-from django.views.decorators.http import require_http_methods
-from django.utils.timezone import now
-from django.db import transaction
-from django.shortcuts import get_object_or_404
 from hrapp.utils.evaluation_utils import *
-from hrapp.serializers import CourseSerializer
 from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
 from hrapp.utils.decorators import *
@@ -19,8 +13,8 @@ from rest_framework.decorators import action
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser
-from rest_framework.exceptions import ValidationError, PermissionDenied
-import json
+from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
+#from rest_framework.filter import Search
 import pandas as pd
 
 
@@ -35,7 +29,7 @@ def login_view(request):
     result = authenticate_user(request.data)
     return Response(result)
 
-
+@api_view(['POST'])
 @login_required
 def logout_view(request):
     try:
@@ -191,11 +185,172 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             )
 #END OF CRUD EVALUATION -----------------------------------------
 
+# THE CRUD UTILITY  FOR SCHEDULE(ROOMS, SUBJECTS, COURSE)
+
+#START OF CRUD SUBJECT ------------------------------------------
+class SubjectViewSet(viewsets.ModelViewSet):
+    queryset = Subject.objects.filter(deleted_at__isnull=True)
+    serializer_class = SubjectSerializer
+
+#SUBJECT CREATE
+    @transaction.atomic
+    @role_required(allowed_roles=["HR", "Dean", "Program Head"])
+    def create(self, request, *args, **kwargs):
+        data = request.data
+
+        # Check if data is for batch creation
+        if isinstance(data, list): # If data is a list, handle multiple subject
+            created_subject = [] # List to hold successful created subjects
+            failed_subject = [] # List to track failed created subjects
+
+            for subject_data in data:
+                try:
+                    serializer = self.get_serializer(data=subject_data)
+                    serializer.is_valid(raise_exception=True)
+                    created_subject = serializer.save()
+                    created_subject.append(created_subject)
+                except ValidationError as e:
+                    failed_subject.append({
+                        "error": e.detail,
+                        "data": subject_data,
+                    })
+
+            if failed_subject:
+                raise ValidationError({
+                    "message": "Failed to create subjects.",
+                    "error": failed_subject
+                })
+
+            return Response(
+                {"message": f"Subjects created successfully "
+                            f"{len(created_subject)} subjects"}, status=status.HTTP_201_CREATED,
+            )
+
+
+
+        #SINGLE  CREATION
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        subject = serializer.save()
+        return Response(
+            {"Message": "Subject created successfully", "data": serializer.data},
+            status=status.HTTP_201_CREATED,
+        )
+    #READ/RETRIEVE BY NAME
+    def retrieve(self, request, *args, **kwargs):
+        name = kwargs.get('name')
+
+        try:
+                subject = self.get_queryset().get(name=name)
+        except Subject.DoesNotExist:
+            raise NotFound({"Message": f"No subject found with name {name}"})
+
+        serializer = self.get_serializer(subject)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object() # GET THE INSTANCE TO UPDATE
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        subject = serializer.save()
+        return Response({"Message": "Subject updated successfully",
+                         "data": serializer.data}, status=status.HTTP_200_OK)
+
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_deleted = False
+        instance.deleted_at = timezone.now()
+        instance.save()
+        return Response({"Message": "Subject deleted successfully"}, status=status.HTTP_200_OK)
+
+
+#END OF CRUD SUBJECT --------------------------------------------
+
+# START OF CRUD ROOM --------------------------------------------
+
+class RoomViewSet(viewsets.ModelViewSet):
+    queryset = Room.objects.filter(deleted_at__isnull=True)
+    serializer_class = RoomSerializer
+
+    @transaction.atomic
+    @role_required(allowed_roles=["HR", "Dean", "Program Head"])
+    def create(self, request, *args, **kwargs):
+        data = request.data
+
+        #BATCH CREATION
+        if isinstance(data, list):
+            created_rooms = []
+            failed_rooms = []
+            for room_data in data:
+                try:
+                    serializer = self.get_serializer(data=room_data)
+                    serializer.is_valid(raise_exception=True)
+                    created_room = serializer.save()
+                    created_rooms.append(created_room)
+                except ValidationError as e:
+                    failed_rooms.append({
+                        "error": e.detail,
+                        "data": room_data,
+                    })
+
+                if failed_rooms:
+                    raise ValidationError({
+                        "message": "Failed to create rooms.",
+                        "error": failed_rooms
+                    })
+
+                return Response(
+                    {"message": f"Rooms created successfully "
+                                f"{len(created_rooms)} rooms"}, status=status.HTTP_201_CREATED,
+                )
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        room = serializer.save()
+        return Response(
+            {"Message": "Room created successfully", "data": serializer.data},
+            status=status.HTTP_201_CREATED,)
+
+    def retrieve(self, request, *args, **kwargs):
+        name = kwargs.get('name')
+        if name:
+            try:
+                room = self.get_queryset().get(name=name)
+            except Room.DoesNotExist:
+                raise NotFound({"Message": f"No room found with name {name}"})
+            serializer = self.get_serializer(room)
+            return Response(serializer.data)
+        return super().retrieve(request, *args, **kwargs)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data,
+                                         partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({
+            "Message": "Room updated successfully",
+            "data": serializer.data}, status=status.HTTP_200_OK
+        )
+
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.deleted_at = timezone.now()
+        instance.save()
+        return Response({
+            "Message": "Room deleted successfully"}
+            ,status=status.HTTP_204_NO_CONTENT
+        )
+#END OF CRUD ROOM ----------------------------------------------
+
 #START OF CRUD COURSE -------------------------------------------
-
-
-
-# THE CRUD UTILITY  FOR SCHEDULE(ROOMS, SUBJECTS,
 # COURSE
 class CourseViewSet(viewsets.ModelViewSet):
 
@@ -203,6 +358,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     parser_classes = [MultiPartParser]
 
+#Course Create
     @transaction.atomic
     @role_required(allowed_roles=["HR", "Dean", "Program Head"])
     def create(self, request, *args, **kwargs):
@@ -243,7 +399,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                             f"{len(created_courses)} courses"}, status=status.HTTP_201_CREATED,
             )
         return super().create(request, *args, **kwargs)
-
+#Course CSV Create
     @action(detail=False, methods=['post'],
             url_path='search')
     def import_course_from_csv(self, request, *args, **kwargs):
@@ -293,7 +449,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
+#COURSE Update
     @action(detail=True, methods=['put', 'patch'])
     @role_required(allowed_roles=["HR", "Dean", "Program Head"], required_permission="hrapp.change_course")
     def perform_update(self, serializer):
@@ -308,13 +464,14 @@ class CourseViewSet(viewsets.ModelViewSet):
                                 professor_id=prof_id)
                                 for prof_id in professors
             ])
-
+# COURSE Delete
     def destroy(self, request, *args, **kwargs):
         course = self.get_object()
         course.deleted_at = now()
         course.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+# COURSE Retrieve list (All)
     # RETRIEVE OR READ data fetching for all courses including the deleted ones
     @action(detail=False, methods=['get'])
     def course_all(self, request, *args, **kwargs):
@@ -326,14 +483,14 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = CourseSerializer(queryset, many=True)
         return Response(serializer.data)
 
-    #RESTORE
+#COURSE RESTORE
     @action(detail=True, methods=['post'])
     def restore(self, request, pk=None):
         course = get_object_or_404(Course, pk=pk, deleted_at__isnull=False)
         course.restore()
         return Response(self.get_serializer(course).data, status=status.HTTP_200_OK)
 
-
+# COURSEPROFESSOR
 class CourseProfessorViewSet(viewsets.ModelViewSet):
     queryset = CourseProfessor.objects.all()
     serializer_class = CourseProfessorSerializer
@@ -344,7 +501,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.filter(is_active=True)
     serializer_class = ScheduleSerializer
 
-
+#SCHEDULE Create
     @login_required
     @permission_classes([IsAuthenticated])
     @role_required(allowed_roles=["Dean", "HR", "Program Head"],
@@ -372,14 +529,14 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             )
 
         return super().create(request, *args, **kwargs)
-
+#SCHEDULE RETRIEVE (ID OR NAME)
     def retrieve(self, request, *args, **kwargs):
         """RETRIVE A SPECIFIC DATA BASED ON NAME or ID"""
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
+#SCHEDULE Update
     @transaction.atomic
     def update(self, request, *args, **kwargs):
         """UPDATE AN EXISTING SCHEDULE"""
@@ -391,7 +548,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
-
+#SCHEDULE Delete
     def destroy(self, request, *args, **kwargs):
         """SOFT DELETE A ATA BY MAKING THE IS_ACTIVE FIELD FALSE"""
 
@@ -401,7 +558,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         instance.save()
 
         return Response({"message": "Schedule deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-
+#SCHEDULE Read/Retrieve (All)
     def list(self, request, *args, **kwargs):
         """Retrieve and filter schedules.
         Filter by semester, course, section, or other fields."""

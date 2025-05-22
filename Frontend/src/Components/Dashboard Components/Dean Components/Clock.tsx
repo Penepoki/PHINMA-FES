@@ -22,10 +22,10 @@ const Clock = () => {
 	});
 
 	return (
-		<p className="mb-3 text-lg text-gray-300 sm:text-xl md:mt-3 md:mb-8">
+		<div className="mb-3 text-lg text-gray-300 sm:text-xl md:mt-3 md:mb-8">
 			Current SFF Status:{" "}
 			<div className="text-sm text-white">{formattedTime}</div>
-		</p>
+		</div>
 	);
 };
 

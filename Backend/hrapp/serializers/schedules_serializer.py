@@ -2,7 +2,8 @@ from django.db.models import Q
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
 from hrapp.models.schedules_models import *
-from hrapp.serializers import UserSerializer, UserCourseProfessorSerializer
+from .user_serializer import UserCourseProfessorSerializer
+
 
 
 # COURSE SERIALIZER
@@ -18,8 +19,8 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Course
-        fields = ['name', 'code', 'professors', 'professor_names', 'is_active']
-        read_only_fields = ['deleted_at', 'created_at', 'updated_at']
+        fields = ['name', 'code', 'is_active']
+        read_only_fields = ['deleted_at', 'updated_at']
 
     # Overriding create to bulk-create intermediate relationships in the CourseProfessor table
     def create(self, validated_data):
@@ -64,14 +65,16 @@ class CourseSerializer(serializers.ModelSerializer):
         for professor_id in value:
             try:
                 user = User.objects.get(id=professor_id)
+
+                allowed_roles = ['professor', 'Program Head']
+                if not user.groups.filter(
+                        name__in=allowed_roles).exists():
+                    invalid_users.append(professor_id)
             except User.DoesNotExist:
                 invalid_users.append(professor_id)
                 continue
 
-        allowed_roles = ['professor', 'Program Head']
-        if not user.groups.filter(
-            name__in=allowed_roles).exists():
-            invalid_users.append(professor_id)
+
 
         if invalid_users:
             raise serializers.ValidationError(

@@ -3,11 +3,38 @@ from .schedules_models import Schedule
 from .custom_manager import *
 from .user_models import *
 from django.utils import timezone
-
+from django.core.exceptions import ValidationError
 
 
 # Evaluations
 class Evaluation(models.Model):
+    STUDENT_ACTIVITY_CHOICES = [
+        "Listening",
+        "Individual Thinking",
+        "Group",
+        "Answer Question",
+        "Ask Question",
+        "Whole Class Discussion",
+        "Student Presentations",
+        "Test/Quiz",
+        "Waiting",
+        "Other",
+    ]
+
+    INSTRUCTOR_ACTIVITY_CHOICES = [
+        "Lecture",
+        "Realtime Writing",
+        "Moving/Guiding",
+        "Answer Questions",
+        "Pose Question",
+        "Follow-up Question",
+        "1-on-1 discussion",
+        "Demonstrate/Video",
+        "Administrative",
+        "Waiting",
+        "Other",
+    ]
+
     schedule = models.ForeignKey('Schedule', on_delete=models.CASCADE, blank=True, null=True)
     observation_date = models.DateField()
     evaluation_type = models.CharField(max_length=100)
@@ -23,6 +50,27 @@ class Evaluation(models.Model):
     evaluators = models.ManyToManyField(User, through='EvaluationEvaluator', related_name='evaluations_done')
     instructors = models.ManyToManyField(User, through='EvaluationInstructor', related_name='evaluations_received')
 
+
+    def clean(self):
+        if self.student_activities:
+            invalid_keys = [
+                key for key in self.student_activities.keys()
+                if key not in self.STUDENT_ACTIVITY_CHOICES
+            ]
+            if invalid_keys:
+                raise ValidationError(
+                    f"Invalid student activity keys: {', '.join(invalid_keys)}")
+
+        if self.instructor_activities:
+            invalid_keys = [
+                key for key in self.instructor_activities.keys()
+                if key not in self.INSTRUCTOR_ACTIVITY_CHOICES
+            ]
+            if invalid_keys:
+                raise ValidationError(
+                    f"Invalid instructor activity keys: {', '.join(invalid_keys)}")
+
+        super().clean()
 
     def delete(self, using=None, keep_parents=False):
         self.deleted_at = timezone.now()
