@@ -267,3 +267,15 @@ html {
 .float-breathe {
 	animation: floatBreathe 7s cubic-bezier(0.42, 0, 0.58, 1) infinite;
 }
+
+.stats {
+	@apply h-1/2 w-full rounded-[0px] text-white;
+}
+
+.stat-title {
+	@apply text-xl font-thin;
+}
+
+.stat-value {
+	@apply text-5xl font-semibold;
+}

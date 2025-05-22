@@ -1,10 +1,80 @@
-import greenBarGraph from "../../assets/green-bar-graph.jpg";
+import {
+	Chart as ChartJS,
+	CategoryScale,
+	LinearScale,
+	BarElement,
+	Title,
+	Tooltip,
+	Legend,
+} from "chart.js";
+import { Bar } from "react-chartjs-2";
 
+ChartJS.register(
+	CategoryScale,
+	LinearScale,
+	BarElement,
+	Title,
+	Tooltip,
+	Legend,
+);
 interface ResourceGroupProps {
 	setActiveView: (view: string) => void;
 }
 
 function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
+	const barData = {
+		labels: ["Quality", "Efficiency", "Accuracy", "Speed", "Satisfaction"],
+		datasets: [
+			{
+				label: "Evaluation Score",
+				data: [65, 59, 80, 81, 56],
+				backgroundColor: [
+					"rgba(20, 83, 45)",
+					"rgba(22, 101, 52)",
+					"rgba(30, 64, 175)",
+					"rgba(14, 116, 144)",
+					"rgba(51, 65, 85)",
+				],
+				borderRadius: 8,
+				barPercentage: 0.6,
+			},
+		],
+	};
+
+	const barOptions = {
+		responsive: true,
+		plugins: {
+			legend: {
+				labels: {
+					color: "#fff", // white text for dark bg
+				},
+			},
+			title: {
+				display: true,
+				text: "Lean Six Sigma Metrics",
+				color: "#fff",
+			},
+		},
+		scales: {
+			x: {
+				ticks: {
+					color: "#fff",
+				},
+				grid: {
+					color: "rgba(255,255,255,0.1)",
+				},
+			},
+			y: {
+				ticks: {
+					color: "#fff",
+				},
+				grid: {
+					color: "rgba(255,255,255,0.1)",
+				},
+			},
+		},
+	};
+
 	return (
 		<div className="custom-container">
 			{/* Breadcrumbs */}
@@ -16,16 +86,19 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 					<li>Resource Group</li>
 				</ul>
 			</div>
-			<div className="mt-20 flex h-full w-full flex-col gap-6 px-6">
+			<h2 className="mt-4 text-3xl font-bold text-white">
+				Lean Six Sigma Statistics
+			</h2>
+			<div className="mt-6 flex h-full w-full flex-col gap-6 px-6">
 				<div className="flex h-full w-full flex-col rounded-lg shadow-2xl">
-					<div className="stats h-1/2 w-full rounded-[0px] border-b border-b-gray-600 text-lg text-white backdrop-blur-lg">
+					<div className="stats border-b border-b-gray-600 bg-[#1c402a]/20">
 						<div className="stat">
-							<div className="stat-figure text-secondary">
+							<div className="stat-figure">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current text-white"
+									className="inline-block h-12 w-12 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -39,18 +112,15 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								Interactions
 							</div>
 							<div className="stat-value">7</div>
-							<div className="stat-desc text-white">
-								Jan 1st - Feb 1st
-							</div>
 						</div>
 
 						<div className="stat">
-							<div className="stat-figure text-secondary">
+							<div className="stat-figure">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current text-white"
+									className="inline-block h-12 w-12 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -61,21 +131,18 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								</svg>
 							</div>
 							<div className="stat-title text-white">
-								New Users
+								Low Effort
 							</div>
-							<div className="stat-value">4,200</div>
-							<div className="stat-desc text-white">
-								↗︎ 400 (22%)
-							</div>
+							<div className="stat-value">0 of 10</div>
 						</div>
 
 						<div className="stat">
-							<div className="stat-figure text-secondary">
+							<div className="stat-figure">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current text-white"
+									className="inline-block h-12 w-12 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -86,21 +153,18 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								</svg>
 							</div>
 							<div className="stat-title text-white">
-								New Registers
+								Resolution
 							</div>
-							<div className="stat-value">1,200</div>
-							<div className="stat-desc text-white">
-								↘︎ 90 (14%)
-							</div>
+							<div className="stat-value">0%</div>
 						</div>
 
 						<div className="stat">
-							<div className="stat-figure text-secondary">
+							<div className="stat-figure">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current text-white"
+									className="inline-block h-12 w-12 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -111,22 +175,19 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								</svg>
 							</div>
 							<div className="stat-title text-white">
-								New Registers
+								Fatal Accuracy
 							</div>
-							<div className="stat-value">1,200</div>
-							<div className="stat-desc text-white">
-								↘︎ 90 (14%)
-							</div>
+							<div className="stat-value">100%</div>
 						</div>
 					</div>
-					<div className="stats h-1/2 w-full rounded-[0px] text-white backdrop-blur-lg">
+					<div className="stats bg-[#1b2e3e]/20">
 						<div className="stat">
-							<div className="stat-figure text-secondary">
+							<div className="stat-figure">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current text-white"
+									className="inline-block h-12 w-12 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -137,21 +198,18 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								</svg>
 							</div>
 							<div className="stat-title text-white">
-								Downloads
+								Sentiment
 							</div>
-							<div className="stat-value">31K</div>
-							<div className="stat-desc text-white">
-								Jan 1st - Feb 1st
-							</div>
+							<div className="stat-value">-0.7</div>
 						</div>
 
 						<div className="stat">
-							<div className="stat-figure text-secondary">
+							<div className="stat-figure">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current text-white"
+									className="inline-block h-12 w-12 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -162,21 +220,18 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								</svg>
 							</div>
 							<div className="stat-title text-white">
-								New Users
+								Brand Love
 							</div>
-							<div className="stat-value">4,200</div>
-							<div className="stat-desc text-white">
-								↗︎ 400 (22%)
-							</div>
+							<div className="stat-value">1 of 10</div>
 						</div>
 
 						<div className="stat">
-							<div className="stat-figure text-secondary">
+							<div className="stat-figure">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current text-white"
+									className="inline-block h-12 w-12 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -187,21 +242,18 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								</svg>
 							</div>
 							<div className="stat-title text-white">
-								New Registers
+								Agent Love
 							</div>
-							<div className="stat-value">1,200</div>
-							<div className="stat-desc text-white">
-								↘︎ 90 (14%)
-							</div>
+							<div className="stat-value">9 of 10</div>
 						</div>
 
 						<div className="stat">
-							<div className="stat-figure text-secondary">
+							<div className="stat-figure">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current text-white"
+									className="inline-block h-12 w-12 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -212,23 +264,37 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								</svg>
 							</div>
 							<div className="stat-title text-white">
-								New Registers
+								QA Score
 							</div>
-							<div className="stat-value">1,200</div>
-							<div className="stat-desc text-white">
-								↘︎ 90 (14%)
-							</div>
+							<div className="stat-value">55.00%</div>
 						</div>
 					</div>
 				</div>
-				<div className="lg flex h-1/2 w-full rounded-lg shadow-2xl backdrop-blur-lg"></div>
-				<div className="flex h-full w-full flex-row gap-6">
-					<div className="flex h-1/2 w-1/2 rounded-lg shadow-2xl backdrop-blur-lg">
-						HELLO WORLD
+
+				<div className="flex h-1/2 flex-row gap-6">
+					<div className="flex w-1/2 flex-col items-start justify-start rounded-lg p-6 shadow-2xl backdrop-blur-lg">
+						<span className="text-xl font-bold text-white">
+							Intent:
+						</span>
+						<span className="text-lg text-gray-400">
+							Lorem ipsum dolor sit amet, consectetur adipiscing
+							elit, sed do eiusmod tempor incididunt ut labore et
+							dolore magna aliqua.
+						</span>
 					</div>
-					<div className="flex h-1/2 w-1/2 rounded-lg shadow-2xl backdrop-blur-lg">
-						HELLO WORLD
+					<div className="flex w-1/2 flex-col items-start justify-start rounded-lg p-6 shadow-2xl backdrop-blur-lg">
+						<span className="text-xl font-bold text-white">
+							Action:
+						</span>
+						<span className="text-lg text-gray-400">
+							Lorem ipsum dolor sit amet, consectetur adipiscing
+							elit, sed do eiusmod tempor incididunt ut labore et
+							dolore magna aliqua.
+						</span>
 					</div>
+				</div>
+				<div className="flex h-1/2 w-full items-center justify-center rounded-lg p-4 shadow-2xl backdrop-blur-lg">
+					<Bar data={barData} options={barOptions} />
 				</div>
 			</div>
 		</div>

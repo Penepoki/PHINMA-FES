@@ -25,6 +25,9 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
 					<li>Student Evaluations</li>
 				</ul>
 			</div>
+			<h2 className="mt-4 text-3xl font-bold text-white">
+				Student Evaluation
+			</h2>
 			<div className="flex h-1/5 w-5/6 flex-col items-start justify-center rounded-xl p-5 text-white shadow-2xl backdrop-blur-lg backdrop-hue-rotate-300">
 				<h6>Total Evaluation</h6>
 				<span className="mt-2 text-6xl text-gray-300">0</span>{" "}

@@ -14,6 +14,9 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
 					<li>Resource Group</li>
 				</ul>
 			</div>
+			<h2 className="mt-4 text-3xl font-bold text-white">
+				Resource Group Overview
+			</h2>
 			<div className="z-10 flex h-full w-full flex-col items-center justify-center gap-6 p-0 md:flex-row md:p-6">
 				<div className="rg-container md:gap-y-6 md:p-6">
 					<h2 className="mb-4 text-4xl font-bold">Courses</h2>

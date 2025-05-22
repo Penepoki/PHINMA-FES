@@ -1,5 +1,6 @@
 type Subject = {
 	name: string;
+	fullname: string;
 	image?: string | null;
 	bgColor?: string;
 	textColor?: string;
@@ -8,6 +9,7 @@ type Subject = {
 
 const SubjectCard: React.FC<Subject> = ({
 	name,
+	fullname,
 	image,
 	bgColor = "backdrop-hue-700",
 	textColor = "text-white",
@@ -54,9 +56,12 @@ const SubjectCard: React.FC<Subject> = ({
 					)}
 				</div>
 
-				<div className="mt-4 text-center">
+				<div className="mt-4 flex flex-col text-center">
 					<span className={`text-3xl font-bold ${textColor}`}>
 						{name}
+					</span>
+					<span className={`text-md mt-2 text-gray-400`}>
+						{fullname}
 					</span>
 				</div>
 			</div>

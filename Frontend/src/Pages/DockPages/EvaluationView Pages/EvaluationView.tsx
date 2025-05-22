@@ -9,13 +9,13 @@ function Evaluation({ setActiveView }: EvalProps) {
 	const [tableData] = useState([
 		{
 			course: "Renzo Cua",
-			roomSubject: "403 SSP",
-			yearSem: "2023 2nd Sem",
+			roomSubject: "BSIT 2-1 | 403 SSP @ 10:00 AM",
+			yearSem: "23-24 2nd Sem",
 			department: "Computer Science",
 		},
 		{
 			course: "Martin Espineda",
-			roomSubject: "200 SIA",
+			roomSubject: "200 SIA @ 12:00 PM",
 			yearSem: "2022 1st Sem",
 		},
 		{
@@ -150,10 +150,10 @@ function Evaluation({ setActiveView }: EvalProps) {
 				</dialog>
 			</div>
 
-			<div className="flex w-full flex-row items-center justify-center gap-1 border-b-2 border-gray-600 px-4 py-5 text-black shadow-xl backdrop-blur-lg md:gap-6">
+			<div className="flex w-full flex-row items-center justify-center gap-1 border-b-2 border-gray-600 px-4 pb-2 text-black shadow-xl backdrop-blur-lg md:gap-6">
 				<input
 					type="text"
-					className="input"
+					className="input w-full max-w-md rounded-lg border border-gray-300"
 					placeholder="Professor"
 					list="professor-list"
 				/>
@@ -165,8 +165,8 @@ function Evaluation({ setActiveView }: EvalProps) {
 
 				<input
 					type="text"
-					className="input"
-					placeholder="Room & Subject"
+					className="input w-full max-w-md rounded-lg border border-gray-300"
+					placeholder="Schedule"
 					list="room-subject-list"
 				/>
 				<datalist id="room-subject-list">
@@ -177,7 +177,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 
 				<input
 					type="text"
-					className="input"
+					className="input w-full max-w-md rounded-lg border border-gray-300"
 					placeholder="Year & Semester"
 					list="year-semester-list"
 				/>

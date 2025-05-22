@@ -15,16 +15,29 @@ const schools = [
 ];
 
 const subjects = [
-	{ name: "CITE", image: null },
-	{ name: "CAHS", image: null },
-	{ name: "CMA", image: null },
-	{ name: "CCJE", image: null },
-	{ name: "COED", image: null },
-	{ name: "SHS", image: null },
-	{ name: "etc", image: null },
-	{ name: "etc", image: null },
-	{ name: "etc", image: null },
-	{ name: "etc", image: null },
+	{
+		name: "CITE",
+		fullname: "College of Information Technology Education",
+		image: null,
+	},
+	{
+		name: "CAHS",
+		fullname: "College of Allied Health Sciences",
+		image: null,
+	},
+	{
+		name: "CMA",
+		fullname: "College of Management and Accountancy",
+		image: null,
+	},
+	{
+		name: "CCJE",
+		fullname: "College of Criminal Justice Education",
+		image: null,
+	},
+	{ name: "COED", fullname: "College of Education", image: null },
+	{ name: "SHS", fullname: "Senior High School", image: null },
+	{ name: "etc", fullname: "Other", image: null },
 ];
 
 function Home() {

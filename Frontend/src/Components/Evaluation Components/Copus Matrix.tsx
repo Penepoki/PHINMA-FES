@@ -37,7 +37,6 @@ const CopusMatrix = () => {
 		[key: string]: number;
 	}>({});
 	const [minute, setMinute] = useState(MIN_MINUTE);
-	const minuteIncrement = minute === MAX_MINUTE ? minute : minute + 1;
 	// Time tracking states
 	const [currentTime, setCurrentTime] = useState<string>("");
 	const [startTime, setStartTime] = useState<Date | null>(null);
@@ -244,9 +243,7 @@ const CopusMatrix = () => {
 							&larr;
 						</button>{" "}
 						<h2 className="text-xl font-bold">
-							{minute === MAX_MINUTE
-								? `Minute ${minute}`
-								: `Minutes ${minute} - ${minuteIncrement}`}
+							{`Minutes ${minute - 2} - ${minute}`}
 						</h2>
 						<button
 							className="tooltip text-xl font-bold disabled:opacity-30"
