@@ -53,8 +53,104 @@ function Evaluation({ setActiveView }: EvalProps) {
 			<h2 className="mt-4 text-3xl font-bold text-white">
 				Copus Evaluation Forms
 			</h2>
+			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl md:justify-end">
+				<button
+					onClick={() =>
+						(
+							document.getElementById(
+								"create_copus",
+							) as HTMLDialogElement
+						)?.showModal()
+					}
+					className="flex w-auto rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105"
+				>
+					Create New Copus
+				</button>
+				<dialog id="create_copus" className="modal">
+					<div className="modal-box w-11/12 max-w-5xl">
+						<h3 className="mb-4 text-center text-2xl font-bold">
+							New Copus
+						</h3>
 
-			<div className="mt-4 flex w-full flex-row items-center justify-center gap-1 border-b-2 border-gray-600 px-4 py-5 text-black shadow-xl backdrop-blur-lg md:gap-6">
+						<form method="dialog" className="flex flex-col gap-6">
+							{/* Name */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Name:
+								</label>
+								<input
+									type="text"
+									placeholder="Enter faculty name"
+									className="input input-bordered w-full"
+									required
+								/>
+							</div>
+
+							{/* Department */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Department:
+								</label>
+								<input
+									type="text"
+									placeholder="Enter department"
+									className="input input-bordered w-full"
+									required
+								/>
+							</div>
+
+							{/* Room and Course */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-start">
+								<label className="pt-2 text-left text-lg font-bold md:w-1/4">
+									Room and Subject:
+								</label>
+								<input
+									placeholder="Enter room and subject"
+									className="input textarea-bordered w-full"
+									required
+								/>
+							</div>
+
+							{/* Year */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-start">
+								<label className="pt-2 text-left text-lg font-bold md:w-1/4">
+									Year and Semester:
+								</label>
+								<input
+									placeholder="Enter year and semester"
+									className="input textarea-bordered w-full"
+									required
+								/>
+							</div>
+
+							{/* Action Buttons */}
+							<div className="modal-action">
+								<button
+									type="submit"
+									className="btn btn-success text-white"
+								>
+									Submit
+								</button>
+								<button
+									type="button"
+									className="btn btn-cancel"
+									onClick={() =>
+										(
+											document.getElementById(
+												"create_copus",
+											) as HTMLDialogElement
+										)?.close()
+									}
+								>
+									Cancel
+								</button>
+							</div>
+						</form>
+					</div>
+				</dialog>
+			</div>
+
+			<div className="flex w-full flex-row items-center justify-center gap-1 border-b-2 border-gray-600 px-4 py-5 text-black shadow-xl backdrop-blur-lg md:gap-6">
 				<input
 					type="text"
 					className="input"

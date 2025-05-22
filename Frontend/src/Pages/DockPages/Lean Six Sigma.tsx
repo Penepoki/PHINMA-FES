@@ -18,14 +18,14 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 			</div>
 			<div className="mt-20 flex h-full w-full flex-col gap-6 px-6">
 				<div className="flex h-full w-full flex-col rounded-lg shadow-2xl">
-					<div className="stats h-1/2 w-full rounded-[0px] border-b border-b-gray-400 text-white backdrop-blur-lg">
+					<div className="stats h-1/2 w-full rounded-[0px] border-b border-b-gray-600 text-lg text-white backdrop-blur-lg">
 						<div className="stat">
 							<div className="stat-figure text-secondary">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current"
+									className="inline-block h-8 w-8 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -35,9 +35,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									></path>
 								</svg>
 							</div>
-							<div className="stat-title">Downloads</div>
-							<div className="stat-value">31K</div>
-							<div className="stat-desc">Jan 1st - Feb 1st</div>
+							<div className="stat-title text-white">
+								Interactions
+							</div>
+							<div className="stat-value">7</div>
+							<div className="stat-desc text-white">
+								Jan 1st - Feb 1st
+							</div>
 						</div>
 
 						<div className="stat">
@@ -46,7 +50,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current"
+									className="inline-block h-8 w-8 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -56,9 +60,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									></path>
 								</svg>
 							</div>
-							<div className="stat-title">New Users</div>
+							<div className="stat-title text-white">
+								New Users
+							</div>
 							<div className="stat-value">4,200</div>
-							<div className="stat-desc">↗︎ 400 (22%)</div>
+							<div className="stat-desc text-white">
+								↗︎ 400 (22%)
+							</div>
 						</div>
 
 						<div className="stat">
@@ -67,7 +75,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current"
+									className="inline-block h-8 w-8 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -77,9 +85,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									></path>
 								</svg>
 							</div>
-							<div className="stat-title">New Registers</div>
+							<div className="stat-title text-white">
+								New Registers
+							</div>
 							<div className="stat-value">1,200</div>
-							<div className="stat-desc">↘︎ 90 (14%)</div>
+							<div className="stat-desc text-white">
+								↘︎ 90 (14%)
+							</div>
 						</div>
 
 						<div className="stat">
@@ -88,7 +100,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current"
+									className="inline-block h-8 w-8 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -98,9 +110,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									></path>
 								</svg>
 							</div>
-							<div className="stat-title">New Registers</div>
+							<div className="stat-title text-white">
+								New Registers
+							</div>
 							<div className="stat-value">1,200</div>
-							<div className="stat-desc">↘︎ 90 (14%)</div>
+							<div className="stat-desc text-white">
+								↘︎ 90 (14%)
+							</div>
 						</div>
 					</div>
 					<div className="stats h-1/2 w-full rounded-[0px] text-white backdrop-blur-lg">
@@ -110,7 +126,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current"
+									className="inline-block h-8 w-8 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -120,9 +136,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									></path>
 								</svg>
 							</div>
-							<div className="stat-title">Downloads</div>
+							<div className="stat-title text-white">
+								Downloads
+							</div>
 							<div className="stat-value">31K</div>
-							<div className="stat-desc">Jan 1st - Feb 1st</div>
+							<div className="stat-desc text-white">
+								Jan 1st - Feb 1st
+							</div>
 						</div>
 
 						<div className="stat">
@@ -131,7 +151,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current"
+									className="inline-block h-8 w-8 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -141,9 +161,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									></path>
 								</svg>
 							</div>
-							<div className="stat-title">New Users</div>
+							<div className="stat-title text-white">
+								New Users
+							</div>
 							<div className="stat-value">4,200</div>
-							<div className="stat-desc">↗︎ 400 (22%)</div>
+							<div className="stat-desc text-white">
+								↗︎ 400 (22%)
+							</div>
 						</div>
 
 						<div className="stat">
@@ -152,7 +176,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current"
+									className="inline-block h-8 w-8 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -162,9 +186,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									></path>
 								</svg>
 							</div>
-							<div className="stat-title">New Registers</div>
+							<div className="stat-title text-white">
+								New Registers
+							</div>
 							<div className="stat-value">1,200</div>
-							<div className="stat-desc">↘︎ 90 (14%)</div>
+							<div className="stat-desc text-white">
+								↘︎ 90 (14%)
+							</div>
 						</div>
 
 						<div className="stat">
@@ -173,7 +201,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
-									className="inline-block h-8 w-8 stroke-current"
+									className="inline-block h-8 w-8 stroke-current text-white"
 								>
 									<path
 										strokeLinecap="round"
@@ -183,9 +211,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 									></path>
 								</svg>
 							</div>
-							<div className="stat-title">New Registers</div>
+							<div className="stat-title text-white">
+								New Registers
+							</div>
 							<div className="stat-value">1,200</div>
-							<div className="stat-desc">↘︎ 90 (14%)</div>
+							<div className="stat-desc text-white">
+								↘︎ 90 (14%)
+							</div>
 						</div>
 					</div>
 				</div>
@@ -199,10 +231,6 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 					</div>
 				</div>
 			</div>
-			<div
-				className="h-1/2 w-full bg-cover bg-center bg-no-repeat"
-				style={{ backgroundImage: `url(${greenBarGraph})` }}
-			></div>
 		</div>
 	);
 }
