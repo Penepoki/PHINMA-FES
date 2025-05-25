@@ -21,10 +21,13 @@ evaluation_router = DefaultRouter()
 evaluation_router.register(r'evaluations', EvaluationViewSet, basename='evaluation')
 
 
+#ROOM ROUTER
+room_router = DefaultRouter()
+room_router.register(r'rooms', RoomViewSet, basename='room')
 urlpatterns = [
 
     path('subject/', include(subject_router.urls)),
-
+    path('room/', include(room_router.urls)),
 
     path('course/', include(course_router.urls)),
 

@@ -20,6 +20,7 @@ def role_required(allowed_roles, required_permission=None):
         @wraps(view_func)
         def wrapper(request, *args, **kwargs):
             #Authentication for user
+            user = getattr(request, 'user', None)
             if not request.user.is_authenticated:
                 return JsonResponse({'error': 'Unauthorized'}, status=401)
 

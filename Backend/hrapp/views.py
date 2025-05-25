@@ -1,5 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
+from django_filters.rest_framework import DjangoFilterBackend
+
 from hrapp.utils.evaluation_utils import *
 from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
@@ -7,6 +9,7 @@ from hrapp.utils.decorators import *
 from hrapp.serializers.user_serializer import *
 from hrapp.serializers.schedules_serializer import *
 from hrapp.models.schedules_models import *
+from hrapp.filters.schedules_filter import *
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -274,6 +277,8 @@ class SubjectViewSet(viewsets.ModelViewSet):
 class RoomViewSet(viewsets.ModelViewSet):
     queryset = Room.objects.filter(deleted_at__isnull=True)
     serializer_class = RoomSerializer
+    filter_backends = [DjangoFilterBackend] # Enabling of DjangoFilter
+    filterset_class = RoomFilter # Call
 
     @transaction.atomic
     @role_required(allowed_roles=["HR", "Dean", "Program Head"])

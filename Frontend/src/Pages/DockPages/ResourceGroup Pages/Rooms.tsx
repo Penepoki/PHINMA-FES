@@ -1,10 +1,88 @@
 import { FunnelIcon } from "@heroicons/react/24/solid";
+import { useState } from "react";
+import { useEffect } from "react";
+import api from "../../../utils/api";
 
 interface RoomsProps {
 	setActiveView: (view: string) => void;
 }
 
-function Rooms({ setActiveView }: RoomsProps) {
+// Define the Room Type
+interface Room {
+	id: number;
+	name: string;
+	is_active: boolean;
+}
+
+function Rooms({ setActiveView}: RoomsProps) {
+	const [rooms, setRooms] = useState<Room[]>([]); //The Rooms/Data from the backend
+	const [loading, setLoading] = useState<boolean>(true);
+	const [searchTerm, setSearchTerm] = useState<string>("");
+	const [newRoomName, setNewRoomName] = useState<string>("");
+
+	const fetchRooms = async () => {
+		setLoading(true);
+		try {
+			// Add filtering by name when the searchTerm is set
+			const response = await api.get("/room/rooms", {
+				params: {name: searchTerm }
+			});
+			setRooms(response.data); // Data catch to backend
+		} catch (error) {
+			console.error("Error fetching rooms:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
+	// Create a new Room
+	const createRoom = async () => {
+		if (!newRoomName) return alert("Please enter a room name");
+		const token = localStorage.getItem("token");
+		if (!token) return alert("You are not authenticated. Please login.");
+		try {
+		await api.post(
+			"/room/rooms/",
+			{ name: newRoomName },
+			{
+				headers: {
+					Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
+				},
+			}
+		);
+
+			setNewRoomName("");
+			fetchRooms(); //Refresh rooms list after new data input
+		} catch (error) {
+			console.error("Error creating room:", error);
+		}
+	};
+
+	// is_active toggle
+	const toggleRoomStatus = async (room: Room) => {
+		try {
+			await api.patch(`/room/rooms/${room.id}/`, { is_active: !room.is_active });
+			fetchRooms(); // Refresh rooms list after updating
+	} catch (error) {
+			console.error("Error updating room:", error);
+		}
+	};
+
+	// Delete a room
+	const deleteRoom = async (roomId: number) => {
+		try {
+			await api.delete('/room/rooms/${roomId}/');
+			fetchRooms(); // Refresh after deleting
+		} catch (error) {
+			console.error("Error deleting room:", error);
+		}
+	};
+
+	// Fetch data
+	useEffect(() => {
+		fetchRooms();
+	}, [searchTerm]);
+
+
 	return (
 		<div className="custom-container gap-y-6">
 			<div className="breadcrumbs">
@@ -37,51 +115,58 @@ function Rooms({ setActiveView }: RoomsProps) {
 					New Room
 				</button>
 
-				<dialog id="create_new_room" className="modal">
-					<div className="modal-box w-11/12 max-w-3xl">
-						<h3 className="mb-4 text-center text-2xl font-bold">
-							Create New Room
-						</h3>
+							<dialog id="create_new_room" className="modal">
+				<div className="modal-box w-11/12 max-w-3xl">
+					<h3 className="mb-4 text-center text-2xl font-bold">
+						Create New Room
+					</h3>
 
-						<form method="dialog" className="flex flex-col gap-6">
-							{/* Course Name */}
-							<div className="flex flex-col gap-2 md:flex-row md:items-center">
-								<label className="text-left text-lg font-bold md:w-1/6">
-									Name:
-								</label>
-								<input
-									type="text"
-									placeholder="Enter course name"
-									className="input input-bordered w-full"
-									required
-								/>
-							</div>
+					<form
+						onSubmit={(e) => {
+							e.preventDefault(); // Prevent default form behavior
+							createRoom(); // Call createRoom function
+							(document.getElementById("create_new_room") as HTMLDialogElement)?.close(); // Close the modal
+						}}
+						className="flex flex-col gap-6"
+					>
+						{/* Room Name */}
+						<div className="flex flex-col gap-2 md:flex-row md:items-center">
+							<label className="text-left text-lg font-bold md:w-1/6">
+								Name:
+							</label>
+							<input
+								type="text"
+								value={newRoomName} // Bind value to state
+								onChange={(e) => setNewRoomName(e.target.value)} // Update value on change
+								placeholder="Enter room name"
+								className="input input-bordered w-full"
+								required
+							/>
+						</div>
 
-							{/* Action Buttons */}
-							<div className="modal-action">
-								<button
-									type="submit"
-									className="btn btn-success text-white"
-								>
-									Submit
-								</button>
-								<button
-									type="button"
-									className="btn btn-cancel"
-									onClick={() =>
-										(
-											document.getElementById(
-												"create_new_room",
-											) as HTMLDialogElement
-										)?.close()
-									}
-								>
-									Cancel
-								</button>
-							</div>
-						</form>
-					</div>
-				</dialog>
+						{/* Action Buttons */}
+						<div className="modal-action">
+							<button type="submit" className="btn btn-success text-white">
+								Submit
+							</button>
+							<button
+								type="button"
+								className="btn btn-cancel"
+								onClick={() =>
+									(
+										document.getElementById(
+											"create_new_room",
+										) as HTMLDialogElement
+									)?.close()
+								}
+							>
+								Cancel
+							</button>
+						</div>
+					</form>
+				</div>
+			</dialog>
+
 
 				<div className="flex flex-row justify-center">
 					{/* Import Rooms Button */}
@@ -212,11 +297,17 @@ function Rooms({ setActiveView }: RoomsProps) {
 				</div>
 			</div>
 			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
-				<input
-					type="text"
-					className="input w-full max-w-md rounded-lg border border-gray-300"
-					placeholder="Search"
-				/>
+				<label htmlFor="search" className="text-lg text-white font-bold">
+						Search:
+					</label>
+					<input
+						id="search"
+						type="text"
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
+						placeholder="Search by room name"
+						className="input input-bordered w-full max-w-xs"
+					/>
 				<div className="dropdown dropdown-end ml-2">
 					<div
 						tabIndex={0}
@@ -244,84 +335,43 @@ function Rooms({ setActiveView }: RoomsProps) {
 					{/* head */}
 					<thead className="bg-[#1c402a]/50 text-xl font-bold text-white shadow-xl">
 						<tr>
-							<th>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</th>
-							<th>Title</th>
-							<th></th>
-							<th></th>
-							<th>Is Active</th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody className="text-lg text-gray-300">
-						{/* row 1 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Renzo Cua</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
-						{/* row 2 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Martin Espineda</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
-						{/* row 3 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Chester Espineda</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
+					<th className="text-left px-4 py-2">ID</th>
+					<th className="text-left px-4 py-2">Name</th>
+					<th className="text-center px-4 py-2">Status</th>
+					<th className="text-center px-4 py-2">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				{rooms.map((room) => (
+					<tr key={room.id}>
+						<td className="border px-4 py-2">{room.id}</td>
+						<td className="border px-4 py-2">{room.name}</td>
+						<td className="border px-4 py-2 text-center">
+							{room.is_active ? "Active" : "Inactive"}
+						</td>
+						<td className="border px-4 py-2 text-center">
+							{/* Toggle Status Button */}
+							<button
+								onClick={() => toggleRoomStatus(room)}
+								className="btn btn-sm"
+							>
+								{room.is_active ? "Deactivate" : "Activate"}
+							</button>
+
+							{/* Delete Button */}
+							<button
+								onClick={() =>
+									window.confirm(
+										"Are you sure you want to delete this room?"
+									) && deleteRoom(room.id)
+								}
+								className="btn btn-sm btn-error"
+							>
+								Delete
+							</button>
+						</td>
+					</tr>
+					))}
 					</tbody>
 				</table>
 			</div>

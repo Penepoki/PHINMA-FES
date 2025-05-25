@@ -53,7 +53,7 @@ class Subject(BaseModel):
 # Rooms
 class Room(BaseModel):
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, blank=True, null=True)
 
     def __str__(self):
         return f"{self.name} ({'Active' if self.is_active else 'Inactive'})"
@@ -95,7 +95,7 @@ class Schedule(BaseModel):
     start_time = models.TimeField()
     end_time = models.TimeField()
     semester = models.CharField(max_length=10, choices=SEMESTER_CHOICES)
-    year = models.DateField()
+    year = models.DateField(null=True, blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True)
 
     def save(self, *args, **kwargs):
@@ -104,8 +104,8 @@ class Schedule(BaseModel):
         super().save(*args, **kwargs)
 
 
-    class Meta:
-        unique_together = ('year', 'semester', 'start_time', 'end_time')  # Enforce uniqueness
+    #class Meta:
+        #unique_together = ('year', 'semester')  # Enforce uniqueness
 
 
 
