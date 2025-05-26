@@ -3,10 +3,10 @@ from .views import *
 from rest_framework.routers import DefaultRouter
 
 # COURSE AND COURSEPROF ROUTER
-course_router = DefaultRouter()
-course_router.register(r'courses', CourseViewSet, basename='course')
-course_router.register(r'course-professors',
-                CourseProfessorViewSet, basename='course-professor')
+program_router = DefaultRouter()
+program_router.register(r'courses', ProgramViewSet, basename='program')
+program_router.register(r'course-professors',
+                ProgramProfessorViewSet, basename='program-professor')
 # SUBJECT ROUTER
 subject_router = DefaultRouter()
 
@@ -29,7 +29,7 @@ urlpatterns = [
     path('subject/', include(subject_router.urls)),
     path('room/', include(room_router.urls)),
 
-    path('course/', include(course_router.urls)),
+    path('program/', include(program_router.urls)),
 
     path('schedule/', include(schedule_router.urls)),
 

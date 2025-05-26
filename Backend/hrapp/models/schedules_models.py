@@ -1,7 +1,7 @@
 from django.db import models
 from .user_models import User
 from .custom_manager import *
-# Courses
+# Programs
 class BaseModel(models.Model):
     is_active = models.BooleanField(default=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -18,11 +18,11 @@ class BaseModel(models.Model):
         abstract = True  # This ensures no database table is created for this model.
 
 
-class Course(BaseModel):
+class Program(BaseModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
     code = models.CharField(max_length=50, unique=True)
-    professors = models.ManyToManyField("User", through="CourseProfessor")
+    professors = models.ManyToManyField("User", through="ProgramProfessor")
 
     def __str__(self):
         return f'{self.name} - {self.code}'
@@ -30,13 +30,13 @@ class Course(BaseModel):
 
 
 
-class CourseProfessor(models.Model):
+class ProgramProfessor(models.Model):
     professor = models.ForeignKey("User", on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE)
     assigned_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.professor} - {self.course}'
+        return f'{self.professor} - {self.program}'
 
 
 
@@ -66,18 +66,18 @@ class Section(BaseModel):
         ('4', '4th Year'),
     ]
 
-    name = models.CharField(max_length=100, unique=True)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="sections")
+    name = models.CharField(max_length=100)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name="sections", blank=True, null=True)
     year_level = models.CharField(max_length=1, choices=YEAR_LEVELS, null=True)
     students = models.ManyToManyField("User", related_name="sections")
 
 
 
     class Meta:
-        unique_together = ('name', 'course', 'year_level')
+        unique_together = ('name', 'program', 'year_level')
 
-    def __str__(self):
-        return f'{self.name} ({self.year_level}) - {self.course.name}'
+    #def __str__(self):
+        #return f'{self.name} ({self.year_level}) - {self.program.name}'
 
 
 # Schedules
@@ -88,33 +88,35 @@ class Schedule(BaseModel):
         ('Summer', 'Summer Semester'),
     ]
 
-    section = models.ForeignKey("Section", on_delete=models.CASCADE, null=True, blank=True, related_name="schedules")
+    section = models.ForeignKey("Section", on_delete=models.CASCADE, null=True, blank=True)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     name = models.CharField(max_length=100, null=True, blank=True)
-    start_time = models.TimeField()
-    end_time = models.TimeField()
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
     semester = models.CharField(max_length=10, choices=SEMESTER_CHOICES)
     year = models.DateField(null=True, blank=True)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['section', 'subject'], name='unique_section_subject'),
+
+
+        ]
+    def __str__(self):
+        return f"{self.year.year}" if self.year else "No year"
+
 
     def save(self, *args, **kwargs):
         # Automatically combine year and semester to create academic_period
+        self.name = f"{self.section.name} - {self.subject.name}"
         self.academic_period = f"{self.year} - {self.semester}"
         super().save(*args, **kwargs)
 
 
     #class Meta:
         #unique_together = ('year', 'semester')  # Enforce uniqueness
-
-
-
-    def __str__(self):
-        return (f"Schedule: {self.subject.name} ({self.semester} {self.year}), "
-                f"{self.room.name}, {self.start_time} - {self.end_time}")
-
-
-
 
 
 
@@ -128,9 +130,6 @@ class FacultyAssignment(BaseModel):
         return f"Faculty Assignment: {self.user}"
 
 
-
-
-
 class FacultySchedule(models.Model):
     faculty_assignment = models.ForeignKey(FacultyAssignment, on_delete=models.CASCADE)
     schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
@@ -138,3 +137,9 @@ class FacultySchedule(models.Model):
 
     def __str__(self):
         return f"Faculty: {self.faculty_assignment.user}, Schedule: {self.schedule.name} at {self.assigned_at}"
+
+"""class Faculty(models.Model):
+    course = models.ForeignKey(Program, on_delete=models.CASCADE)
+    professor = models.ManyToManyField(
+        settings.AUTH
+    )"""

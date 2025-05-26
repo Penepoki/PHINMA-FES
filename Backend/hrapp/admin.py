@@ -65,11 +65,11 @@ class EvaluationAdmin(admin.ModelAdmin):
     inlines = [EvaluationInstructorInLine, EvaluationEvaluatorInLine]
 
 
-########### ADMIN REGISTRY TO REFLECT IN ADMIN SITE. CONTAINS: SCHEDULE, FACULTYASSIGN, ROOM, SUBJECT AND COURSE ##########
+########### ADMIN REGISTRY TO REFLECT IN ADMIN SITE. CONTAINS: SCHEDULE, FACULTYASSIGN, ROOM, SUBJECT AND Program ##########
 #Inlines SECTION
 #class RoomInLine(admin.TabularInline): model = Room; extra = 0
 
-class CourseProfessorInline(admin.TabularInline): model = CourseProfessor; extra = 1  # Or admin.StackedInline
+class ProgramProfessorInline(admin.TabularInline): model = ProgramProfessor; extra = 1  # Or admin.StackedInline
 
 class FacultyScheduleInline(admin.TabularInline):
     model = FacultySchedule
@@ -77,14 +77,14 @@ class FacultyScheduleInline(admin.TabularInline):
 
 #class SubjectInline(admin.TabularInline): model = Subject; extra = 1
 
-#class CourseInline(admin.TabularInline): model = Course; extra = 1
+#class ProgramInline(admin.TabularInline): model = Program; extra = 1
 
 ##REGISTRY SECTION
 @admin.register(Schedule)
 class ScheduleAdmin(admin.ModelAdmin):
-    list_display = ( "subject", "room", "start_time","course", "end_time", "semester", "year", "is_active")
+    list_display = ( "subject", "room", "start_time","program", "end_time", "semester", "year", "is_active")
                                                                             #"deleted_at", "created_at", "updated_at")
-    #inlines = [RoomInLine, CourseInline, SubjectInline]
+    #inlines = [RoomInLine, ProgramInline, SubjectInline]
 
 
 @admin.register(Subject)
@@ -107,17 +107,17 @@ class FacultyAssignmentAdmin(admin.ModelAdmin):
     get_schedules.short_description = 'Schedules'
 
 
-@admin.register(Course)
-class CourseAdmin(admin.ModelAdmin):
+@admin.register(Program)
+class ProgramAdmin(admin.ModelAdmin):
     list_display = ("name", "code", "is_active")
     search_fields = ("name", "code")
     list_filter = ("is_active",)
-    inlines = [CourseProfessorInline]  #This embeds CourseProfessor inside CourseAdmin
+    inlines = [ProgramProfessorInline]  #This embeds ProgramProfessor inside ProgramAdmin
 
 
 @admin.register(Section)
 class SectionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'course', "year_level",'get_students')
+    list_display = ('name', 'program', "year_level",'get_students')
 
     def get_students(self, obj):
         return ", ".join([str(student) for student in obj.students.all()])

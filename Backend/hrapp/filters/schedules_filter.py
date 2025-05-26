@@ -24,11 +24,21 @@ class RoomFilter(filters.FilterSet):
         model = Room
         fields = ['name', 'is_active']
 
-class CourseFilter(filters.FilterSet):
+class ProgramFilter(filters.FilterSet):
     name = filters.CharFilter(lookup_expr='icontains')
     is_active = filters.BooleanFilter()
     created_at = filters.DateFromToRangeFilter()
 
     class Meta:
-        model = Course
+        model = Program
         fields = ['name', 'is_active']
+
+class ScheduleFilter(filters.FilterSet):
+    name = filters.CharFilter(lookup_expr='icontains')
+    section = filters.CharFilter(field_name="section__name",lookup_expr='icontains')
+    is_active = filters.BooleanFilter()
+    start_time = filters.TimeRangeFilter(lookup_expr='gte')
+
+    class Meta:
+        model = Schedule
+        fields = ['name', 'section', 'is_active', 'start_time']

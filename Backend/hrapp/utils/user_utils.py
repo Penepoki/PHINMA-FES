@@ -94,8 +94,8 @@ def user_profile(request):
             {
                 'section_name': section.name,
                 'year_level': section.get_year_level_display(),
-                'course': section.course.name,
-                'course_code': section.course.code,
+                'course': section.program.name,
+                'course_code': section.program.code,
 
 
             }
@@ -103,7 +103,7 @@ def user_profile(request):
         ]
 
         #Get all related data courses connected to professor
-        courses = Course.objects.filter(courseprofessor__professor=user)
+        courses = Program.objects.filter(courseprofessor__professor=user)
 
         course_data = [
                 {

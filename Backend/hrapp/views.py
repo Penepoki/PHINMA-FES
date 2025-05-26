@@ -173,7 +173,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["GET"], url_path="latest")
     def latest_evaluation(self, request):
         """
-        Get the latest evaluation for a specific course
+        Get the latest evaluation for a specific program
         """
         try:
             evaluation = Evaluation.object.filter(
@@ -188,13 +188,14 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             )
 #END OF CRUD EVALUATION -----------------------------------------
 
-# THE CRUD UTILITY  FOR SCHEDULE(ROOMS, SUBJECTS, COURSE)
+# THE CRUD UTILITY  FOR SCHEDULE(ROOMS, SUBJECTS, PROGRAM)
 
 #START OF CRUD SUBJECT ------------------------------------------
 class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.filter(deleted_at__isnull=True)
     serializer_class = SubjectSerializer
-
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = SubjectFilter
 #SUBJECT CREATE
     @transaction.atomic
     @role_required(allowed_roles=["HR", "Dean", "Program Head"])
@@ -355,61 +356,59 @@ class RoomViewSet(viewsets.ModelViewSet):
         )
 #END OF CRUD ROOM ----------------------------------------------
 
-#START OF CRUD COURSE -------------------------------------------
-# COURSE
-class CourseViewSet(viewsets.ModelViewSet):
+#START OF CRUD PROGRAM -------------------------------------------
+# PROGRAM
+class ProgramViewSet(viewsets.ModelViewSet):
 
-    queryset = Course.objects.filter(deleted_at__isnull=True)
-    serializer_class = CourseSerializer
+    queryset = Program.objects.filter(deleted_at__isnull=True)
+    serializer_class = ProgramSerializer
     parser_classes = [MultiPartParser]
+    filter_backends = [DjangoFilterBackend]
+    filter_class = ProgramFilter
 
-#Course Create
+#Program Create
     @transaction.atomic
     @role_required(allowed_roles=["HR", "Dean", "Program Head"])
     def create(self, request, *args, **kwargs):
-        """
-        HANDLE BULK CREATION OR SINGLE OF COURSES
-            WITH INTERMEDIATE TABLE(COURSEPROFESSOR)
-            INPUT CAN BE SINGLE OR LIST OF COURSES
-        """
+        """PROGRAMS"""
         data = request.data
 
         #HANDLE BULK CREATION
         if isinstance(data, list):
-            course_to_create = []
+            program_to_create = []
             relationships = []
 
-            for course_data in data:
-                serializer = self.get_serializer(data=course_data)
+            for program_data in data:
+                serializer = self.get_serializer(data=program_data)
                 serializer.is_valid(raise_exception=True)
                 validated_data = serializer.validated_data
 
             professors = validated_data.pop('professors', [])
-            course = Course(**validated_data)
-            course_to_create.append(course)
+            program = Program(**validated_data)
+            program_to_create.append(program)
 
             for professor_id in professors:
-                relationships.append(CourseProfessor(course=course, professor_id=professor_id))
-            # BULK CREATION FOR ALL COURSES
-            created_courses = Course.objects.bulk_create(course_to_create)
-            # UPDATE RELATIONSHIP WITH THE NEWLY CREATED COURSES
-            for course, data in zip(created_courses, data):
+                relationships.append(ProgramProfessor(program=program, professor_id=professor_id))
+            # BULK CREATION FOR ALL PROGRAM
+            created_programs = Program.objects.bulk_create(program_to_create)
+            # UPDATE RELATIONSHIP WITH THE NEWLY CREATED Program
+            for program, data in zip(created_programs, data):
                 for professor_id in data.get('professors', []):
-                    relationships.append(CourseProfessor(course=course, professor_id=professor_id))
-            # BULT CREATION FOR ALL RELATIONSHIPS IN THE COURSEPROFESSOR TABLE
-            CourseProfessor.objects.bulk_create(relationships)
+                    relationships.append(ProgramProfessor(program=program, professor_id=professor_id))
+            # BULT CREATION FOR ALL RELATIONSHIPS IN THE PROGRAMPROFESSOR TABLE
+            ProgramProfessor.objects.bulk_create(relationships)
 
             return Response(
-                {"message": f"Courses created successfully "
-                            f"{len(created_courses)} courses"}, status=status.HTTP_201_CREATED,
+                {"message": f"Programs created successfully "
+                            f"{len(created_programs)} Programs"}, status=status.HTTP_201_CREATED,
             )
         return super().create(request, *args, **kwargs)
-#Course CSV Create
+#Program CSV Create
     @action(detail=False, methods=['post'],
             url_path='search')
-    def import_course_from_csv(self, request, *args, **kwargs):
+    def import_program_from_csv(self, request, *args, **kwargs):
         """
-            IMPORT COURSES AND THEIR RELATIONSHIPS FROM A CSV FILE.
+            IMPORT Programs AND THEIR RELATIONSHIPS FROM A CSV FILE.
             EXPECTED CSV FORMAT:
             NAME, CODE, PROFESSORS
         """
@@ -425,86 +424,88 @@ class CourseViewSet(viewsets.ModelViewSet):
                         {"error": "CSV file must contain 'name', 'code', and 'professors' columns."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-            courses_to_create = []
+            programs_to_create = []
             relationships = []
 
             # Loop through the DataFrame rows to prepare data for bulk creation
             for _, row in df.iterrows():
-                course = Course(name=row["name"], code=row["code"])
-                courses_to_create.append(course)
+                program = Program(name=row["name"], code=row["code"])
+                programs_to_create.append(program)
 
             with transaction.atomic():
-                # Bulk create courses
-                created_courses = Course.objects.bulk_create(courses_to_create)
+                # Bulk create programs
+                created_program = Program.objects.bulk_create(programs_to_create)
 
-                # Create relationships for each course
-                for course, (_, row) in zip(created_courses, df.iterrows()):
+                # Create relationships for each program
+                for program, (_, row) in zip(created_program, df.iterrows()):
                     professor_ids = map(int, row["professor_ids"].split("|"))  # Parse professor IDs
                     for professor_id in professor_ids:
-                        relationships.append(CourseProfessor(course=course, professor_id=professor_id))
+                        relationships.append(ProgramProfessor(program=program, professor_id=professor_id))
 
                 # Bulk create relationships
-                CourseProfessor.objects.bulk_create(relationships)
+                ProgramProfessor.objects.bulk_create(relationships)
 
             return Response(
-                {"message": f"Successfully imported {len(created_courses)} courses from CSV."},
+                {"message": f"Successfully imported {len(created_program)} program from CSV."},
                 status=status.HTTP_201_CREATED,
             )
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-#COURSE Update
+#PROGRAM Update
     @action(detail=True, methods=['put', 'patch'])
-    @role_required(allowed_roles=["HR", "Dean", "Program Head"], required_permission="hrapp.change_course")
+    @role_required(allowed_roles=["HR", "Dean", "Program Head"], required_permission="hrapp.change_program")
     def perform_update(self, serializer):
         #DRF UPDATE METHOD
-        course = serializer.save()
+        program = serializer.save()
 
         professors = self.request.data.get('professors', None)
         if professors is not None:
-            CourseProfessor.objects.filter(course=course).delete()
-            CourseProfessor.objects.bulk_create([
-                CourseProfessor(course=course,
-                                professor_id=prof_id)
+            ProgramProfessor.objects.filter(program=program).delete()
+            ProgramProfessor.objects.bulk_create([
+                ProgramProfessor(program=program,
+                                 professor_id=prof_id)
                                 for prof_id in professors
             ])
-# COURSE Delete
+# Program Delete
     def destroy(self, request, *args, **kwargs):
-        course = self.get_object()
-        course.deleted_at = now()
-        course.save()
+        program = self.get_object()
+        program.deleted_at = now()
+        program.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-# COURSE Retrieve list (All)
-    # RETRIEVE OR READ data fetching for all courses including the deleted ones
+# Program Retrieve list (All)
+    # RETRIEVE OR READ data fetching for all Program including the deleted ones
     @action(detail=False, methods=['get'])
-    def course_all(self, request, *args, **kwargs):
+    def program_all(self, request, *args, **kwargs):
         include_deleted = request.query_params.get('include_deleted', 'false').lower() == 'true'
         if include_deleted:
-            queryset = Course.objects.all()
+            queryset = Program.objects.all()
         else:
-            queryset = Course.objects.filter(deleted_at__isnull=True)
-        serializer = CourseSerializer(queryset, many=True)
+            queryset = Program.objects.filter(deleted_at__isnull=True)
+        serializer = ProgramSerializer(queryset, many=True)
         return Response(serializer.data)
 
-#COURSE RESTORE
+#program RESTORE
     @action(detail=True, methods=['post'])
     def restore(self, request, pk=None):
-        course = get_object_or_404(Course, pk=pk, deleted_at__isnull=False)
-        course.restore()
-        return Response(self.get_serializer(course).data, status=status.HTTP_200_OK)
+        program = get_object_or_404(Program, pk=pk, deleted_at__isnull=False)
+        program.restore()
+        return Response(self.get_serializer(program).data, status=status.HTTP_200_OK)
 
-# COURSEPROFESSOR
-class CourseProfessorViewSet(viewsets.ModelViewSet):
-    queryset = CourseProfessor.objects.all()
-    serializer_class = CourseProfessorSerializer
+# ProgramProfessor
+class ProgramProfessorViewSet(viewsets.ModelViewSet):
+    queryset = ProgramProfessor.objects.all()
+    serializer_class = ProgramProfessorSerializer
 
 
 # SCHEDULES CRUD BELOW v------------------------
 class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.filter(is_active=True)
     serializer_class = ScheduleSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ScheduleFilter
 
 #SCHEDULE Create
     @login_required
@@ -566,19 +567,19 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 #SCHEDULE Read/Retrieve (All)
     def list(self, request, *args, **kwargs):
         """Retrieve and filter schedules.
-        Filter by semester, course, section, or other fields."""
+        Filter by semester, program, section, or other fields."""
         queryset = self.filter_queryset(self.get_queryset()) #Apply global filters
 
         # Apply custom filters
         semester = request.query_params.get('semester', None)
-        course = request.query_params.get('course', None)
+        program = request.query_params.get('program', None)
         section = request.query_params.get('section', None)
         subject = request.query_params.get('subject', None)
 
         if semester:
             queryset = queryset.filter(semester=semester)
-        if course:
-            queryset = queryset.filter(course=course)
+        if program:
+            queryset = queryset.filter(program=program)
         if section:
             queryset = queryset.filter(section=section)
         if subject:
