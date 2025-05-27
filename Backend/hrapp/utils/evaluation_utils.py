@@ -7,7 +7,7 @@ from django.db import transaction
 
 
 
-def format_evaluation(evaluation):
+"""def format_evaluation(evaluation):
     return {
         'id': evaluation.id,
         'evaluators': [
@@ -158,5 +158,5 @@ def get_latest_evaluation():
 #----------------------------------------------------------
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#END OF CRUD CODE
+#END OF CRUD CODE"""
 

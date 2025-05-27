@@ -112,33 +112,31 @@ def user_view_profile(request):
 #Create
 class EvaluationViewSet(viewsets.ModelViewSet):
     """
-    A viewset for managing evaluation.
-    Includes soft delete, restore, and custom creation with evaluatiors and instructor
+    A viewset for managing evaluations.
+    Includes soft delete, restore, and custom creation.
     """
-    queryset = Evaluation.objects.filter(deleted_at__isnull=True).prefetch_related('evaluators', 'instructor')
+    queryset = Evaluation.objects.filter(deleted_at__isnull=True).select_related('schedule', 'evaluator')
     serializer_class = EvaluationSerializer
-    permission_classes = [IsHR | IsDean | IsProgramHead]
+    permission_classes = [IsAuthenticated, IsHR | IsDean | IsProgramHead]  # Ensure the user is authenticated
 
     def create(self, request, *args, **kwargs):
+        """
+        Custom creation of an evaluation with the evaluator auto-set to the logged-in user.
+        """
         data = request.data
-        evaluators = data.pop('evaluators', [])
-        instructors = data.pop('instructors', [])
 
-        with transaction.atomic():
-            serializer = self.get_serializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            evaluation = serializer.save() # Create the eval model
+        # Automatically set the evaluator to the logged-in user
+        data['evaluator'] = request.user.id
 
-            #CREATE RELATIONSHIP FOR RELATED TABLES ( EVALUATOR AND INSTRUCTOR)
-            for evaluator_id in evaluators:
-                EvaluationEvaluator.objects.create(evaluation=evaluation, evaluator_id=evaluator_id)
-            for instructor_id in instructors:
-                EvaluationInstructor.objects.create(evaluation=evaluation, instructor_id=instructor_id)
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        evaluation = serializer.save()
 
         return Response(
-            {"Message": "Evaluation created successfully", "data": serializer.data},
+            {"message": "Evaluation created successfully", "data": serializer.data},
             status=status.HTTP_201_CREATED,
         )
+
 
     def destroy(self, request, *args, **kwargs):
         """Custom Soft Delete"""

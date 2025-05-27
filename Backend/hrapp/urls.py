@@ -40,8 +40,6 @@ urlpatterns = [
 
     path('signup/', signup_view),
 
-    path('latest-evaluation/', get_latest_evaluation),
-
     path('user-dashboard/', user_view_dashboard, name='user-dashboard'),
 
     path('user-profile/', user_view_profile),

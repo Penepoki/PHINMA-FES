@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-
+import api from "/src/utils/api.ts";
 type ToggleBoxProps = {
 	label: string;
 	active: boolean;
 	onToggle: (label: string) => void;
 };
+
 
 function ToggleBox({ label, active, onToggle }: ToggleBoxProps) {
 	const delay = (Math.random() * 2).toFixed(2);
@@ -42,14 +43,35 @@ const CopusMatrix = () => {
 	const [startTime, setStartTime] = useState<Date | null>(null);
 	const [elapsedTime, setElapsedTime] = useState<string>("00");
 	const [isTimerStarted, setIsTimerStarted] = useState(false);
-
+	const [evaluationId, setEvaluationId] = useState<number | null>(null);
 	// Start timer function
-	const startTimer = () => {
+	const startTimer = async () => {
 		if (!isTimerStarted) {
-			setStartTime(new Date());
+			const startTimeValue = new Date();
+			setStartTime(startTimeValue);
 			setIsTimerStarted(true);
+
+
+				try {
+					const response = await api.post("/api/evaluations", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						schedule: 1, // Replace with real schedule ID
+						startTime: startTimeValue.toISOString(),
+					}),
+				});
+				const data = await response.json();
+				setEvaluationId(data.id); // Save the evaluation ID
+			} catch (error) {
+				console.error("Failed to start evaluation", error);
+				setIsTimerStarted(false); // Reset timer state if API call fails
+			}
 		}
 	};
+
 
 	// Update current time and elapsed time every second
 	useEffect(() => {
@@ -161,10 +183,10 @@ const CopusMatrix = () => {
 		setTeacherTallies(newTeacherTallies);
 	};
 
-	const updateSelections = (
+		const updateSelections = async (
 		type: "student" | "teacher",
 		label: string | null,
-	) => {
+		) => {
 		setSelectionsByMinute((prev) => {
 			const prevForMinute = prev[minute] || {
 				student: null,
@@ -180,10 +202,52 @@ const CopusMatrix = () => {
 			return updated;
 		});
 
-		// Also update current states immediately for UI responsiveness
+		// Update current state immediately
 		if (type === "student") setCurrentStudent(label);
 		else setCurrentTeacher(label);
+
+		// Save updated state to back-end
+		if (!evaluationId) return;
+
+		const scoringData = {
+			student_activities: Object.entries(studentTallies).reduce(
+				(acc, [activity, count]) => ({
+					...acc,
+					[activity]: `${(
+						(count / getTotalMinutesObserved()) *
+						100
+					).toFixed(1)}%`,
+				}),
+				{},
+			),
+			instructor_activities: Object.entries(teacherTallies).reduce(
+				(acc, [activity, count]) => ({
+					...acc,
+					[activity]: `${(
+						(count / getTotalMinutesObserved()) *
+						100
+					).toFixed(1)}%`,
+				}),
+				{},
+			),
+			elapsedTime, // Send the most recent elapsed time
+			startTime: startTime?.toISOString(),
+		};
+
+
+		try {
+			await api.patch(`/api/evaluations/${evaluationId}`, {
+				method: "PATCH",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(scoringData),
+			});
+		} catch (error) {
+			console.error("Failed to update evaluation", error);
+		}
 	};
+
 	const handleStudentToggle = (label: string) => {
 		startTimer();
 		// If clicking same selected, deselect it, else select new
@@ -386,53 +450,52 @@ const CopusMatrix = () => {
 					</div>
 
 					<div className="mt-4 flex justify-center">
-						<button
-							onClick={() => {
-								const scoringData = {
-									student_activities: Object.entries(
-										studentTallies,
-									).map(([activity, count]) => ({
-										activity,
-										count,
-										percentage:
-											getTotalMinutesObserved() > 0
-												? (
-														(count /
-															getTotalMinutesObserved()) *
-														100
-													).toFixed(1)
-												: "0",
-									})),
-									instructor_activities: Object.entries(
-										teacherTallies,
-									).map(([activity, count]) => ({
-										activity,
-										count,
-										percentage:
-											getTotalMinutesObserved() > 0
-												? (
-														(count /
-															getTotalMinutesObserved()) *
-														100
-													).toFixed(1)
-												: "0",
-									})),
-									totalMinutesObserved:
-										getTotalMinutesObserved(),
+								<button
+									onClick={async () => {
+									const scoringData = {
+									student_activities: Object.entries(studentTallies).reduce(
+									(acc, [activity, count]) => ({
+										...acc,
+									[activity]: `${(
+									(count / getTotalMinutesObserved()) *
+									100
+									).toFixed(1)}%`,
+									}),
+									{},
+									),
+									instructor_activities: Object.entries(teacherTallies).reduce(
+										(acc, [activity, count]) => ({
+											...acc,
+											[activity]: `${(
+												(count / getTotalMinutesObserved()) *
+												100
+											).toFixed(1)}%`,
+										}),
+										{},
+									),
+									totalMinutesObserved: getTotalMinutesObserved(),
 									startTime: startTime?.toISOString(),
 									elapsedTime: elapsedTime,
 								};
-								console.log(
-									"Saving evaluation data:",
-									scoringData,
-								);
-								// TODO: Add API call to save data
+
+								try {
+									await api.post(`/api/evaluations/${evaluationId}/finish`, {
+										method: "POST",
+										headers: {
+											"Content-Type": "application/json",
+										},
+										body: JSON.stringify(scoringData),
+									});
+									alert("Evaluation saved successfully!");
+								} catch (error) {
+									console.error("Failed to save evaluation", error);
+								}
 							}}
 							className="rounded-lg bg-[#1c402a] px-6 py-2 text-white transition-colors hover:bg-[#2c503a]"
 							disabled={getTotalMinutesObserved() === 0}
 						>
 							Save Evaluation
-						</button>
+						</button>;
 					</div>
 				</div>
 			</div>

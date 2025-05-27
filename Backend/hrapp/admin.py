@@ -50,19 +50,19 @@ class StudentEvaluationAdmin(admin.ModelAdmin):
 class StudentEvaluationQuestionsAdmin(admin.ModelAdmin):
     list_display = ('student_evaluation', 'question', 'type', 'options')
 
-class EvaluationEvaluatorInLine(admin.TabularInline):
+"""class EvaluationEvaluatorInLine(admin.TabularInline):
     model = EvaluationEvaluator
     extra = 0
 class EvaluationInstructorInLine(admin.TabularInline):
     model = EvaluationInstructor
-    extra = 0
+    extra = 0"""
 
 @admin.register(Evaluation)
 class EvaluationAdmin(admin.ModelAdmin):
     list_filter = ["is_deleted"]
     list_display = ("schedule", "observation_date", "evaluation_type", "additional_comments", "instructor_comments", "student_comments", "student_activities", "instructor_activities",
                                 "is_deleted", "deleted_at")
-    inlines = [EvaluationInstructorInLine, EvaluationEvaluatorInLine]
+    #inlines = [EvaluationInstructorInLine, EvaluationEvaluatorInLine]
 
 
 ########### ADMIN REGISTRY TO REFLECT IN ADMIN SITE. CONTAINS: SCHEDULE, FACULTYASSIGN, ROOM, SUBJECT AND Program ##########

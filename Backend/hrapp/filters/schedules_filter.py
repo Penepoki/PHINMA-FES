@@ -1,4 +1,3 @@
-import django_filters
 from django_filters import rest_framework as filters
 from hrapp.models.schedules_models import *
 

@@ -9,47 +9,80 @@ from django.core.exceptions import ValidationError
 # Evaluations
 class Evaluation(models.Model):
     STUDENT_ACTIVITY_CHOICES = [
-        "Listening",
-        "Individual Thinking",
-        "Group",
-        "Answer Question",
-        "Ask Question",
-        "Whole Class Discussion",
-        "Student Presentations",
-        "Test/Quiz",
-        "Waiting",
-        "Other",
+        ("listening","Listening"),
+        ("individual_thinking","Individual Thinking"),
+        ("group","Group"),
+        ("answer_question","Answer Question"),
+        ("ask_question","Ask Question"),
+        ("whole_class_discussion","Whole Class Discussion"),
+        ("student_presentations","Student Presentations"),
+        ("test/quiz","Test/Quiz"),
+        ("waiting","Waiting"),
+        ("other","Other"),
     ]
 
     INSTRUCTOR_ACTIVITY_CHOICES = [
-        "Lecture",
-        "Realtime Writing",
-        "Moving/Guiding",
-        "Answer Questions",
-        "Pose Question",
-        "Follow-up Question",
-        "1-on-1 discussion",
-        "Demonstrate/Video",
-        "Administrative",
-        "Waiting",
-        "Other",
+        ("lecture","Lecture"),
+        ("realtime_writing","Realtime Writing"),
+        ("moving/guiding","Moving/Guiding"),
+        ("answer_questions","Answer Questions"),
+        ("pose_question","Pose Question"),
+        ("follow_up_question","Follow-up Question"),
+        ("1_on_1_discussion","1-on-1 discussion"),
+        ("demonstrative","Demonstrate/Video"),
+        ("administrative","Administrative"),
+        ("waiting","Waiting"),
+        ("other","Other"),
     ]
 
+    COPUS_TYPE_CHOICES = [
+        ("copus_1", "COPUS 1" ),
+        ("copus_2", "COPUS 2"),
+        ("copus_3", "COPUS 3"),
+    ]
+
+    name = models.CharField(max_length=255, blank=True, null=True)
     schedule = models.ForeignKey('Schedule', on_delete=models.CASCADE, blank=True, null=True)
     observation_date = models.DateField()
-    evaluation_type = models.CharField(max_length=100)
+    evaluation_type = models.CharField(default=list,max_length=20)
     additional_comments = models.TextField(blank=True, null=True)
-    student_comments = models.JSONField(blank=True, null=True)
-    instructor_comments = models.JSONField(blank=True, null=True)
-    student_activities = models.JSONField(blank=True, null=True)
-    instructor_activities = models.JSONField(blank=True, null=True)
+    student_comments = models.JSONField(default=dict, blank=True, null=True)
+    instructor_comments = models.JSONField(default=dict, blank=True, null=True)
+    student_activities = models.JSONField(default=list, blank=True, null=True)
+    instructor_activities = models.JSONField(default=list, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
-    evaluators = models.ManyToManyField(User, through='EvaluationEvaluator', related_name='evaluations_done')
-    instructors = models.ManyToManyField(User, through='EvaluationInstructor', related_name='evaluations_received')
+    help_text = "THIS IS FOR COPUS EVALUATION ONLY"
 
+    evaluator = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True,
+                                  help_text = "THE USER WHO IS CONDUCTING THE EVALUATION")
+
+
+    """ Use a constrained Single Instructor If Needed
+    instructor = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True,
+                                   related_name='primary_evaluations')"""
+
+    constraints = [
+        models.UniqueConstraint(fields=['schedule', 'observation_date', 'instructor'],
+                                name='unique_schedule_observation_date_instructor'),
+    ]
+
+    @property
+    def professor(self):
+        return self.schedule.instructor
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            super().save(*args, **kwargs) # Save the obj to generate ID
+
+        professors = self.professor
+        instructor_name = professors.first() if professors else "No instructor"
+
+        self.name = f"{self.schedule.name} - {instructor_name} - {self.observation_date}"
+
+        super().save(*args, **kwargs)
 
     def clean(self):
         if self.student_activities:
@@ -72,10 +105,10 @@ class Evaluation(models.Model):
 
         super().clean()
 
-    def delete(self, using=None, keep_parents=False):
+    """def delete(self, using=None, keep_parents=False):
         self.deleted_at = timezone.now()
         self.is_deleted = True
-        self.save()
+        self.save()"""
 
     def __str__(self):
         return f"Evaluation #{self.id} on {self.observation_date}"
@@ -85,12 +118,10 @@ class Evaluation(models.Model):
         self.save()
 
 
-
-#Junction Table Many to Many for User and Evaluations
-class EvaluationEvaluator(models.Model):
+"""class EvaluationEvaluator(models.Model):#Junction Table Many to Many for User and Evaluations
         evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE)
         evaluator = models.ForeignKey(User, on_delete=models.CASCADE)
-
+        help_text = "THIS IS INTERMEDIATE TABLE FOR COPUS EVALUATION CONNECTS EVALUATOR(USERS TO EVALUATIONS)"
 
 # Role can be derived at runtime using the user's groups.
 @property
@@ -102,10 +133,10 @@ class EvaluationInstructor(models.Model):
     evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE)
     instructor = models.ForeignKey(User, on_delete=models.CASCADE)
 
-    # Similarly, you can also fetch the role dynamically if needed.
-    @property
+
+    @property #Similarly, you can also fetch the role dynamically if needed.
     def role(self):
-        return self.instructor.groups.first().name if self.instructor.groups.exists() else None
+        return self.instructor.groups.first().name if self.instructor.groups.exists() else None"""
 
 # Student Evaluations Table
 class StudentEvaluation(models.Model):

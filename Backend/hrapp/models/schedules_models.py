@@ -87,7 +87,7 @@ class Schedule(BaseModel):
         ('Second', 'Second Semester'),
         ('Summer', 'Summer Semester'),
     ]
-
+    instructor = models.ForeignKey("User", on_delete=models.CASCADE, null=True, blank=True, related_name="schedules")
     section = models.ForeignKey("Section", on_delete=models.CASCADE, null=True, blank=True)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
@@ -98,12 +98,16 @@ class Schedule(BaseModel):
     year = models.DateField(null=True, blank=True)
     program = models.ForeignKey(Program, on_delete=models.CASCADE, null=True, blank=True)
 
+
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['section', 'subject'], name='unique_section_subject'),
 
 
         ]
+
+
+
     def __str__(self):
         return f"{self.year.year}" if self.year else "No year"
 
