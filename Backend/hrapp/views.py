@@ -280,7 +280,6 @@ class RoomViewSet(viewsets.ModelViewSet):
     filterset_class = RoomFilter # Call
 
     @transaction.atomic
-    @role_required(allowed_roles=["HR", "Dean", "Program Head"])
     def create(self, request, *args, **kwargs):
         data = request.data
 

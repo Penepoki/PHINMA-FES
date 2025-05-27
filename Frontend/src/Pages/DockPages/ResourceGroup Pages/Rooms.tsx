@@ -61,6 +61,7 @@ function Rooms({ setActiveView}: RoomsProps) {
 	const toggleRoomStatus = async (room: Room) => {
 		try {
 			await api.patch(`/room/rooms/${room.id}/`, { is_active: !room.is_active });
+			console.log('Success ${room.id} Status');
 			fetchRooms(); // Refresh rooms list after updating
 	} catch (error) {
 			console.error("Error updating room:", error);
@@ -70,7 +71,7 @@ function Rooms({ setActiveView}: RoomsProps) {
 	// Delete a room
 	const deleteRoom = async (roomId: number) => {
 		try {
-			await api.delete('/room/rooms/${roomId}/');
+			await api.delete(`/room/rooms/${roomId}/`);
 			fetchRooms(); // Refresh after deleting
 		} catch (error) {
 			console.error("Error deleting room:", error);
