@@ -24,7 +24,7 @@ function DataTable<T>({
 	return (
 		<div className="w-full overflow-x-auto text-white shadow-xl">
 			<table className="table text-lg">
-				<thead className="bg-[#1c402a]/50 text-xl font-bold text-white">
+				<thead className="sticky top-0 z-1 bg-[#1c402a] text-xl font-bold text-white">
 					<tr>
 						{selectable && (
 							<th>
@@ -46,7 +46,7 @@ function DataTable<T>({
 					{data.map((item) => (
 						<tr
 							key={getRowKey(item)}
-							className="transition-colors duration-300 hover:bg-[#1b2e3e]/50"
+							className="transition-colors duration-500 hover:bg-[#1b2e3e]/50"
 						>
 							{selectable && (
 								<td>

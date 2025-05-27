@@ -1,10 +1,132 @@
-import { FunnelIcon } from "@heroicons/react/24/solid";
+import { useEffect, useState } from "react";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
+import api from "../../../utils/api";
+import DataTable, {
+	Column,
+} from "../../../Components/Evaluation Components/Data Table";
+import { FunnelIcon } from "@heroicons/react/16/solid";
+// Assuming you have your generic DataTable component exported
 
 interface SchedulesProps {
 	setActiveView: (view: string) => void;
 }
 
+// Define the Schedule Type
+interface Schedule {
+	id: number;
+	name: string;
+	is_active: boolean;
+}
+
 function Schedules({ setActiveView }: SchedulesProps) {
+	const [schedules, setSchedules] = useState<Schedule[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [newScheduleName, setNewScheduleName] = useState("");
+
+	const fetchSchedules = async () => {
+		setLoading(true);
+		try {
+			const response = await api.get("/schedule/schedules", {
+				params: { name: searchTerm || undefined },
+			});
+			setSchedules(response.data);
+		} catch (error) {
+			console.error("Error fetching schedules:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const createSchedule = async () => {
+		if (!newScheduleName.trim())
+			return alert("Please enter a schedule name");
+		const token = localStorage.getItem("token");
+		if (!token) return alert("You are not authenticated. Please login.");
+		try {
+			await api.post(
+				"/schedule/schedules/",
+				{ name: newScheduleName },
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
+			setNewScheduleName("");
+			fetchSchedules();
+		} catch (error) {
+			console.error("Error creating schedule:", error);
+		}
+	};
+
+	const toggleScheduleStatus = async (schedule: Schedule) => {
+		try {
+			await api.patch(`/schedule/schedules/${schedule.id}/`, {
+				is_active: !schedule.is_active,
+			});
+			fetchSchedules();
+		} catch (error) {
+			console.error("Error updating schedule:", error);
+		}
+	};
+
+	const deleteSchedule = async (scheduleId: number) => {
+		try {
+			await api.delete(`/schedule/schedules/${scheduleId}/`);
+			fetchSchedules();
+		} catch (error) {
+			console.error("Error deleting schedule:", error);
+		}
+	};
+
+	// Actions column render function
+	const scheduleActions = (schedule: Schedule) => (
+		<div className="flex flex-col items-start gap-2">
+			<button
+				title="Edit"
+				onClick={() => alert("Edit feature not implemented yet")}
+				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
+			>
+				<PencilSquareIcon className="h-4 w-4" />
+				Edit
+			</button>
+			<button
+				title="Delete"
+				onClick={() => {
+					if (window.confirm(`Delete schedule "${schedule.name}"?`))
+						deleteSchedule(schedule.id);
+				}}
+				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline"
+			>
+				<TrashIcon className="h-4 w-4" />
+				Delete
+			</button>
+		</div>
+	);
+
+	useEffect(() => {
+		fetchSchedules();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [searchTerm]);
+
+	// Define columns with proper accessors
+	const scheduleColumns: Column<Schedule>[] = [
+		{
+			header: "Name",
+			accessor: (schedule: Schedule) => schedule.name,
+		},
+		{
+			header: "Status",
+			accessor: (schedule: Schedule) => (
+				<input
+					onClick={() => toggleScheduleStatus(schedule)}
+					className="toggle"
+					type="checkbox"
+					checked={schedule.is_active}
+				/>
+			),
+		},
+	];
+
 	return (
 		<div className="custom-container gap-y-6">
 			<div className="breadcrumbs">
@@ -20,15 +142,16 @@ function Schedules({ setActiveView }: SchedulesProps) {
 					<li>Schedules</li>
 				</ul>
 			</div>
+
 			<h2 className="mt-4 text-3xl font-bold text-white">Schedules</h2>
 
 			<div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
-				{/* New Room Button */}
+				{/* New Schedule Button */}
 				<button
 					onClick={() =>
 						(
 							document.getElementById(
-								"modal_new_schedule",
+								"create_new_schedule",
 							) as HTMLDialogElement
 						)?.showModal()
 					}
@@ -37,7 +160,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 					New Schedule
 				</button>
 
-				<dialog id="modal_new_schedule" className="modal">
+				<dialog id="create_new_schedule" className="modal">
 					<div className="modal-box w-11/12 max-w-5xl">
 						<h3 className="mb-4 text-center text-2xl font-bold">
 							Create New Schedule
@@ -83,14 +206,14 @@ function Schedules({ setActiveView }: SchedulesProps) {
 								/>
 							</div>
 
-							{/* Room */}
+							{/* Schedule */}
 							<div className="flex flex-col gap-2 md:flex-row md:items-center">
 								<label className="text-left text-lg font-bold md:w-1/4">
-									Room:
+									Schedule:
 								</label>
 								<input
 									type="text"
-									placeholder="Enter room"
+									placeholder="Enter schedule"
 									className="input input-bordered w-full"
 									required
 								/>
@@ -162,7 +285,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 									onClick={() =>
 										(
 											document.getElementById(
-												"modal_new_schedule",
+												"create_new_schedule",
 											) as HTMLDialogElement
 										)?.close()
 									}
@@ -175,7 +298,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 				</dialog>
 
 				<div className="flex flex-row justify-center">
-					{/* Import Rooms Button */}
+					{/* Import Schedules Button */}
 					<button
 						onClick={() =>
 							(
@@ -238,12 +361,12 @@ function Schedules({ setActiveView }: SchedulesProps) {
 						</div>
 					</dialog>
 
-					{/* Export Rooms Button */}
+					{/* Export Schedules Button */}
 					<button
 						onClick={() =>
 							(
 								document.getElementById(
-									"modal_export_schedule",
+									"modal_export_schedules",
 								) as HTMLDialogElement
 							)?.showModal()
 						}
@@ -252,7 +375,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 						Export Schedule
 					</button>
 
-					<dialog id="modal_export_schedule" className="modal">
+					<dialog id="modal_export_schedules" className="modal">
 						<div className="modal-box w-11/12 max-w-3xl">
 							<h3 className="mb-4 text-center text-2xl font-bold">
 								Export Schedule
@@ -262,105 +385,14 @@ function Schedules({ setActiveView }: SchedulesProps) {
 								method="dialog"
 								className="flex flex-col gap-6"
 							>
-								{/* Title */}
+								{/* Name Field */}
 								<div className="flex flex-col gap-2 md:flex-row md:items-center">
-									<label className="text-left text-lg font-bold md:w-1/4">
-										Title:
+									<label className="text-left text-lg font-bold md:w-1/6">
+										Name:
 									</label>
 									<input
 										type="text"
-										value="Intro to Programming"
-										readOnly
-										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
-									/>
-								</div>
-
-								{/* Course */}
-								<div className="flex flex-col gap-2 md:flex-row md:items-center">
-									<label className="text-left text-lg font-bold md:w-1/4">
-										Course:
-									</label>
-									<input
-										type="text"
-										value="BSCS 101"
-										readOnly
-										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
-									/>
-								</div>
-
-								{/* Instructor */}
-								<div className="flex flex-col gap-2 md:flex-row md:items-center">
-									<label className="text-left text-lg font-bold md:w-1/4">
-										Instructor:
-									</label>
-									<input
-										type="text"
-										value="Prof. Jane Doe"
-										readOnly
-										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
-									/>
-								</div>
-
-								{/* Room */}
-								<div className="flex flex-col gap-2 md:flex-row md:items-center">
-									<label className="text-left text-lg font-bold md:w-1/4">
-										Room:
-									</label>
-									<input
-										type="text"
-										value="Room 204"
-										readOnly
-										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
-									/>
-								</div>
-
-								{/* Start Time */}
-								<div className="flex flex-col gap-2 md:flex-row md:items-center">
-									<label className="text-left text-lg font-bold md:w-1/4">
-										Start Time:
-									</label>
-									<input
-										type="text"
-										value="09:00 AM"
-										readOnly
-										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
-									/>
-								</div>
-
-								{/* End Time */}
-								<div className="flex flex-col gap-2 md:flex-row md:items-center">
-									<label className="text-left text-lg font-bold md:w-1/4">
-										End Time:
-									</label>
-									<input
-										type="text"
-										value="10:30 AM"
-										readOnly
-										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
-									/>
-								</div>
-
-								{/* Day of the Week */}
-								<div className="flex flex-col gap-2 md:flex-row md:items-center">
-									<label className="text-left text-lg font-bold md:w-1/4">
-										Day:
-									</label>
-									<input
-										type="text"
-										value="Monday"
-										readOnly
-										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
-									/>
-								</div>
-
-								{/* Status */}
-								<div className="flex flex-col gap-2 md:flex-row md:items-center">
-									<label className="text-left text-lg font-bold md:w-1/4">
-										Status:
-									</label>
-									<input
-										type="text"
-										value="Active"
+										value="Schedule A"
 										readOnly
 										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
 									/>
@@ -380,7 +412,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 										onClick={() =>
 											(
 												document.getElementById(
-													"modal_export_schedule",
+													"modal_export_schedules",
 												) as HTMLDialogElement
 											)?.close()
 										}
@@ -393,11 +425,19 @@ function Schedules({ setActiveView }: SchedulesProps) {
 					</dialog>
 				</div>
 			</div>
+			{/* Search and New Schedule button */}
 			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
+				<label
+					htmlFor="search"
+					className="text-lg font-bold text-white"
+				></label>
 				<input
+					id="search"
 					type="text"
-					className="input w-full max-w-md rounded-lg border border-gray-300"
-					placeholder="Search"
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
+					placeholder="Search by schedule name"
+					className="input input-bordered w-full max-w-xs"
 				/>
 				<div className="dropdown dropdown-end ml-2">
 					<div
@@ -420,93 +460,72 @@ function Schedules({ setActiveView }: SchedulesProps) {
 					</ul>
 				</div>
 			</div>
+			{/* New Schedule Modal */}
+			<dialog id="create_new_schedule" className="modal">
+				<div className="modal-box w-11/12 max-w-3xl">
+					<h3 className="mb-4 text-center text-2xl font-bold">
+						Create New Schedule
+					</h3>
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							createSchedule();
+							(
+								document.getElementById(
+									"create_new_schedule",
+								) as HTMLDialogElement
+							)?.close();
+						}}
+						className="flex flex-col gap-6"
+					>
+						<div className="flex flex-col gap-2 md:flex-row md:items-center">
+							<label className="text-left text-lg font-bold md:w-1/6">
+								Name:
+							</label>
+							<input
+								type="text"
+								value={newScheduleName}
+								onChange={(e) =>
+									setNewScheduleName(e.target.value)
+								}
+								placeholder="Enter schedule name"
+								className="input input-bordered w-full"
+								required
+							/>
+						</div>
+						<div className="modal-action">
+							<button
+								type="submit"
+								className="btn btn-success text-white"
+							>
+								Submit
+							</button>
+							<button
+								type="button"
+								className="btn btn-cancel"
+								onClick={() =>
+									(
+										document.getElementById(
+											"create_new_schedule",
+										) as HTMLDialogElement
+									)?.close()
+								}
+							>
+								Cancel
+							</button>
+						</div>
+					</form>
+				</div>
+			</dialog>
 
-			<div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg">
-				<table className="table">
-					{/* head */}
-					<thead className="bg-[#1c402a]/50 text-xl font-bold text-white shadow-xl">
-						<tr>
-							<th>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</th>
-							<th>Title</th>
-							<th></th>
-							<th></th>
-							<th>Is Active</th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody className="text-lg text-gray-300">
-						{/* row 1 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Renzo Cua</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
-						{/* row 2 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Martin Espineda</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
-						{/* row 3 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Chester Espineda</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
+			{/* DataTable */}
+			<DataTable
+				data={schedules}
+				columns={scheduleColumns}
+				getRowKey={(schedule) => schedule.id}
+				actions={scheduleActions}
+				selectable
+			/>
 		</div>
 	);
 }

@@ -220,7 +220,6 @@ function Rooms({ setActiveView }: RoomsProps) {
 					</div>
 				</dialog>
 
-
 				<div className="flex flex-row justify-center">
 					{/* Import Rooms Button */}
 					<button
@@ -439,13 +438,6 @@ function Rooms({ setActiveView }: RoomsProps) {
 					</form>
 				</div>
 			</dialog>
-
-			{/* Loading indicator */}
-			{loading && (
-				<div className="mt-4 text-center text-white">
-					Loading rooms...
-				</div>
-			)}
 
 			{/* DataTable */}
 			<DataTable

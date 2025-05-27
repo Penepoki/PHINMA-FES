@@ -1,10 +1,131 @@
-import { FunnelIcon } from "@heroicons/react/24/solid";
+import { useEffect, useState } from "react";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
+import api from "../../../utils/api";
+import DataTable, {
+	Column,
+} from "../../../Components/Evaluation Components/Data Table";
+import { FunnelIcon } from "@heroicons/react/16/solid";
+// Assuming you have your generic DataTable component exported
 
 interface CoursesProps {
 	setActiveView: (view: string) => void;
 }
 
+// Define the Course Type
+interface Course {
+	id: number;
+	name: string;
+	is_active: boolean;
+}
+
 function Courses({ setActiveView }: CoursesProps) {
+	const [courses, setCourses] = useState<Course[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [newCourseName, setNewCourseName] = useState("");
+
+	const fetchCourses = async () => {
+		setLoading(true);
+		try {
+			const response = await api.get("/course/courses", {
+				params: { name: searchTerm || undefined },
+			});
+			setCourses(response.data);
+		} catch (error) {
+			console.error("Error fetching courses:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const createCourse = async () => {
+		if (!newCourseName.trim()) return alert("Please enter a course name");
+		const token = localStorage.getItem("token");
+		if (!token) return alert("You are not authenticated. Please login.");
+		try {
+			await api.post(
+				"/course/courses/",
+				{ name: newCourseName },
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
+			setNewCourseName("");
+			fetchCourses();
+		} catch (error) {
+			console.error("Error creating course:", error);
+		}
+	};
+
+	const toggleCourseStatus = async (course: Course) => {
+		try {
+			await api.patch(`/course/courses/${course.id}/`, {
+				is_active: !course.is_active,
+			});
+			fetchCourses();
+		} catch (error) {
+			console.error("Error updating course:", error);
+		}
+	};
+
+	const deleteCourse = async (courseId: number) => {
+		try {
+			await api.delete(`/course/courses/${courseId}/`);
+			fetchCourses();
+		} catch (error) {
+			console.error("Error deleting course:", error);
+		}
+	};
+
+	// Actions column render function
+	const courseActions = (course: Course) => (
+		<div className="flex flex-col items-start gap-2">
+			<button
+				title="Edit"
+				onClick={() => alert("Edit feature not implemented yet")}
+				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
+			>
+				<PencilSquareIcon className="h-4 w-4" />
+				Edit
+			</button>
+			<button
+				title="Delete"
+				onClick={() => {
+					if (window.confirm(`Delete course "${course.name}"?`))
+						deleteCourse(course.id);
+				}}
+				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline"
+			>
+				<TrashIcon className="h-4 w-4" />
+				Delete
+			</button>
+		</div>
+	);
+
+	useEffect(() => {
+		fetchCourses();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [searchTerm]);
+
+	// Define columns with proper accessors
+	const courseColumns: Column<Course>[] = [
+		{
+			header: "Name",
+			accessor: (course: Course) => course.name,
+		},
+		{
+			header: "Status",
+			accessor: (course: Course) => (
+				<input
+					onClick={() => toggleCourseStatus(course)}
+					className="toggle"
+					type="checkbox"
+					checked={course.is_active}
+				/>
+			),
+		},
+	];
+
 	return (
 		<div className="custom-container gap-y-6">
 			<div className="breadcrumbs">
@@ -20,10 +141,11 @@ function Courses({ setActiveView }: CoursesProps) {
 					<li>Courses</li>
 				</ul>
 			</div>
+
 			<h2 className="mt-4 text-3xl font-bold text-white">Courses</h2>
 
 			<div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
-				{/* New Room Button */}
+				{/* New Course Button */}
 				<button
 					onClick={() =>
 						(
@@ -43,7 +165,18 @@ function Courses({ setActiveView }: CoursesProps) {
 							Create New Course
 						</h3>
 
-						<form method="dialog" className="flex flex-col gap-6">
+						<form
+							onSubmit={(e) => {
+								e.preventDefault(); // Prevent default form behavior
+								createCourse(); // Call createCourse function
+								(
+									document.getElementById(
+										"create_new_course",
+									) as HTMLDialogElement
+								)?.close(); // Close the modal
+							}}
+							className="flex flex-col gap-6"
+						>
 							{/* Course Name */}
 							<div className="flex flex-col gap-2 md:flex-row md:items-center">
 								<label className="text-left text-lg font-bold md:w-1/6">
@@ -51,20 +184,11 @@ function Courses({ setActiveView }: CoursesProps) {
 								</label>
 								<input
 									type="text"
+									value={newCourseName} // Bind value to state
+									onChange={(e) =>
+										setNewCourseName(e.target.value)
+									} // Update value on change
 									placeholder="Enter course name"
-									className="input input-bordered w-full"
-									required
-								/>
-							</div>
-
-							{/* Course Code */}
-							<div className="flex flex-col gap-2 md:flex-row md:items-center">
-								<label className="text-left text-lg font-bold md:w-1/6">
-									Code:
-								</label>
-								<input
-									type="text"
-									placeholder="Enter course code"
 									className="input input-bordered w-full"
 									required
 								/>
@@ -97,12 +221,12 @@ function Courses({ setActiveView }: CoursesProps) {
 				</dialog>
 
 				<div className="flex flex-row justify-center">
-					{/* Import Rooms Button */}
+					{/* Import Courses Button */}
 					<button
 						onClick={() =>
 							(
 								document.getElementById(
-									"modal_import_rooms",
+									"modal_import_course",
 								) as HTMLDialogElement
 							)?.showModal()
 						}
@@ -111,10 +235,10 @@ function Courses({ setActiveView }: CoursesProps) {
 						Import Course
 					</button>
 
-					<dialog id="modal_import_rooms" className="modal">
+					<dialog id="modal_import_course" className="modal">
 						<div className="modal-box w-11/12 max-w-3xl">
 							<h3 className="mb-4 text-center text-2xl font-bold">
-								Import Rooms
+								Import Course
 							</h3>
 
 							<form
@@ -148,7 +272,7 @@ function Courses({ setActiveView }: CoursesProps) {
 										onClick={() =>
 											(
 												document.getElementById(
-													"modal_import_rooms",
+													"modal_import_course",
 												) as HTMLDialogElement
 											)?.close()
 										}
@@ -160,12 +284,12 @@ function Courses({ setActiveView }: CoursesProps) {
 						</div>
 					</dialog>
 
-					{/* Export Rooms Button.*/}
+					{/* Export Courses Button */}
 					<button
 						onClick={() =>
 							(
 								document.getElementById(
-									"modal_export_rooms",
+									"modal_export_courses",
 								) as HTMLDialogElement
 							)?.showModal()
 						}
@@ -174,10 +298,10 @@ function Courses({ setActiveView }: CoursesProps) {
 						Export Course
 					</button>
 
-					<dialog id="modal_export_rooms" className="modal">
+					<dialog id="modal_export_courses" className="modal">
 						<div className="modal-box w-11/12 max-w-3xl">
 							<h3 className="mb-4 text-center text-2xl font-bold">
-								Export Rooms
+								Export Course
 							</h3>
 
 							<form
@@ -191,20 +315,7 @@ function Courses({ setActiveView }: CoursesProps) {
 									</label>
 									<input
 										type="text"
-										value="Room A"
-										readOnly
-										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
-									/>
-								</div>
-
-								{/* Code Field */}
-								<div className="flex flex-col gap-2 md:flex-row md:items-center">
-									<label className="text-left text-lg font-bold md:w-1/6">
-										Code:
-									</label>
-									<input
-										type="text"
-										value="RM-A101"
+										value="Course A"
 										readOnly
 										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
 									/>
@@ -224,7 +335,7 @@ function Courses({ setActiveView }: CoursesProps) {
 										onClick={() =>
 											(
 												document.getElementById(
-													"modal_export_rooms",
+													"modal_export_courses",
 												) as HTMLDialogElement
 											)?.close()
 										}
@@ -237,11 +348,19 @@ function Courses({ setActiveView }: CoursesProps) {
 					</dialog>
 				</div>
 			</div>
+			{/* Search and New Course button */}
 			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
+				<label
+					htmlFor="search"
+					className="text-lg font-bold text-white"
+				></label>
 				<input
+					id="search"
 					type="text"
-					className="input w-full max-w-md rounded-lg border border-gray-300"
-					placeholder="Search"
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
+					placeholder="Search by course name"
+					className="input input-bordered w-full max-w-xs"
 				/>
 				<div className="dropdown dropdown-end ml-2">
 					<div
@@ -264,93 +383,72 @@ function Courses({ setActiveView }: CoursesProps) {
 					</ul>
 				</div>
 			</div>
+			{/* New Course Modal */}
+			<dialog id="create_new_course" className="modal">
+				<div className="modal-box w-11/12 max-w-3xl">
+					<h3 className="mb-4 text-center text-2xl font-bold">
+						Create New Course
+					</h3>
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							createCourse();
+							(
+								document.getElementById(
+									"create_new_course",
+								) as HTMLDialogElement
+							)?.close();
+						}}
+						className="flex flex-col gap-6"
+					>
+						<div className="flex flex-col gap-2 md:flex-row md:items-center">
+							<label className="text-left text-lg font-bold md:w-1/6">
+								Name:
+							</label>
+							<input
+								type="text"
+								value={newCourseName}
+								onChange={(e) =>
+									setNewCourseName(e.target.value)
+								}
+								placeholder="Enter course name"
+								className="input input-bordered w-full"
+								required
+							/>
+						</div>
+						<div className="modal-action">
+							<button
+								type="submit"
+								className="btn btn-success text-white"
+							>
+								Submit
+							</button>
+							<button
+								type="button"
+								className="btn btn-cancel"
+								onClick={() =>
+									(
+										document.getElementById(
+											"create_new_course",
+										) as HTMLDialogElement
+									)?.close()
+								}
+							>
+								Cancel
+							</button>
+						</div>
+					</form>
+				</div>
+			</dialog>
 
-			<div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg">
-				<table className="table">
-					{/* head */}
-					<thead className="bg-[#1c402a]/50 text-xl font-bold text-white shadow-xl">
-						<tr>
-							<th>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</th>
-							<th>Title</th>
-							<th></th>
-							<th></th>
-							<th>Is Active</th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody className="text-lg text-gray-300">
-						{/* row 1 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Renzo Cua</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
-						{/* row 2 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Martin Espineda</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
-						{/* row 3 */}
-						<tr className="hover:bg-[#1b2e3e]/50">
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="checkbox"
-								/>
-							</td>
-							<td>Chester Espineda</td>
-							<td></td>
-							<td></td>
-							<td>
-								<input
-									type="checkbox"
-									defaultChecked
-									className="toggle"
-								/>
-							</td>
-							<td>Edit</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
+			{/* DataTable */}
+			<DataTable
+				data={courses}
+				columns={courseColumns}
+				getRowKey={(course) => course.id}
+				actions={courseActions}
+				selectable
+			/>
 		</div>
 	);
 }

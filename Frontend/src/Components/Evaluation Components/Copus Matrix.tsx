@@ -6,7 +6,6 @@ type ToggleBoxProps = {
 	onToggle: (label: string) => void;
 };
 
-
 function ToggleBox({ label, active, onToggle }: ToggleBoxProps) {
 	const delay = (Math.random() * 2).toFixed(2);
 	return (
@@ -51,9 +50,8 @@ const CopusMatrix = () => {
 			setStartTime(startTimeValue);
 			setIsTimerStarted(true);
 
-
-				try {
-					const response = await api.post("/api/evaluations", {
+			try {
+				const response = await api.post("/api/evaluations", {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
@@ -71,7 +69,6 @@ const CopusMatrix = () => {
 			}
 		}
 	};
-
 
 	// Update current time and elapsed time every second
 	useEffect(() => {
@@ -183,10 +180,10 @@ const CopusMatrix = () => {
 		setTeacherTallies(newTeacherTallies);
 	};
 
-		const updateSelections = async (
+	const updateSelections = async (
 		type: "student" | "teacher",
 		label: string | null,
-		) => {
+	) => {
 		setSelectionsByMinute((prev) => {
 			const prevForMinute = prev[minute] || {
 				student: null,
@@ -233,7 +230,6 @@ const CopusMatrix = () => {
 			elapsedTime, // Send the most recent elapsed time
 			startTime: startTime?.toISOString(),
 		};
-
 
 		try {
 			await api.patch(`/api/evaluations/${evaluationId}`, {
@@ -450,52 +446,67 @@ const CopusMatrix = () => {
 					</div>
 
 					<div className="mt-4 flex justify-center">
-								<button
-									onClick={async () => {
-									const scoringData = {
-									student_activities: Object.entries(studentTallies).reduce(
-									(acc, [activity, count]) => ({
-										...acc,
-									[activity]: `${(
-									(count / getTotalMinutesObserved()) *
-									100
-									).toFixed(1)}%`,
-									}),
-									{},
-									),
-									instructor_activities: Object.entries(teacherTallies).reduce(
+						<button
+							onClick={async () => {
+								const scoringData = {
+									student_activities: Object.entries(
+										studentTallies,
+									).reduce(
 										(acc, [activity, count]) => ({
 											...acc,
 											[activity]: `${(
-												(count / getTotalMinutesObserved()) *
+												(count /
+													getTotalMinutesObserved()) *
 												100
 											).toFixed(1)}%`,
 										}),
 										{},
 									),
-									totalMinutesObserved: getTotalMinutesObserved(),
+									instructor_activities: Object.entries(
+										teacherTallies,
+									).reduce(
+										(acc, [activity, count]) => ({
+											...acc,
+											[activity]: `${(
+												(count /
+													getTotalMinutesObserved()) *
+												100
+											).toFixed(1)}%`,
+										}),
+										{},
+									),
+									totalMinutesObserved:
+										getTotalMinutesObserved(),
 									startTime: startTime?.toISOString(),
 									elapsedTime: elapsedTime,
 								};
 
 								try {
-									await api.post(`/api/evaluations/${evaluationId}/finish`, {
-										method: "POST",
-										headers: {
-											"Content-Type": "application/json",
+									await api.post(
+										`/api/evaluations/${evaluationId}/finish`,
+										{
+											method: "POST",
+											headers: {
+												"Content-Type":
+													"application/json",
+											},
+											body: JSON.stringify(scoringData),
 										},
-										body: JSON.stringify(scoringData),
-									});
+									);
 									alert("Evaluation saved successfully!");
 								} catch (error) {
-									console.error("Failed to save evaluation", error);
+									console.error(
+										"Failed to save evaluation",
+										error,
+									);
 								}
 							}}
 							className="rounded-lg bg-[#1c402a] px-6 py-2 text-white transition-colors hover:bg-[#2c503a]"
 							disabled={getTotalMinutesObserved() === 0}
 						>
 							Save Evaluation
-						</button>;
+						</button>
+						;
 					</div>
 				</div>
 			</div>

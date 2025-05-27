@@ -136,7 +136,7 @@ const NavbarHR: React.FC<NavbarProps> = ({
 				{/* Secondary Dock */}
 				{secondaryDockVisible && (
 					<div
-						className={`dock dock-xs bottom-12 z-2 w-full border-b border-[#1c402a] transition-all duration-300 ease-in-out ${
+						className={`dock dock-xs bottom-12 z-2 w-full border-b border-b-[#0e4925] transition-all duration-300 ease-in-out ${
 							isDockVisible
 								? "translate-y-0"
 								: "translate-y-[200%]"
