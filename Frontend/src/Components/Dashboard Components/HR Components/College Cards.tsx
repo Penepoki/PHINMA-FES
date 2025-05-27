@@ -1,4 +1,4 @@
-type Subject = {
+type College = {
 	name: string;
 	fullname: string;
 	image?: string | null;
@@ -7,7 +7,7 @@ type Subject = {
 	isAddCard?: boolean;
 };
 
-const SubjectCard: React.FC<Subject> = ({
+const CollegeCard: React.FC<College> = ({
 	name,
 	fullname,
 	image,
@@ -35,11 +35,17 @@ const SubjectCard: React.FC<Subject> = ({
 			</div>
 		);
 	}
-
+	const delay = (Math.random() * 2).toFixed(2); // e.g., 0.83s
 	// Regular card
 	return (
-		<div className="flex h-full w-full flex-col items-center justify-center rounded-xl p-5 shadow-2xl backdrop-blur-lg backdrop-hue-rotate-300 hover:scale-105">
-			<div className="flex flex-col items-center">
+		<div
+			className="float-breathe shadow-2xl hover:scale-105"
+			style={{
+				// animationDuration: `${duration}s`,
+				animationDelay: `${delay}s`,
+			}}
+		>
+			<div className="flex h-40 w-full cursor-pointer flex-col items-center justify-center rounded-tl-xl rounded-tr-xl bg-black/20 shadow-2xl">
 				<div
 					className={`${bgColor} text-neutral-content flex size-30 items-center justify-center rounded-full`}
 				>
@@ -55,12 +61,13 @@ const SubjectCard: React.FC<Subject> = ({
 						</span>
 					)}
 				</div>
-
-				<div className="mt-4 flex flex-col text-center">
-					<span className={`text-3xl font-bold ${textColor}`}>
+			</div>
+			<div className="flex h-30 w-full flex-col rounded-br-lg rounded-bl-xl px-5 py-2 shadow-2xl backdrop-hue-rotate-300">
+				<div className="mt-4 flex flex-col text-start">
+					<span className={`text-2xl font-bold ${textColor}`}>
 						{name}
 					</span>
-					<span className={`text-md mt-2 text-gray-400`}>
+					<span className={`mt-2 text-sm text-gray-400`}>
 						{fullname}
 					</span>
 				</div>
@@ -69,16 +76,16 @@ const SubjectCard: React.FC<Subject> = ({
 	);
 };
 
-const SubjectCards: React.FC<{
-	subjects: Subject[];
-}> = ({ subjects }) => {
+const CollegeCards: React.FC<{
+	college: College[];
+}> = ({ college }) => {
 	return (
 		<>
 			{/* Desktop View: 4 Cards Per Row */}
 			<div className="mx-6 mt-6 flex h-full flex-wrap justify-center gap-6">
-				{subjects.map((subject, idx) => (
+				{college.map((college, idx) => (
 					<div key={idx} className="w-full sm:w-1/2 lg:w-1/4">
-						<SubjectCard {...subject} />
+						<CollegeCard {...college} />
 					</div>
 				))}
 			</div>
@@ -86,4 +93,4 @@ const SubjectCards: React.FC<{
 	);
 };
 
-export default SubjectCards;
+export default CollegeCards;
