@@ -1,7 +1,7 @@
 import { useState } from "react";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import SchoolCards from "../../../Components/Dashboard Components/HR Components/School Cards";
-import SubjectCards from "../../../Components/Dashboard Components/HR Components/College Cards";
+import CollegeCards from "../../../Components/Dashboard Components/HR Components/College Cards";
 
 const schools = [
 	{ name: "SJC MANILA", image: null },
@@ -14,7 +14,7 @@ const schools = [
 	{ name: "UCDO", image: null },
 ];
 
-const subjects = [
+const colleges = [
 	{
 		name: "CITE",
 		fullname: "College of Information Technology Education",
@@ -59,12 +59,12 @@ function Home() {
 							Colleges of {selectedSchool}
 						</h2>
 						<button
-							className="btn mb-4 bg-[#1c402a] text-xs text-gray-400 hover:scale-105"
+							className="btn absolute left-20 mt-6 mb-4 bg-[#1c402a] text-xs text-gray-400 hover:scale-105"
 							onClick={() => setSelectedSchool(null)}
 						>
 							← Back to Schools
 						</button>
-						<SubjectCards subjects={subjects} />
+						<CollegeCards college={colleges} />
 					</>
 				) : (
 					<SchoolCards

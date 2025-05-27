@@ -39,7 +39,7 @@ const SchoolCard: React.FC<Schools> = ({
 	// Regular card
 	return (
 		<div
-			className="flex h-full w-full flex-col items-center justify-center rounded-xl p-5 shadow-2xl backdrop-blur-lg backdrop-hue-rotate-400 hover:scale-105"
+			className="flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-xl p-5 shadow-2xl backdrop-blur-lg backdrop-hue-rotate-400 hover:scale-105"
 			onClick={onClick}
 		>
 			<div className="flex flex-col items-center">

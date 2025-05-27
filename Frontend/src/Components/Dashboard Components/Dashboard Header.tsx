@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
-
 const DashboardHeader = () => {
 	const [firstName, setFirstName] = useState("User");
 	const navigate = useNavigate();
@@ -23,7 +22,7 @@ const DashboardHeader = () => {
 							"Content-Type": "application/json",
 							Authorization: `Token ${token}`, // <- Ensure your token is valid
 						},
-					}
+					},
 				);
 
 				// Verify if the call is successful and handle the response data
@@ -33,25 +32,30 @@ const DashboardHeader = () => {
 					// Safely set "firstName" if it exists in the response
 					setFirstName(data.first_name || "User"); // Default to "User" if undefined
 				} else {
-					console.error(`Error fetching user data: HTTP ${response.status}`);
+					console.error(
+						`Error fetching user data: HTTP ${response.status}`,
+					);
 					// Optional: Handle logout in case of unauthorized (401)
 					if (response.status === 401) navigate("/login");
 				}
 			} catch (error) {
-				console.error("Error fetching user data:", error.message);
+				if (error instanceof Error) {
+					console.error("Error fetching user data:", error.message);
+				} else {
+					console.error("Error fetching user data:", error);
+				}
 			}
 		};
 
 		fetchUserData();
 	}, [navigate]);
 
-
-
 	// Logout function
 	const handleLogout = async () => {
 		try {
 			const token = localStorage.getItem("token"); // Get saved token from localStorage
-			if (!token) throw new Error("No token found. User is already logged out!");
+			if (!token)
+				throw new Error("No token found. User is already logged out!");
 
 			// Make a logout API call
 			const response = await fetch("http://127.0.0.1:8000/api/logout/", {
@@ -70,7 +74,10 @@ const DashboardHeader = () => {
 				navigate("/"); // Redirect user to login page
 			} else {
 				const errorData = await response.json();
-				console.error("Logout failed:", errorData.error || "Unknown error");
+				console.error(
+					"Logout failed:",
+					errorData.error || "Unknown error",
+				);
 				alert("Something went wrong when logging out.");
 			}
 		} catch (error) {
@@ -78,9 +85,6 @@ const DashboardHeader = () => {
 			alert("Error during logout.");
 		}
 	};
-
-
-
 
 	return (
 		<header className="absolute top-0 z-1 flex h-[15%] w-full items-end justify-between border-b-2 border-gray-600 px-6 shadow-2xl backdrop-blur-lg">
@@ -95,7 +99,6 @@ const DashboardHeader = () => {
 			<button
 				className="text-md text-gray-300 underline"
 				onClick={handleLogout}
-
 			>
 				Logout
 			</button>
