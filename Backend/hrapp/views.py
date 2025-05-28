@@ -356,7 +356,7 @@ class RoomViewSet(viewsets.ModelViewSet):
 # PROGRAM
 class ProgramViewSet(viewsets.ModelViewSet):
 
-    queryset = Program.objects.filter(deleted_at__isnull=True)
+    queryset = Program.objects.all()
     serializer_class = ProgramSerializer
     parser_classes = [JSONParser]
     filter_backends = [DjangoFilterBackend]

@@ -16,75 +16,94 @@ interface Program {
 	id: number;
 	name: string;
 	is_active: boolean;
+	professor_names: string[];
 }
 
 function Programs({ setActiveView }: ProgramProps) {
-	const [program, setPrograms] = useState<Program[]>([]);
+	const [programs, setPrograms] = useState<Program[]>([]);
+	const [programProfessors, setProgramProfessors] = useState<any[]>([]);
+	const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [newProgramName, setNewProgramName] = useState("");
 
-	const fetchPrograms = async () => {
-		setLoading(true);
-		try {
-			const response = await api.get("/program/programs/", {
-				params: { name: searchTerm || undefined },
-			});
-			setPrograms(response.data);
-		} catch (error) {
-			console.error("Error fetching programs:", error);
-		} finally {
-			setLoading(false);
-		}
+
+	// Code below adds junc table progprof
+	const fetchProgramsandProgramProfessors = async () => {
+			setLoading(true);
+			try {
+				//Step 1: Fetch programs
+				const programResponse = await api.get("/program/programs", {
+					params: { name: searchTerm || undefined },
+				});
+				console.log("Fetched programs:", programResponse.data);
+				setPrograms(programResponse.data);
+
+				// Fetch ProgramProfessor relationships
+				const professorResponse = await api.get("/program-professor/program-professors/");
+				setProgramProfessors(professorResponse.data);
+			} catch (error) {
+					console.error("Error fetching data:", error);
+				} finally {
+						setLoading(false);
+				}
 	};
 
+	const handleRowClick = (program: Program) => {
+		setSelectedProgram(program);
+		const modal = document.getElementById("program_details_modal") as HTMLDialogElement;
+		modal?.showModal();
+	};
+
+
 	const createProgram = async () => {
-		if (!newProgramName.trim()) return alert("Please enter a program name");
-		const token = localStorage.getItem("token");
+		if (!newProgramName.trim()) return
+		alert("Pleae enter a prgoram name");
+		const token = localStorage.getItem('token');
 		if (!token) return alert("You are not authenticated. Please login.");
-		try {
-			await api.post(
-				"/program/programs/",
-				{ name: newProgramName },
-				{
-					headers: { Authorization: `Bearer ${token}` },
-				},
-			);
-			setNewProgramName("");
-			fetchPrograms();
-		} catch (error) {
-			console.error("Error creating program:", error);
-		}
+
+			try {
+				await api.post(
+					"/program/programs/",
+					{name: newProgramName},
+					{
+						headers: {Authorization: 'Bearer ${token}'},
+					},
+				);
+				setNewProgramName("");
+				// After creation, fetch programs again
+				fetchProgramsandProgramProfessors();
+			} catch (error) {
+				console.error("Error creating program:", error);
+			}
 	};
 
 	const toggleProgramStatus = async (program: Program) => {
-       if (!program.id) {
-           alert("Program ID is missing!");
-           return;
-       }
-       try {
-           await api.patch(`/program/programs/${program.id}/`, {
-               is_active: !program.is_active,
-           });
-           alert(`Program status updated to ${!program.is_active ? "Active" : "Inactive"}.`);
-           fetchPrograms();
-       } catch (error: any) {
-           alert("Failed to update the program status. Please try again.");
-       }
-   };
-
+		if (!program.id) {
+			alert("Program ID is missing!");
+			return;
+		}
+		try {
+			await api.patch(`/program/programs/${program.id}/`,
+				{
+					is_active: !program.is_active ? "Active" : "Inactive"
+				});
+			alert(`Program status updated to ${!program.is_active ? "Active" : "Inactive"}`);
+		} catch (error: any) {
+			alert("Failed to update the program status. Please try again.");
+		}
+	};
 
 	const deleteProgram = async (programId: number) => {
 		try {
 			await api.delete(`/program/programs/${programId}/`);
-			fetchPrograms();
+			fetchProgramsandProgramProfessors();
 		} catch (error) {
 			console.error("Error deleting program:", error);
 		}
 	};
-
 	// Actions column render function
-	const programActions = (program: Program) => (
+	/*const programActions = (program: Program) => (
 		<div className="flex flex-col items-start gap-2">
 			<button
 				title="Edit"
@@ -106,34 +125,53 @@ function Programs({ setActiveView }: ProgramProps) {
 				Delete
 			</button>
 		</div>
-	);
+	);*/
 
 	useEffect(() => {
-		fetchPrograms();
+		fetchProgramsandProgramProfessors();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [searchTerm]);
 
 	// Define columns with proper accessors
 	const programColumns: Column<Program>[] = [
-		{
-			header: "Name",
-			accessor: (program: Program) => program.name,
-		},
-		{
-			header: "Status",
-			accessor: (program: Program) => (
-				<input
-					onClick={() => toggleProgramStatus(program)}
-					className="toggle"
-					type="checkbox"
-					checked={program.is_active}
-				/>
-			),
-		},
+			{
+				header: "Name",
+				accessor: "name",
+			},
+			{
+				header: "Status",
+				accessor: (program: Program) => (
+					<input
+						onClick={() => toggleProgramStatus(program)} // Ensure program is correctly passed
+						className="toggle"
+						type="checkbox"
+						checked={program.is_active}
+					/>
+				),
+			},
 	];
+
+
+		type ProgramProfessor = {
+		program: number; // Program ID
+		professor: number; // Professor ID
+		assigned_at: string; // Example additional data
+		};
+
+		const programProfessorColumns: Column<ProgramProfessor>[] = [
+			{
+				header: "Program ID",
+				accessor: "program", // Use "program" directly as it's part of ProgramProfessor
+			},
+			{
+				header: "Professor ID",
+				accessor: "professor", // Use "professor" directly as it's part of ProgramProfessor
+			},
+		];
 
 	return (
 		<div className="custom-container gap-y-6">
+			{/* Breadcrumbs */}
 			<div className="breadcrumbs">
 				<ul>
 					<li>
@@ -449,12 +487,46 @@ function Programs({ setActiveView }: ProgramProps) {
 
 			{/* DataTable */}
 			<DataTable
-				data={program}
+				data={programs}
 				columns={programColumns}
 				getRowKey={(program) => program.id}
-				actions={programActions}
-				selectable
+				actions={(program) => (
+					<button onClick={() => handleRowClick(program)} className="btn btn-info text-white">
+						View Details
+					</button>
+				)}
 			/>
+
+			{/* Modal for displaying additional program details */}
+			<dialog id="program_details_modal" className="modal">
+				<div className="modal-box">
+					{selectedProgram && (
+						<>
+							<h3 className="text-lg font-bold">{selectedProgram.name}</h3>
+							<table className="table">
+								<thead>
+									<tr>
+										<th>Program ID</th>
+										<th>Professor ID</th>
+										<th>Assigned Date</th>
+									</tr>
+								</thead>
+								<tbody>
+									{programProfessors
+										.filter((relationship) => relationship.program === selectedProgram.id)
+										.map((relationship) => (
+											<tr key={relationship.program + relationship.professor}>
+												<td>{relationship.program}</td>
+												<td>{relationship.professor}</td>
+												<td>{new Date(relationship.assigned_at).toLocaleDateString()}</td>
+											</tr>
+										))}
+								</tbody>
+							</table>
+						</>
+					)}
+				</div>
+			</dialog>;
 		</div>
 	);
 }

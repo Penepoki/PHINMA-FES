@@ -95,7 +95,7 @@ class ProgramProfessorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProgramProfessor
-        fields = ['program', 'professor', 'assigned_at']
+        fields = ['id','program', 'professor', 'assigned_at']
         read_only_fields = ['assigned_at']
 
     def get_professors(self, obj):

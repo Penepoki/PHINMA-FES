@@ -32,7 +32,7 @@ urlpatterns = [
     path('room/', include(room_router.urls)),
 
     path('program/', include(program_router.urls)),
-
+    path('program-professor/', include(program_professor_router.urls)),
     path('schedule/', include(schedule_router.urls)),
 
     path('evaluation/', include(evaluation_router.urls)),

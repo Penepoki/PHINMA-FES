@@ -22,7 +22,7 @@ class Program(BaseModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
     code = models.CharField(max_length=50, unique=True)
-    professors = models.ManyToManyField("User", through="ProgramProfessor")
+    professors = models.ManyToManyField("User", through="ProgramProfessor", blank=True, null=True)
 
     def __str__(self):
         return f'{self.name} - {self.code}'
@@ -31,7 +31,7 @@ class Program(BaseModel):
 
 
 class ProgramProfessor(models.Model):
-    professor = models.ForeignKey("User", on_delete=models.CASCADE)
+    professor = models.ForeignKey("User", on_delete=models.CASCADE, blank=True, null=True)
     program = models.ForeignKey(Program, on_delete=models.CASCADE)
     assigned_at = models.DateTimeField(auto_now_add=True)
 
