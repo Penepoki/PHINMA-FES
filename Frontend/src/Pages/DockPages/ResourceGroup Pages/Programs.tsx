@@ -58,21 +58,22 @@ function Programs({ setActiveView }: ProgramProps) {
 	};
 
 	const toggleProgramStatus = async (program: Program) => {
-       if (!program.id) {
-           alert("Program ID is missing!");
-           return;
-       }
-       try {
-           await api.patch(`/program/programs/${program.id}/`, {
-               is_active: !program.is_active,
-           });
-           alert(`Program status updated to ${!program.is_active ? "Active" : "Inactive"}.`);
-           fetchPrograms();
-       } catch (error: any) {
-           alert("Failed to update the program status. Please try again.");
-       }
-   };
-
+		if (!program.id) {
+			alert("Program ID is missing!");
+			return;
+		}
+		try {
+			await api.patch(`/program/programs/${program.id}/`, {
+				is_active: !program.is_active,
+			});
+			alert(
+				`Program status updated to ${!program.is_active ? "Active" : "Inactive"}.`,
+			);
+			fetchPrograms();
+		} catch (error: any) {
+			alert("Failed to update the program status. Please try again.");
+		}
+	};
 
 	const deleteProgram = async (programId: number) => {
 		try {
