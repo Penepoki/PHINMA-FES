@@ -7,78 +7,84 @@ import DataTable, {
 import { FunnelIcon } from "@heroicons/react/16/solid";
 // Assuming you have your generic DataTable component exported
 
-interface CoursesProps {
+interface ProgramProps {
 	setActiveView: (view: string) => void;
 }
 
-// Define the Course Type
-interface Course {
+// Define the Program Type
+interface Program {
 	id: number;
 	name: string;
 	is_active: boolean;
 }
 
-function Courses({ setActiveView }: CoursesProps) {
-	const [courses, setCourses] = useState<Course[]>([]);
+function Programs({ setActiveView }: ProgramProps) {
+	const [program, setPrograms] = useState<Program[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
-	const [newCourseName, setNewCourseName] = useState("");
+	const [newProgramName, setNewProgramName] = useState("");
 
-	const fetchCourses = async () => {
+	const fetchPrograms = async () => {
 		setLoading(true);
 		try {
-			const response = await api.get("/course/courses", {
+			const response = await api.get("/program/programs/", {
 				params: { name: searchTerm || undefined },
 			});
-			setCourses(response.data);
+			setPrograms(response.data);
 		} catch (error) {
-			console.error("Error fetching courses:", error);
+			console.error("Error fetching programs:", error);
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	const createCourse = async () => {
-		if (!newCourseName.trim()) return alert("Please enter a course name");
+	const createProgram = async () => {
+		if (!newProgramName.trim()) return alert("Please enter a program name");
 		const token = localStorage.getItem("token");
 		if (!token) return alert("You are not authenticated. Please login.");
 		try {
 			await api.post(
-				"/course/courses/",
-				{ name: newCourseName },
+				"/program/programs/",
+				{ name: newProgramName },
 				{
 					headers: { Authorization: `Bearer ${token}` },
 				},
 			);
-			setNewCourseName("");
-			fetchCourses();
+			setNewProgramName("");
+			fetchPrograms();
 		} catch (error) {
-			console.error("Error creating course:", error);
+			console.error("Error creating program:", error);
 		}
 	};
 
-	const toggleCourseStatus = async (course: Course) => {
-		try {
-			await api.patch(`/course/courses/${course.id}/`, {
-				is_active: !course.is_active,
-			});
-			fetchCourses();
-		} catch (error) {
-			console.error("Error updating course:", error);
-		}
-	};
+	const toggleProgramStatus = async (program: Program) => {
+       if (!program.id) {
+           alert("Program ID is missing!");
+           return;
+       }
+       try {
+           await api.patch(`/program/programs/${program.id}/`, {
+               is_active: !program.is_active,
+           });
+           alert(`Program status updated to ${!program.is_active ? "Active" : "Inactive"}.`);
+           fetchPrograms();
+       } catch (error: any) {
+           alert("Failed to update the program status. Please try again.");
+       }
+   };
 
-	const deleteCourse = async (courseId: number) => {
+
+	const deleteProgram = async (programId: number) => {
 		try {
-			await api.delete(`/course/courses/${courseId}/`);
-			fetchCourses();
+			await api.delete(`/program/programs/${programId}/`);
+			fetchPrograms();
 		} catch (error) {
-			console.error("Error deleting course:", error);
+			console.error("Error deleting program:", error);
 		}
 	};
 
 	// Actions column render function
-	const courseActions = (course: Course) => (
+	const programActions = (program: Program) => (
 		<div className="flex flex-col items-start gap-2">
 			<button
 				title="Edit"
@@ -91,8 +97,8 @@ function Courses({ setActiveView }: CoursesProps) {
 			<button
 				title="Delete"
 				onClick={() => {
-					if (window.confirm(`Delete course "${course.name}"?`))
-						deleteCourse(course.id);
+					if (window.confirm(`Delete program "${program.name}"?`))
+						deleteProgram(program.id);
 				}}
 				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline"
 			>
@@ -103,24 +109,24 @@ function Courses({ setActiveView }: CoursesProps) {
 	);
 
 	useEffect(() => {
-		fetchCourses();
+		fetchPrograms();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [searchTerm]);
 
 	// Define columns with proper accessors
-	const courseColumns: Column<Course>[] = [
+	const programColumns: Column<Program>[] = [
 		{
 			header: "Name",
-			accessor: (course: Course) => course.name,
+			accessor: (program: Program) => program.name,
 		},
 		{
 			header: "Status",
-			accessor: (course: Course) => (
+			accessor: (program: Program) => (
 				<input
-					onClick={() => toggleCourseStatus(course)}
+					onClick={() => toggleProgramStatus(program)}
 					className="toggle"
 					type="checkbox"
-					checked={course.is_active}
+					checked={program.is_active}
 				/>
 			),
 		},
@@ -138,57 +144,57 @@ function Courses({ setActiveView }: CoursesProps) {
 							Resource Group
 						</a>
 					</li>
-					<li>Courses</li>
+					<li>Programs</li>
 				</ul>
 			</div>
 
-			<h2 className="mt-4 text-3xl font-bold text-white">Courses</h2>
+			<h2 className="mt-4 text-3xl font-bold text-white">Programs</h2>
 
 			<div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
-				{/* New Course Button */}
+				{/* New Program Button */}
 				<button
 					onClick={() =>
 						(
 							document.getElementById(
-								"create_new_course",
+								"create_new_program",
 							) as HTMLDialogElement
 						)?.showModal()
 					}
 					className="w-full rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
 				>
-					New Course
+					New Program
 				</button>
 
-				<dialog id="create_new_course" className="modal">
+				<dialog id="create_new_program" className="modal">
 					<div className="modal-box w-11/12 max-w-3xl">
 						<h3 className="mb-4 text-center text-2xl font-bold">
-							Create New Course
+							Create New Program
 						</h3>
 
 						<form
 							onSubmit={(e) => {
 								e.preventDefault(); // Prevent default form behavior
-								createCourse(); // Call createCourse function
+								createProgram(); // Call createProgram function
 								(
 									document.getElementById(
-										"create_new_course",
+										"create_new_program",
 									) as HTMLDialogElement
 								)?.close(); // Close the modal
 							}}
 							className="flex flex-col gap-6"
 						>
-							{/* Course Name */}
+							{/* Program Name */}
 							<div className="flex flex-col gap-2 md:flex-row md:items-center">
 								<label className="text-left text-lg font-bold md:w-1/6">
 									Name:
 								</label>
 								<input
 									type="text"
-									value={newCourseName} // Bind value to state
+									value={newProgramName} // Bind value to state
 									onChange={(e) =>
-										setNewCourseName(e.target.value)
+										setNewProgramName(e.target.value)
 									} // Update value on change
-									placeholder="Enter course name"
+									placeholder="Enter program name"
 									className="input input-bordered w-full"
 									required
 								/>
@@ -208,7 +214,7 @@ function Courses({ setActiveView }: CoursesProps) {
 									onClick={() =>
 										(
 											document.getElementById(
-												"create_new_course",
+												"create_new_program",
 											) as HTMLDialogElement
 										)?.close()
 									}
@@ -221,24 +227,24 @@ function Courses({ setActiveView }: CoursesProps) {
 				</dialog>
 
 				<div className="flex flex-row justify-center">
-					{/* Import Courses Button */}
+					{/* Import Programs Button */}
 					<button
 						onClick={() =>
 							(
 								document.getElementById(
-									"modal_import_course",
+									"modal_import_program",
 								) as HTMLDialogElement
 							)?.showModal()
 						}
 						className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
 					>
-						Import Course
+						Import Program
 					</button>
 
-					<dialog id="modal_import_course" className="modal">
+					<dialog id="modal_import_program" className="modal">
 						<div className="modal-box w-11/12 max-w-3xl">
 							<h3 className="mb-4 text-center text-2xl font-bold">
-								Import Course
+								Import Program
 							</h3>
 
 							<form
@@ -272,7 +278,7 @@ function Courses({ setActiveView }: CoursesProps) {
 										onClick={() =>
 											(
 												document.getElementById(
-													"modal_import_course",
+													"modal_import_program",
 												) as HTMLDialogElement
 											)?.close()
 										}
@@ -284,24 +290,24 @@ function Courses({ setActiveView }: CoursesProps) {
 						</div>
 					</dialog>
 
-					{/* Export Courses Button */}
+					{/* Export Programs Button */}
 					<button
 						onClick={() =>
 							(
 								document.getElementById(
-									"modal_export_courses",
+									"modal_export_programs",
 								) as HTMLDialogElement
 							)?.showModal()
 						}
 						className="w-full rounded-lg bg-[#d4c351] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
 					>
-						Export Course
+						Export Program
 					</button>
 
-					<dialog id="modal_export_courses" className="modal">
+					<dialog id="modal_export_programs" className="modal">
 						<div className="modal-box w-11/12 max-w-3xl">
 							<h3 className="mb-4 text-center text-2xl font-bold">
-								Export Course
+								Export Program
 							</h3>
 
 							<form
@@ -315,7 +321,7 @@ function Courses({ setActiveView }: CoursesProps) {
 									</label>
 									<input
 										type="text"
-										value="Course A"
+										value="Program A"
 										readOnly
 										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
 									/>
@@ -335,7 +341,7 @@ function Courses({ setActiveView }: CoursesProps) {
 										onClick={() =>
 											(
 												document.getElementById(
-													"modal_export_courses",
+													"modal_export_programs",
 												) as HTMLDialogElement
 											)?.close()
 										}
@@ -348,7 +354,7 @@ function Courses({ setActiveView }: CoursesProps) {
 					</dialog>
 				</div>
 			</div>
-			{/* Search and New Course button */}
+			{/* Search and New Program button */}
 			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
 				<label
 					htmlFor="search"
@@ -359,7 +365,7 @@ function Courses({ setActiveView }: CoursesProps) {
 					type="text"
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
-					placeholder="Search by course name"
+					placeholder="Search by program name"
 					className="input input-bordered w-full max-w-xs"
 				/>
 				<div className="dropdown dropdown-end ml-2">
@@ -383,19 +389,19 @@ function Courses({ setActiveView }: CoursesProps) {
 					</ul>
 				</div>
 			</div>
-			{/* New Course Modal */}
-			<dialog id="create_new_course" className="modal">
+			{/* New Program Modal */}
+			<dialog id="create_new_program" className="modal">
 				<div className="modal-box w-11/12 max-w-3xl">
 					<h3 className="mb-4 text-center text-2xl font-bold">
-						Create New Course
+						Create New Program
 					</h3>
 					<form
 						onSubmit={(e) => {
 							e.preventDefault();
-							createCourse();
+							createProgram();
 							(
 								document.getElementById(
-									"create_new_course",
+									"create_new_program",
 								) as HTMLDialogElement
 							)?.close();
 						}}
@@ -407,11 +413,11 @@ function Courses({ setActiveView }: CoursesProps) {
 							</label>
 							<input
 								type="text"
-								value={newCourseName}
+								value={newProgramName}
 								onChange={(e) =>
-									setNewCourseName(e.target.value)
+									setNewProgramName(e.target.value)
 								}
-								placeholder="Enter course name"
+								placeholder="Enter program name"
 								className="input input-bordered w-full"
 								required
 							/>
@@ -429,7 +435,7 @@ function Courses({ setActiveView }: CoursesProps) {
 								onClick={() =>
 									(
 										document.getElementById(
-											"create_new_course",
+											"create_new_program",
 										) as HTMLDialogElement
 									)?.close()
 								}
@@ -443,14 +449,14 @@ function Courses({ setActiveView }: CoursesProps) {
 
 			{/* DataTable */}
 			<DataTable
-				data={courses}
-				columns={courseColumns}
-				getRowKey={(course) => course.id}
-				actions={courseActions}
+				data={program}
+				columns={programColumns}
+				getRowKey={(program) => program.id}
+				actions={programActions}
 				selectable
 			/>
 		</div>
 	);
 }
 
-export default Courses;
+export default Programs;

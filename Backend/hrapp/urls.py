@@ -2,10 +2,12 @@ from django.urls import path, include
 from .views import *
 from rest_framework.routers import DefaultRouter
 
-# COURSE AND COURSEPROF ROUTER
+# PROGRAM AND PROGPROF ROUTER
 program_router = DefaultRouter()
-program_router.register(r'courses', ProgramViewSet, basename='program')
-program_router.register(r'course-professors',
+program_router.register(r'programs', ProgramViewSet, basename='program')
+
+program_professor_router = DefaultRouter()
+program_professor_router.register(r'program-professors',
                 ProgramProfessorViewSet, basename='program-professor')
 # SUBJECT ROUTER
 subject_router = DefaultRouter()

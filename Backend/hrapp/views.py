@@ -1,7 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
-
 from hrapp.utils.evaluation_utils import *
 from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
@@ -15,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
 #from rest_framework.filter import Search
 import pandas as pd
@@ -359,13 +358,17 @@ class ProgramViewSet(viewsets.ModelViewSet):
 
     queryset = Program.objects.filter(deleted_at__isnull=True)
     serializer_class = ProgramSerializer
-    parser_classes = [MultiPartParser]
+    parser_classes = [JSONParser]
     filter_backends = [DjangoFilterBackend]
     filter_class = ProgramFilter
 
+    def get_parser_classes(self):
+        if self.action == 'import_program_from_csv':
+            return [MultiPartParser]
+        return super().get_parser_classes()
+
 #Program Create
     @transaction.atomic
-    @role_required(allowed_roles=["HR", "Dean", "Program Head"])
     def create(self, request, *args, **kwargs):
         """PROGRAMS"""
         data = request.data
@@ -451,8 +454,8 @@ class ProgramViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 #PROGRAM Update
-    @action(detail=True, methods=['put', 'patch'])
-    @role_required(allowed_roles=["HR", "Dean", "Program Head"], required_permission="hrapp.change_program")
+    #@action(detail=True, methods=['put', 'patch'])
+    #@role_required(allowed_roles=["HR", "Dean", "Program Head"], required_permission="hrapp.change_program")
     def perform_update(self, serializer):
         #DRF UPDATE METHOD
         program = serializer.save()

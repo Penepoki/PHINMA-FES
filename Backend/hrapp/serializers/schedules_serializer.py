@@ -6,7 +6,7 @@ from .user_serializer import UserCourseProfessorSerializer
 
 
 
-# COURSE SERIALIZER
+# Program SERIALIZER
 class ProgramSerializer(serializers.ModelSerializer):
     # Write-only field for input: list of professor IDs
     professors = serializers.ListField(
@@ -19,8 +19,15 @@ class ProgramSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Program
-        fields = ['name', 'code', 'is_active']
+        fields = ['id','name', 'code', 'is_active', 'professor_names', 'professors']
         read_only_fields = ['deleted_at', 'updated_at']
+
+    def to_representation(self, instance):
+        for field in self.fields:
+            value = getattr(instance, field, None)
+            print(f"Field: {field}, Value: {value}")  # Debugging the field value
+        return super().to_representation(instance)
+
 
     # Overriding create to bulk-create intermediate relationships in the ProgramProfessor table
     def create(self, validated_data):
