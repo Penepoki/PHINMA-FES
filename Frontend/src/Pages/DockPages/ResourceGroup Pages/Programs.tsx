@@ -21,7 +21,7 @@ interface Program {
 
 function Programs({ setActiveView }: ProgramProps) {
 	const [programs, setPrograms] = useState<Program[]>([]);
-	const [programProfessors, setProgramProfessors] = useState<any[]>([]);
+	const [programProfessors, setProgramProfessors] = useState<ProgramProfessor[]>([]);
 	const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");

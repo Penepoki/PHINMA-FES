@@ -20,20 +20,20 @@ class CustomEvaluation(models.Manager):
     def get_query_evaluation(self):
         return self.values("evaluator", "schedule", "observation_date", "evaluation_type", "additional_comments", "instructor_comments", "student_comments", "student_activities", "instructor_activities", "created_at", "updated_at", "deleted_at")
 
-#SCHEDULE(ROOMS, COURSE, SUBJECT, FACULTY ASSIGNMENTS) CUSTOM MANAGER
+#SCHEDULE(ROOMS, PROGRAM, SUBJECT, FACULTY ASSIGNMENTS) CUSTOM MANAGER
 class CustomScheduleManager(models.Manager):
     """Returns schedule with selected fields"""
     def get_query_schedule(self):
-        return self.values("course", "subject", "room", "name", "start_time", "end_time", "semester", "year", "is_active", "deleted_at", "created_at", "updated_at")
+        return self.values("program", "subject", "room", "name", "start_time", "end_time", "semester", "year", "is_active", "deleted_at", "created_at", "updated_at")
 
 class CustomSubjectManager(models.Manager):
     """Returns subject with selected fields"""
     def get_query_subject(self):
         return self.values("name", "slug", "is_active", "deleted_at", "created_at", "updated_at")
 
-class CustomCourseManager(models.Manager):
-    """Returns course with selected fields"""
-    def get_query_course(self):
+class CustomProgramManager(models.Manager):
+    """Returns program with selected fields"""
+    def get_query_program(self):
         return self.values("name", "slug", "code" ,"is_active", "deleted_at", "created_at", "updated_at")
 
 class CustomRoomManager(models.Manager):
@@ -47,12 +47,12 @@ class CustomFacultyAssingment(models.Manager):
         return self.values("user", "schedule", "created_at", "updated_at", "deleted_at")
 
 
-class ActiveCourseProfessorManager(models.Manager):
+class ActiveProgramProfessorManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(course__is_active=True, professor__is_deleted=False)
+        return super().get_queryset().filter(program__is_active=True, professor__is_deleted=False)
 
 
-class CustomCourseProfessorManager(models.Manager):
-    """Returns course professor with selected fields"""
+class CustomProgramProfessorManager(models.Manager):
+    """Returns program professor with selected fields"""
     def get_queryset(self):
-        return self.values("professor", "course", "assigned_at")
+        return self.values("professor", "program", "assigned_at")

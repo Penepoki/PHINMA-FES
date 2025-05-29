@@ -4,8 +4,8 @@ from hrapp.utils import get_full_name
 
 
 
-# USER SERIALIZER SPECIFICALLY FOR COURSEPROFESSOR TABLE THAT GETS NECESSARY DETAILS NEEDED
-class UserCourseProfessorSerializer(serializers.ModelSerializer):
+# USER SERIALIZER SPECIFICALLY FOR PROGRAMPROFESSOR TABLE THAT GETS NECESSARY DETAILS NEEDED
+class UserProgramProfessorSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['last_name', 'first_name', 'full_name']

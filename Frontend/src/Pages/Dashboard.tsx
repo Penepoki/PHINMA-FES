@@ -16,7 +16,7 @@ import CreateStudentEvaluation from "./DockPages/EvaluationView Pages/CreateStud
 import StudentEvaluation from "./DockPages/EvaluationView Pages/StudentEvaluationView";
 import EvaluationSummary from "./DockPages/EvaluationView Pages/EvaluationSummaryView";
 
-import Courses from "./DockPages/ResourceGroup Pages/Courses";
+import Programs from "./DockPages/ResourceGroup Pages/Programs";
 import Rooms from "./DockPages/ResourceGroup Pages/Rooms";
 import Schedules from "./DockPages/ResourceGroup Pages/Schedules";
 import Subject from "./DockPages/ResourceGroup Pages/Subject";
@@ -50,7 +50,7 @@ function Dashboard({ role }: { role: string }) {
 		evalSummary: <EvaluationSummary setActiveView={setActiveView} />,
 		// Resource Group sub-components
 		resourceGroup: <ResourceGroup setActiveView={setActiveView} />,
-		courses: <Courses setActiveView={setActiveView} />,
+		programs: <Programs setActiveView={setActiveView} />,
 		rooms: <Rooms setActiveView={setActiveView} />,
 		schedules: <Schedules setActiveView={setActiveView} />,
 		subject: <Subject setActiveView={setActiveView} />,
@@ -64,7 +64,7 @@ function Dashboard({ role }: { role: string }) {
 		"createStudentEval",
 		"studentEval",
 		"evalSummary",
-		"courses",
+		"programs",
 		"rooms",
 		"schedules",
 		"subject",

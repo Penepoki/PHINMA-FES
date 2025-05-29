@@ -1,8 +1,10 @@
 from django.db.models import Q
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
+from tensorboard import program
+
 from hrapp.models.schedules_models import *
-from .user_serializer import UserCourseProfessorSerializer
+from .user_serializer import UserProgramProfessorSerializer
 
 
 
@@ -32,38 +34,38 @@ class ProgramSerializer(serializers.ModelSerializer):
     # Overriding create to bulk-create intermediate relationships in the ProgramProfessor table
     def create(self, validated_data):
         professors = validated_data.pop('professors', [])  # Extract professor IDs
-        course = super().create(validated_data)  # Create the Course object
+        program = super().create(validated_data)  # Create the Program object
 
         # Create relationships in the ProgramProfessor table
-        course_professor_instances = [
-            ProgramProfessor(course=course, professor_id=professor_id)
+        prgoram_professor_instances = [
+            ProgramProfessor(program=program, professor_id=professor_id)
             for professor_id in professors
         ]
-        ProgramProfessor.objects.bulk_create(course_professor_instances)
-        return course
+        ProgramProfessor.objects.bulk_create(prgoram_professor_instances)
+        return program
 
     # Overriding update to handle changes to professor relationships
     def update(self, instance, validated_data):
         professors = validated_data.pop('professors', None)  # Extract professor IDs
-        course = super().update(instance, validated_data)  # Update the Course object
+        program = super().update(instance, validated_data)  # Update the Program object
 
         if professors is not None:
-            # Remove existing relationships in the ProgramProfessor table for this course
-            ProgramProfessor.objects.filter(course=course).delete()
+            # Remove existing relationships in the ProgramProfessor table for this program
+            ProgramProfessor.objects.filter(program=program).delete()
             # Create new relationships
-            course_professor_instances = [
-                ProgramProfessor(course=course, professor_id=professor_id)
+            program_professor_instances = [
+                ProgramProfessor(program=program, professor_id=professor_id)
                 for professor_id in professors
             ]
-            ProgramProfessor.objects.bulk_create(course_professor_instances)
+            ProgramProfessor.objects.bulk_create(program_professor_instances)
         return Program
 
     # Adding a read-only field to return professor names
     def get_professor_names(self, obj):
-        # Fetch related professors for the course
+        # Fetch related professors for the program
         program_professors = ProgramProfessor.objects.filter(program=obj).select_related('professor')
         # Extract professor names and return
-        return [course_prof.professor.full_name for course_prof in program_professors]
+        return [program_prof.professor.full_name for program_prof in program_professors]
 
     # Validation for professor IDs
     def validate_professors(self, value):
@@ -91,11 +93,11 @@ class ProgramSerializer(serializers.ModelSerializer):
         return value
 
 class ProgramProfessorSerializer(serializers.ModelSerializer):
-    professor = UserCourseProfessorSerializer()
+    professor = UserProgramProfessorSerializer()
 
     class Meta:
         model = ProgramProfessor
-        fields = ['id','program', 'professor', 'assigned_at']
+        fields = ['id','program', 'professor', 'assigned_at', 'name']
         read_only_fields = ['assigned_at']
 
     def get_professors(self, obj):
@@ -103,7 +105,7 @@ class ProgramProfessorSerializer(serializers.ModelSerializer):
             "id": obj.professors.id,
             "name": f"{obj.professors.first_name} {obj.professors.last_name}".strip(),
         }
-# END OF COURSE SERIAL
+# END OF PROGRAM SERIAL
 
 # SUBJECT SERIALIZER
 class SubjectSerializer(serializers.ModelSerializer):
