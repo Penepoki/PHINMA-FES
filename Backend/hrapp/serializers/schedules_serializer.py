@@ -93,12 +93,13 @@ class ProgramSerializer(serializers.ModelSerializer):
         return value
 
 class ProgramProfessorSerializer(serializers.ModelSerializer):
-    professor = UserProgramProfessorSerializer()
+    professor_details = UserProgramProfessorSerializer(source='professor',
+                                                       read_only=True)  # Uses the professor user serializer
 
     class Meta:
         model = ProgramProfessor
-        fields = ['id','program', 'professor', 'assigned_at', 'name']
-        read_only_fields = ['assigned_at']
+        fields = ['program', 'professor', 'professor_details', 'assigned_at']  # Expose `professor_details`
+
 
     def get_professors(self, obj):
         return {

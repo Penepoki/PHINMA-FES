@@ -155,7 +155,13 @@ function Programs({ setActiveView }: ProgramProps) {
 		type ProgramProfessor = {
 		program: number; // Program ID
 		professor: number; // Professor ID
+		professor_details?: {
+			first_name: string;
+			last_name: string;
+			full_name: string;
+		};
 		assigned_at: string; // Example additional data
+
 		};
 
 		const programProfessorColumns: Column<ProgramProfessor>[] = [
@@ -497,38 +503,32 @@ function Programs({ setActiveView }: ProgramProps) {
 				)}
 			/>
 
-			{/* Modal for displaying additional program details */}
-			<dialog id="program_details_modal" className="modal">
-				<div className="modal-box">
-					{selectedProgram && (
-						<>
-							<h3 className="text-lg font-bold">{selectedProgram.name}</h3>
-							<table className="table">
+					<dialog id="program_details_modal" className="modal">
+						<div>
+							<h3>{selectedProgram?.name}</h3>
+							<table>
 								<thead>
 									<tr>
 										<th>Program ID</th>
-										<th>Professor ID</th>
+										<th>Professor Name</th>
 										<th>Assigned Date</th>
 									</tr>
 								</thead>
 								<tbody>
 									{programProfessors
-										.filter((relationship) => relationship.program === selectedProgram.id)
-										.map((relationship) => (
-											<tr key={relationship.program + relationship.professor}>
-												<td>{relationship.program}</td>
-												<td>{relationship.professor}</td>
-												<td>{new Date(relationship.assigned_at).toLocaleDateString()}</td>
+										.filter((rel) => rel.program === selectedProgram?.id)
+										.map((rel) => (
+											<tr key={`${rel.program}-${rel.professor}`}>
+												<td>{rel.program}</td>
+												<td>{rel.professor_details?.full_name || "Unknown"}</td>
+												<td>{new Date(rel.assigned_at).toLocaleDateString()}</td>
 											</tr>
 										))}
 								</tbody>
 							</table>
-						</>
-					)}
+						</div>
+					</dialog>
 				</div>
-			</dialog>;
-		</div>
-	);
-}
-
+			);
+		};
 export default Programs;
