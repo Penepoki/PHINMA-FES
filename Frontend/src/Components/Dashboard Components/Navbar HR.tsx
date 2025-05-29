@@ -50,11 +50,11 @@ const NavbarHR: React.FC<NavbarProps> = ({
 		createStudentEval: ["createStudentEval", "studentEval", "evalSummary"],
 		studentEval: ["createStudentEval", "studentEval", "evalSummary"],
 		evalSummary: ["createStudentEval", "studentEval", "evalSummary"],
-		resourceGroup: ["courses", "subject", "rooms", "schedules"],
-		courses: ["courses", "subject", "rooms", "schedules"],
-		subject: ["courses", "subject", "rooms", "schedules"],
-		rooms: ["courses", "subject", "rooms", "schedules"],
-		schedules: ["courses", "subject", "rooms", "schedules"],
+		resourceGroup: ["programs", "subjects", "rooms", "schedules"],
+		programs: ["programs", "subjects", "rooms", "schedules"],
+		subjects: ["programs", "subjects", "rooms", "schedules"],
+		rooms: ["programs", "subjects", "rooms", "schedules"],
+		schedules: ["programs", "subjects", "rooms", "schedules"],
 	};
 
 	const secondaryDockVisible = Boolean(secondaryDockMap[activeView]);
@@ -157,9 +157,9 @@ const NavbarHR: React.FC<NavbarProps> = ({
 												return "Student Evaluations";
 											case "evalSummary":
 												return "Evaluation Summary";
-											case "courses":
-												return "Courses";
-											case "subject":
+											case "programs":
+												return "Programs";
+											case "subjects":
 												return "Subjects";
 											case "rooms":
 												return "Rooms";

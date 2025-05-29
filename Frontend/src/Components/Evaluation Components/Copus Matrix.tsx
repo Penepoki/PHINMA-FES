@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api from "/src/utils/api.ts";
+import api from "../../utils/api";
 type ToggleBoxProps = {
 	label: string;
 	active: boolean;

@@ -12,8 +12,8 @@ django-simple-history = "*"
 django-jazzmin = "*"
 django-decouple = "*"
 python-decouple = "*"
-pandas = "*"
 django-filter = "*"
+pandas = "*"
 
 [dev-packages]
 

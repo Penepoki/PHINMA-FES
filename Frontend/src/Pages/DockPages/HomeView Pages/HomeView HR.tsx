@@ -3,44 +3,59 @@ import DashboardHeader from "../../../Components/Dashboard Components/Dashboard 
 import SchoolCards from "../../../Components/Dashboard Components/HR Components/School Cards";
 import CollegeCards from "../../../Components/Dashboard Components/HR Components/College Cards";
 
-const schools = [
-	{ name: "SJC MANILA", image: null },
-	{ name: "SJC QC", image: null },
-	{ name: "SJC AURORA", image: null },
-	{ name: "UPANG", image: null },
-	{ name: "UI", image: null },
-	{ name: "SWU", image: null },
-	{ name: "UCDO", image: null },
-	{ name: "UCDO", image: null },
-];
-
-const colleges = [
-	{
-		name: "CITE",
-		fullname: "College of Information Technology Education",
-		image: null,
-	},
-	{
-		name: "CAHS",
-		fullname: "College of Allied Health Sciences",
-		image: null,
-	},
-	{
-		name: "CMA",
-		fullname: "College of Management and Accountancy",
-		image: null,
-	},
-	{
-		name: "CCJE",
-		fullname: "College of Criminal Justice Education",
-		image: null,
-	},
-	{ name: "COED", fullname: "College of Education", image: null },
-	{ name: "SHS", fullname: "Senior High School", image: null },
-	{ name: "etc", fullname: "Other", image: null },
-];
-
 function Home() {
+	const colleges = [
+		{
+			name: "CITE",
+			fullname: "College of Information Technology Education",
+			image: null,
+		},
+		{
+			name: "CAHS",
+			fullname: "College of Allied Health Sciences",
+			image: null,
+		},
+		{
+			name: "CMA",
+			fullname: "College of Management and Accountancy",
+			image: null,
+		},
+		{
+			name: "CCJE",
+			fullname: "College of Criminal Justice Education",
+			image: null,
+		},
+		{ name: "COED", fullname: "College of Education", image: null },
+		{ name: "SHS", fullname: "Senior High School", image: null },
+		{ name: "etc", fullname: "Other", image: null },
+	];
+
+	const schools = [
+		{
+			name: "CITE",
+			fullname: "College of Information Technology Education",
+			image: null,
+		},
+		{
+			name: "CAHS",
+			fullname: "College of Allied Health Sciences",
+			image: null,
+		},
+		{
+			name: "CMA",
+			fullname: "College of Management and Accountancy",
+			image: null,
+		},
+		{
+			name: "CCJE",
+			fullname: "College of Criminal Justice Education",
+			image: null,
+		},
+		{ name: "COED", fullname: "College of Education", image: null },
+		{ name: "SHS", fullname: "Senior High School", image: null },
+		{ name: "etc", fullname: "Other", image: null },
+	];
+
 	const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
 
 	const handleSchoolClick = (schoolName: string) => {
