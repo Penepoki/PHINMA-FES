@@ -19,7 +19,7 @@ import EvaluationSummary from "./DockPages/EvaluationView Pages/EvaluationSummar
 import Programs from "./DockPages/ResourceGroup Pages/Programs";
 import Rooms from "./DockPages/ResourceGroup Pages/Rooms";
 import Schedules from "./DockPages/ResourceGroup Pages/Schedules";
-import Subject from "./DockPages/ResourceGroup Pages/Subject";
+import Subject from "./DockPages/ResourceGroup Pages/Subjects";
 import LeanSixSigma from "./DockPages/Lean Six Sigma";
 
 function Dashboard({ role }: { role: string }) {
@@ -53,7 +53,7 @@ function Dashboard({ role }: { role: string }) {
 		programs: <Programs setActiveView={setActiveView} />,
 		rooms: <Rooms setActiveView={setActiveView} />,
 		schedules: <Schedules setActiveView={setActiveView} />,
-		subject: <Subject setActiveView={setActiveView} />,
+		subjects: <Subject setActiveView={setActiveView} />,
 		//Lean Six Sigma
 		leansixsigma: <LeanSixSigma setActiveView={setActiveView} />,
 	};
@@ -67,7 +67,7 @@ function Dashboard({ role }: { role: string }) {
 		"programs",
 		"rooms",
 		"schedules",
-		"subject",
+		"subjects",
 	];
 
 	const isExpandedDock = expandedViews.includes(activeView);
