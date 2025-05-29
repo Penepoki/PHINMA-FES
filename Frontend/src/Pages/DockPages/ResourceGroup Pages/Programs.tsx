@@ -21,61 +21,67 @@ interface Program {
 
 function Programs({ setActiveView }: ProgramProps) {
 	const [programs, setPrograms] = useState<Program[]>([]);
-	const [programProfessors, setProgramProfessors] = useState<ProgramProfessor[]>([]);
-	const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+	const [programProfessors, setProgramProfessors] = useState<
+		ProgramProfessor[]
+	>([]);
+	const [selectedProgram, setSelectedProgram] = useState<Program | null>(
+		null,
+	);
 	const [loading, setLoading] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [newProgramName, setNewProgramName] = useState("");
 
-
 	// Code below adds junc table progprof
 	const fetchProgramsandProgramProfessors = async () => {
-			setLoading(true);
-			try {
-				//Step 1: Fetch programs
-				const programResponse = await api.get("/program/programs", {
-					params: { name: searchTerm || undefined },
-				});
-				console.log("Fetched programs:", programResponse.data);
-				setPrograms(programResponse.data);
+		setLoading(true);
+		try {
+			//Step 1: Fetch programs
+			const programResponse = await api.get("/program/programs", {
+				params: { name: searchTerm || undefined },
+			});
+			console.log("Fetched programs:", programResponse.data);
+			setPrograms(programResponse.data);
 
-				// Fetch ProgramProfessor relationships
-				const professorResponse = await api.get("/program-professor/program-professors/");
-				setProgramProfessors(professorResponse.data);
-			} catch (error) {
-					console.error("Error fetching data:", error);
-				} finally {
-						setLoading(false);
-				}
+			// Fetch ProgramProfessor relationships
+			const professorResponse = await api.get(
+				"/program-professor/program-professors/",
+			);
+			setProgramProfessors(professorResponse.data);
+		} catch (error) {
+			console.error("Error fetching data:", error);
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	const handleRowClick = (program: Program) => {
 		setSelectedProgram(program);
-		const modal = document.getElementById("program_details_modal") as HTMLDialogElement;
+		const modal = document.getElementById(
+			"program_details_modal",
+		) as HTMLDialogElement;
 		modal?.showModal();
 	};
 
-
 	const createProgram = async () => {
-		if (!newProgramName.trim()) return
+		if (!newProgramName.trim()) return;
 		alert("Pleae enter a prgoram name");
-		const token = localStorage.getItem('token');
+		const token = localStorage.getItem("token");
 		if (!token) return alert("You are not authenticated. Please login.");
 
-			try {
-				await api.post(
-					"/program/programs/",
-					{name: newProgramName},
-					{
-						headers: {Authorization: 'Bearer ${token}'},
-					},
-				);
-				setNewProgramName("");
-				// After creation, fetch programs again
-				fetchProgramsandProgramProfessors();
-			} catch (error) {
-				console.error("Error creating program:", error);
-			}
+		try {
+			await api.post(
+				"/program/programs/",
+				{ name: newProgramName },
+				{
+					headers: { Authorization: "Bearer ${token}" },
+				},
+			);
+			setNewProgramName("");
+			// After creation, fetch programs again
+			fetchProgramsandProgramProfessors();
+		} catch (error) {
+			console.error("Error creating program:", error);
+		}
 	};
 
 	const toggleProgramStatus = async (program: Program) => {
@@ -84,11 +90,12 @@ function Programs({ setActiveView }: ProgramProps) {
 			return;
 		}
 		try {
-			await api.patch(`/program/programs/${program.id}/`,
-				{
-					is_active: !program.is_active ? "Active" : "Inactive"
-				});
-			alert(`Program status updated to ${!program.is_active ? "Active" : "Inactive"}`);
+			await api.patch(`/program/programs/${program.id}/`, {
+				is_active: !program.is_active ? "Active" : "Inactive",
+			});
+			alert(
+				`Program status updated to ${!program.is_active ? "Active" : "Inactive"}`,
+			);
 		} catch (error: any) {
 			alert("Failed to update the program status. Please try again.");
 		}
@@ -103,16 +110,80 @@ function Programs({ setActiveView }: ProgramProps) {
 		}
 	};
 	// Actions column render function
-	/*const programActions = (program: Program) => (
+	const programActions = (program: Program) => (
 		<div className="flex flex-col items-start gap-2">
 			<button
-				title="Edit"
-				onClick={() => alert("Edit feature not implemented yet")}
+				title="View"
+				onClick={() => handleRowClick(program)}
 				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
 			>
 				<PencilSquareIcon className="h-4 w-4" />
-				Edit
+				View
 			</button>
+			<dialog id="program_details_modal" className="modal">
+				<div className="modal-box w-11/12 max-w-3xl">
+					<div>
+						<h3 className="mb-4 text-center text-2xl font-bold text-black">
+							{selectedProgram?.name}
+						</h3>
+						<table className="w-full overflow-y-auto">
+							<thead className="text-lg font-semibold text-black">
+								<tr>
+									<th className="hidden">Program ID</th>
+									<th>Professor Name</th>
+									<th>Assigned Date</th>
+								</tr>
+							</thead>
+							<tbody className="text-md text-gray-600">
+								{programProfessors
+									.filter(
+										(rel) =>
+											rel.program === selectedProgram?.id,
+									)
+									.map((rel) => (
+										<tr
+											key={`${rel.program}-${rel.professor}`}
+										>
+											<td className="hidden">
+												{rel.program}
+											</td>
+											<td>
+												{rel.professor_details
+													?.full_name || "Unknown"}
+											</td>
+											<td>
+												{new Date(
+													rel.assigned_at,
+												).toLocaleDateString()}
+											</td>
+										</tr>
+									))}
+							</tbody>
+						</table>
+						<div className="modal-action">
+							<button
+								type="submit"
+								className="btn btn-success text-white"
+							>
+								Done
+							</button>
+							<button
+								type="button"
+								className="btn btn-cancel"
+								onClick={() =>
+									(
+										document.getElementById(
+											"program_details_modal",
+										) as HTMLDialogElement
+									)?.close()
+								}
+							>
+								Cancel
+							</button>
+						</div>
+					</div>
+				</div>
+			</dialog>
 			<button
 				title="Delete"
 				onClick={() => {
@@ -125,7 +196,7 @@ function Programs({ setActiveView }: ProgramProps) {
 				Delete
 			</button>
 		</div>
-	);*/
+	);
 
 	useEffect(() => {
 		fetchProgramsandProgramProfessors();
@@ -134,25 +205,24 @@ function Programs({ setActiveView }: ProgramProps) {
 
 	// Define columns with proper accessors
 	const programColumns: Column<Program>[] = [
-			{
-				header: "Name",
-				accessor: "name",
-			},
-			{
-				header: "Status",
-				accessor: (program: Program) => (
-					<input
-						onClick={() => toggleProgramStatus(program)} // Ensure program is correctly passed
-						className="toggle"
-						type="checkbox"
-						checked={program.is_active}
-					/>
-				),
-			},
+		{
+			header: "Name",
+			accessor: "name",
+		},
+		{
+			header: "Status",
+			accessor: (program: Program) => (
+				<input
+					onClick={() => toggleProgramStatus(program)} // Ensure program is correctly passed
+					className="toggle"
+					type="checkbox"
+					checked={program.is_active}
+				/>
+			),
+		},
 	];
 
-
-		type ProgramProfessor = {
+	type ProgramProfessor = {
 		program: number; // Program ID
 		professor: number; // Professor ID
 		professor_details?: {
@@ -161,19 +231,18 @@ function Programs({ setActiveView }: ProgramProps) {
 			full_name: string;
 		};
 		assigned_at: string; // Example additional data
+	};
 
-		};
-
-		const programProfessorColumns: Column<ProgramProfessor>[] = [
-			{
-				header: "Program ID",
-				accessor: "program", // Use "program" directly as it's part of ProgramProfessor
-			},
-			{
-				header: "Professor ID",
-				accessor: "professor", // Use "professor" directly as it's part of ProgramProfessor
-			},
-		];
+	const programProfessorColumns: Column<ProgramProfessor>[] = [
+		{
+			header: "Program ID",
+			accessor: "program", // Use "program" directly as it's part of ProgramProfessor
+		},
+		{
+			header: "Professor ID",
+			accessor: "professor", // Use "professor" directly as it's part of ProgramProfessor
+		},
+	];
 
 	return (
 		<div className="custom-container gap-y-6">
@@ -496,39 +565,9 @@ function Programs({ setActiveView }: ProgramProps) {
 				data={programs}
 				columns={programColumns}
 				getRowKey={(program) => program.id}
-				actions={(program) => (
-					<button onClick={() => handleRowClick(program)} className="btn btn-info text-white">
-						View Details
-					</button>
-				)}
+				actions={programActions}
 			/>
-
-					<dialog id="program_details_modal" className="modal">
-						<div>
-							<h3>{selectedProgram?.name}</h3>
-							<table>
-								<thead>
-									<tr>
-										<th>Program ID</th>
-										<th>Professor Name</th>
-										<th>Assigned Date</th>
-									</tr>
-								</thead>
-								<tbody>
-									{programProfessors
-										.filter((rel) => rel.program === selectedProgram?.id)
-										.map((rel) => (
-											<tr key={`${rel.program}-${rel.professor}`}>
-												<td>{rel.program}</td>
-												<td>{rel.professor_details?.full_name || "Unknown"}</td>
-												<td>{new Date(rel.assigned_at).toLocaleDateString()}</td>
-											</tr>
-										))}
-								</tbody>
-							</table>
-						</div>
-					</dialog>
-				</div>
-			);
-		};
+		</div>
+	);
+}
 export default Programs;
