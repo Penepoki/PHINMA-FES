@@ -46,7 +46,7 @@ function DataTable<T>({
 					{data.map((item) => (
 						<tr
 							key={getRowKey(item)}
-							className="transition-colors duration-500 hover:bg-[#1b2e3e]/50"
+							className="transition-colors duration-500 hover:bg-[#1b2e3e]"
 						>
 							{selectable && (
 								<td>

@@ -120,9 +120,7 @@ function Dashboard({ role }: { role: string }) {
 								: "h-0"
 						} overflow-hidden`}
 					>
-						{role === "Dean" ||
-						role === "HR" ||
-						role === "Program Head" ? (
+						{role === "Dean" || role === "Program Head" ? (
 							<NavbarHR
 								activeView={activeView}
 								setActiveView={setActiveView}
