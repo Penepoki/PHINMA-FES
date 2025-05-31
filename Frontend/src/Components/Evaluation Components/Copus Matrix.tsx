@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../../utils/api";
+import { motion } from "framer-motion";
+
 type ToggleBoxProps = {
 	label: string;
 	active: boolean;
@@ -7,20 +9,26 @@ type ToggleBoxProps = {
 };
 
 function ToggleBox({ label, active, onToggle }: ToggleBoxProps) {
-	const delay = (Math.random() * 2).toFixed(2);
 	return (
-		<button
-			className={`float-breathe min-w-[140px] rounded-xl px-6 py-3 text-center text-base transition-colors hover:scale-105 hover:bg-gray-300 ${
+		<motion.button
+			className={`min-w-[140px] rounded-xl px-6 py-3 text-center text-base transition-colors hover:scale-105 hover:bg-gray-300 ${
 				active ? "bg-[#1c402a] text-white" : "bg-gray-200 text-black"
 			}`}
 			onClick={() => onToggle(label)}
-			style={{
-				// animationDuration: `${duration}s`,
-				animationDelay: `${delay}s`,
+			animate={{
+				y: [3, -1, 3],
+				x: [-5, 3, -5],
+				scale: [1, 1.01, 1],
+			}}
+			transition={{
+				duration: 7,
+				repeat: Infinity,
+				repeatType: "loop",
+				ease: [0.42, 0, 0.58, 1],
 			}}
 		>
 			{label}
-		</button>
+		</motion.button>
 	);
 }
 
@@ -43,6 +51,9 @@ const CopusMatrix = () => {
 	const [elapsedTime, setElapsedTime] = useState<string>("00");
 	const [isTimerStarted, setIsTimerStarted] = useState(false);
 	const [evaluationId, setEvaluationId] = useState<number | null>(null);
+	const [activeMinute, setActiveMinute] = useState<number>(0);
+	const [countdown, setCountdown] = useState<number>(120); // 2 minutes = 120 seconds
+
 	// Start timer function
 	const startTimer = async () => {
 		if (!isTimerStarted) {
@@ -158,6 +169,28 @@ const CopusMatrix = () => {
 		).length;
 	};
 
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setCountdown((prev) => {
+				if (prev === 1) {
+					// When countdown hits 0, move to next box
+					setActiveMinute((prevMinute) => {
+						if (prevMinute < MAX_MINUTE - 1) {
+							return prevMinute + 1;
+						} else {
+							clearInterval(interval); // Stop timer if last minute reached
+							return prevMinute;
+						}
+					});
+					return 120; // Reset countdown
+				}
+				return prev - 1;
+			});
+		}, 1000); // tick every second
+
+		return () => clearInterval(interval); // cleanup on unmount
+	}, []);
+
 	const calculateTallies = () => {
 		const newStudentTallies: { [key: string]: number } = {};
 		const newTeacherTallies: { [key: string]: number } = {};
@@ -267,6 +300,15 @@ const CopusMatrix = () => {
 	const hasStudentAndTeacherSelected =
 		currentStudent !== null && currentTeacher !== null;
 
+	useEffect(() => {
+		console.log("Active minute is now:", activeMinute);
+	}, [activeMinute]);
+
+	useEffect(() => {
+		// Sync the minute shown with the active minute
+		setMinute(activeMinute + 2); // activeMinute is 0-based, minute is 2-based
+	}, [activeMinute]);
+
 	return (
 		<div className="mb-4 rounded-lg border border-gray-300 p-4">
 			{" "}
@@ -315,6 +357,10 @@ const CopusMatrix = () => {
 						</button>
 					</div>
 					{/* Minute Boxes */}
+					<p>
+						Next minute in: {Math.floor(countdown / 60)}:
+						{String(countdown % 60).padStart(2, "0")}
+					</p>
 					<div className="grid grid-cols-5 gap-2 md:grid-cols-15">
 						{minuteBoxes.map((m) => {
 							const selections = selectionsByMinute[m];

@@ -136,7 +136,7 @@ function Programs({ setActiveView }: ProgramProps) {
 									<th>Assigned Date</th>
 								</tr>
 							</thead>
-							<tbody className="text-md text-gray-600">
+							<tbody className="text-lg text-gray-600">
 								{programProfessors
 									.filter(
 										(rel) =>
