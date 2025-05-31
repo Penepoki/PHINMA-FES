@@ -1,6 +1,7 @@
 from django.db.models import Q
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
+from tensorboard import program
 
 from hrapp.models.schedules_models import *
 from .user_serializer import UserProgramProfessorSerializer
@@ -64,7 +65,9 @@ class ProgramSerializer(serializers.ModelSerializer):
         # Fetch related professors for the program
         program_professors = ProgramProfessor.objects.filter(program=obj).select_related('professor')
         # Extract professor names and return
-        return [program_prof.professor.full_name for program_prof in program_professors]
+        if hasattr(obj, 'professors'):
+            return [f"{prof.first_name}{prof.last_name}" for prof in obj.professors.all()]
+        return []
 
     # Validation for professor IDs
     def validate_professors(self, value):

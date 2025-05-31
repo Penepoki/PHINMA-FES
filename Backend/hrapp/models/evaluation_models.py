@@ -6,34 +6,42 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 
-# Evaluations
-class Evaluation(models.Model):
+class Timestamp(models.Model):
     STUDENT_ACTIVITY_CHOICES = [
-        ("listening","Listening"),
-        ("individual_thinking","Individual Thinking"),
-        ("group","Group"),
-        ("answer_question","Answer Question"),
-        ("ask_question","Ask Question"),
-        ("whole_class_discussion","Whole Class Discussion"),
-        ("student_presentations","Student Presentations"),
-        ("test/quiz","Test/Quiz"),
-        ("waiting","Waiting"),
-        ("other","Other"),
+        ("listening", "Listening"),
+        ("individual_thinking", "Individual Thinking"),
+        ("group", "Group"),
+        ("answer_question", "Answer Question"),
+        ("ask_question", "Ask Question"),
+        ("whole_class_discussion", "Whole Class Discussion"),
+        ("student_presentations", "Student Presentations"),
+        ("test/quiz", "Test/Quiz"),
+        ("waiting", "Waiting"),
+        ("other", "Other"),
     ]
 
     INSTRUCTOR_ACTIVITY_CHOICES = [
-        ("lecture","Lecture"),
-        ("realtime_writing","Realtime Writing"),
-        ("moving/guiding","Moving/Guiding"),
-        ("answer_questions","Answer Questions"),
-        ("pose_question","Pose Question"),
-        ("follow_up_question","Follow-up Question"),
-        ("1_on_1_discussion","1-on-1 discussion"),
-        ("demonstrative","Demonstrate/Video"),
-        ("administrative","Administrative"),
-        ("waiting","Waiting"),
-        ("other","Other"),
+        ("lecture", "Lecture"),
+        ("realtime_writing", "Realtime Writing"),
+        ("moving/guiding", "Moving/Guiding"),
+        ("answer_questions", "Answer Questions"),
+        ("pose_question", "Pose Question"),
+        ("follow_up_question", "Follow-up Question"),
+        ("1_on_1_discussion", "1-on-1 discussion"),
+        ("demonstrative", "Demonstrate/Video"),
+        ("administrative", "Administrative"),
+        ("waiting", "Waiting"),
+        ("other", "Other"),
     ]
+    evaluation = models.ForeignKey("Evaluation", on_delete=models.CASCADE, related_name="timestamps")
+
+    student_activities = models.JSONField(default=list, blank=True, null=True)
+    instructor_activities = models.JSONField(default=list, blank=True, null=True)
+    student_comments = models.JSONField(default=dict, blank=True, null=True)
+    instructor_comments = models.JSONField(default=dict, blank=True, null=True)
+
+# Evaluations
+class Evaluation(models.Model):
 
     COPUS_TYPE_CHOICES = [
         ("copus_1", "COPUS 1" ),
@@ -46,10 +54,7 @@ class Evaluation(models.Model):
     observation_date = models.DateField()
     evaluation_type = models.CharField(default=list,max_length=20)
     additional_comments = models.TextField(blank=True, null=True)
-    student_comments = models.JSONField(default=dict, blank=True, null=True)
-    instructor_comments = models.JSONField(default=dict, blank=True, null=True)
-    student_activities = models.JSONField(default=list, blank=True, null=True)
-    instructor_activities = models.JSONField(default=list, blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)

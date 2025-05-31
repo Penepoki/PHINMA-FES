@@ -195,7 +195,6 @@ class SubjectViewSet(viewsets.ModelViewSet):
     filterset_class = SubjectFilter
 #SUBJECT CREATE
     @transaction.atomic
-    @role_required(allowed_roles=["HR", "Dean", "Program Head"])
     def create(self, request, *args, **kwargs):
         data = request.data
 
@@ -510,8 +509,6 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 #SCHEDULE Create
     @login_required
     @permission_classes([IsAuthenticated])
-    @role_required(allowed_roles=["Dean", "HR", "Program Head"],
-                   required_permission="add_schedule")
     def create(self, request, *args, **kwargs):
         user = request.user
 

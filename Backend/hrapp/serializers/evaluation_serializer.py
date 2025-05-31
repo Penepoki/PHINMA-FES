@@ -3,6 +3,9 @@ from rest_framework import serializers
 from .schedules_serializer import ScheduleSerializer
 
 
+class TimestampSerializer(serializers.Serializer):
+    evaluation = serializers.
+
 class EvaluationSerializer(serializers.ModelSerializer):
 
     schedule = ScheduleSerializer()

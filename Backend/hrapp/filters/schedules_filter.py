@@ -30,7 +30,7 @@ class ProgramFilter(filters.FilterSet):
 
     class Meta:
         model = Program
-        fields = ['name', 'is_active']
+        fields = ['id','name', 'is_active']
 
 class ScheduleFilter(filters.FilterSet):
     name = filters.CharFilter(lookup_expr='icontains')

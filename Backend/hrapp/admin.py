@@ -39,7 +39,9 @@ class CustomUserAdmin(UserAdmin):
 
 admin.site.register(User, CustomUserAdmin)
 
-
+@admin.register(Timestamp)
+class TimestampAdmin(admin.ModelAdmin):
+    list_display = ('student_activities', 'student_comments', 'instructor_activities', 'instructor_comments')
 
 @admin.register(StudentEvaluation)
 class StudentEvaluationAdmin(admin.ModelAdmin):
@@ -60,7 +62,7 @@ class EvaluationInstructorInLine(admin.TabularInline):
 @admin.register(Evaluation)
 class EvaluationAdmin(admin.ModelAdmin):
     list_filter = ["is_deleted"]
-    list_display = ("schedule", "observation_date", "evaluation_type", "additional_comments", "instructor_comments", "student_comments", "student_activities", "instructor_activities",
+    list_display = ("schedule", "observation_date", "evaluation_type", "additional_comments",
                                 "is_deleted", "deleted_at")
     #inlines = [EvaluationInstructorInLine, EvaluationEvaluatorInLine]
 

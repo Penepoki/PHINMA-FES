@@ -64,7 +64,7 @@ function Programs({ setActiveView }: ProgramProps) {
 
 	const createProgram = async () => {
 		if (!newProgramName.trim()) return;
-		alert("Pleae enter a prgoram name");
+		alert("Successfully created program:");
 		const token = localStorage.getItem("token");
 		if (!token) return alert("You are not authenticated. Please login.");
 
@@ -89,17 +89,19 @@ function Programs({ setActiveView }: ProgramProps) {
 			alert("Program ID is missing!");
 			return;
 		}
+
 		try {
+			// Toggle the is_active state and send it with the request
 			await api.patch(`/program/programs/${program.id}/`, {
-				is_active: !program.is_active ? "Active" : "Inactive",
+				is_active: !program.is_active, // Send the toggled state
 			});
-			alert(
-				`Program status updated to ${!program.is_active ? "Active" : "Inactive"}`,
-			);
+			alert(`Program status updated to ${!program.is_active ? "Active" : "Inactive"}`);
 		} catch (error: any) {
+			console.error("Error updating program status:", error.response?.data || error.message);
 			alert("Failed to update the program status. Please try again.");
-		}
+			}
 	};
+
 
 	const deleteProgram = async (programId: number) => {
 		try {
