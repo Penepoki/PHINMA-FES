@@ -3,8 +3,8 @@ from rest_framework import serializers
 from .schedules_serializer import ScheduleSerializer
 
 
-class TimestampSerializer(serializers.Serializer):
-    evaluation = serializers.
+
+
 
 class EvaluationSerializer(serializers.ModelSerializer):
 
@@ -70,4 +70,5 @@ class EvaluationSerializer(serializers.ModelSerializer):
         evaluation = Evaluation.objects.create(schedule=schedule, **validated_data)
         return evaluation
 
-
+class TimestampSerializer(serializers.Serializer):
+    evaluation = EvaluationSerializer()

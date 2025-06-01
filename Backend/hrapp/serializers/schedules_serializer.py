@@ -1,7 +1,6 @@
 from django.db.models import Q
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
-from tensorboard import program
 
 from hrapp.models.schedules_models import *
 from .user_serializer import UserProgramProfessorSerializer

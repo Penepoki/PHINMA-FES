@@ -3,6 +3,7 @@ from .schedules_models import Schedule
 from .custom_manager import *
 from .user_models import *
 from django.utils import timezone
+from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 
 
@@ -33,12 +34,35 @@ class Timestamp(models.Model):
         ("waiting", "Waiting"),
         ("other", "Other"),
     ]
-    evaluation = models.ForeignKey("Evaluation", on_delete=models.CASCADE, related_name="timestamps")
+    evaluation = models.ForeignKey("Evaluation", on_delete=models.CASCADE, related_name="timestamps", default=None)
 
     student_activities = models.JSONField(default=list, blank=True, null=True)
     instructor_activities = models.JSONField(default=list, blank=True, null=True)
     student_comments = models.JSONField(default=dict, blank=True, null=True)
     instructor_comments = models.JSONField(default=dict, blank=True, null=True)
+    time_record = models.TimeField(default=timezone.now)
+
+    def clean(self):
+        valid_student_keys = [choice[0] for choice in self.STUDENT_ACTIVITY_CHOICES]
+        valid_instructor_keys = [choice[0] for choice in self.INSTRUCTOR_ACTIVITY_CHOICES]
+
+        if self.student_activities:
+            invalid_keys = [
+                key for key in self.student_activities.keys()
+                if key not in valid_student_keys
+            ]
+            if invalid_keys:
+                raise ValidationError(f"Invalid student activity keys: {', '.join(invalid_keys)}")
+
+            if self.instructor_activities:
+                invalid_keys = [
+                    key for key in self.instructor_activities.keys()
+                    if key not in valid_instructor_keys
+                ]
+                if invalid_keys:
+                    raise ValidationError(f"Invalid instructor activity keys: {', '.join(invalid_keys)}")
+
+        super().clean()
 
 # Evaluations
 class Evaluation(models.Model):
@@ -76,39 +100,29 @@ class Evaluation(models.Model):
 
     @property
     def professor(self):
-        return self.schedule.instructor
+        return self.schedule.instructor if self.schedule else None
 
     def save(self, *args, **kwargs):
         if not self.pk:
             super().save(*args, **kwargs) # Save the obj to generate ID
 
-        professors = self.professor
-        instructor_name = professors.first() if professors else "No instructor"
-
+        instructor_name = str(self.professor) if self.professor else "No instructor"
         self.name = f"{self.schedule.name} - {instructor_name} - {self.observation_date}"
-
         super().save(*args, **kwargs)
 
-    def clean(self):
-        if self.student_activities:
-            invalid_keys = [
-                key for key in self.student_activities.keys()
-                if key not in self.STUDENT_ACTIVITY_CHOICES
-            ]
-            if invalid_keys:
-                raise ValidationError(
-                    f"Invalid student activity keys: {', '.join(invalid_keys)}")
+    def get_duration(self):
+        """
+        RETURNS THE DURATION OF THE EVALUATION AS A TIMEDELTA,
+        BASED ON THE START AND END_TIME OF SCHEDULE
+        """
+        if self.schedule and self.schedule.start_time and self.schedule.end_time:
+            today = datetime.today().date()
+            start_datetime = datetime.combine(today, self.schedule.start_time)
+            end_datetime = datetime.combine(today, self.schedule.end_time)
+            return end_datetime - start_datetime
+        return None
 
-        if self.instructor_activities:
-            invalid_keys = [
-                key for key in self.instructor_activities.keys()
-                if key not in self.INSTRUCTOR_ACTIVITY_CHOICES
-            ]
-            if invalid_keys:
-                raise ValidationError(
-                    f"Invalid instructor activity keys: {', '.join(invalid_keys)}")
 
-        super().clean()
 
     """def delete(self, using=None, keep_parents=False):
         self.deleted_at = timezone.now()
