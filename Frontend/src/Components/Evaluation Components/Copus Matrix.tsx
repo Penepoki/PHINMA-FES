@@ -37,7 +37,6 @@ const CopusMatrix = () => {
 	const MAX_MINUTE = 60;
 	const INCREMENT = 2;
 
-	// Add tally tracking
 	const [studentTallies, setStudentTallies] = useState<{
 		[key: string]: number;
 	}>({});
@@ -45,81 +44,25 @@ const CopusMatrix = () => {
 		[key: string]: number;
 	}>({});
 	const [minute, setMinute] = useState(MIN_MINUTE);
-	// Time tracking states
 	const [currentTime, setCurrentTime] = useState<string>("");
 	const [startTime, setStartTime] = useState<Date | null>(null);
 	const [elapsedTime, setElapsedTime] = useState<string>("00");
 	const [isTimerStarted, setIsTimerStarted] = useState(false);
 	const [evaluationId, setEvaluationId] = useState<number | null>(null);
 	const [activeMinute, setActiveMinute] = useState<number>(0);
-	const [countdown, setCountdown] = useState<number>(120); // 2 minutes = 120 seconds
+	const [countdown, setCountdown] = useState<number>(120);
+	const [navigationDisabled, setNavigationDisabled] = useState(true);
 
-	// Start timer function
-	const startTimer = async () => {
-		if (!isTimerStarted) {
-			const startTimeValue = new Date();
-			setStartTime(startTimeValue);
-			setIsTimerStarted(true);
-
-			try {
-				const response = await api.post("/api/evaluations", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						schedule: 1, // Replace with real schedule ID
-						startTime: startTimeValue.toISOString(),
-					}),
-				});
-				const data = await response.json();
-				setEvaluationId(data.id); // Save the evaluation ID
-			} catch (error) {
-				console.error("Failed to start evaluation", error);
-				setIsTimerStarted(false); // Reset timer state if API call fails
-			}
-		}
-	};
-
-	// Update current time and elapsed time every second
-	useEffect(() => {
-		if (!isTimerStarted) {
-			setCurrentTime(
-				new Date().toLocaleTimeString([], {
-					hour: "2-digit",
-					minute: "2-digit",
-				}),
-			);
-			return;
-		}
-
-		const timer = setInterval(() => {
-			const now = new Date();
-			setCurrentTime(
-				now.toLocaleTimeString([], {
-					hour: "2-digit",
-					minute: "2-digit",
-				}),
-			);
-
-			if (startTime) {
-				const elapsed = now.getTime() - startTime.getTime();
-				const totalMinutes = Math.floor(elapsed / (1000 * 60));
-				setElapsedTime(totalMinutes.toString().padStart(2, "0"));
-			}
-		}, 1000);
-
-		return () => clearInterval(timer);
-	}, [startTime]);
-
-	// State to hold selections per minute
 	const [selectionsByMinute, setSelectionsByMinute] = useState<{
-		[key: number]: { student: string | null; teacher: string | null };
+		[key: number]: { student: string[]; teacher: string[] };
 	}>({});
 
-	// Current selected for displayed minute
-	const [currentStudent, setCurrentStudent] = useState<string | null>(null);
-	const [currentTeacher, setCurrentTeacher] = useState<string | null>(null);
+	const [currentStudentSelections, setCurrentStudentSelections] = useState<
+		string[]
+	>([]);
+	const [currentTeacherSelections, setCurrentTeacherSelections] = useState<
+		string[]
+	>([]);
 
 	const minuteBoxes = Array.from(
 		{ length: (MAX_MINUTE - MIN_MINUTE) / INCREMENT + 1 },
@@ -152,62 +95,67 @@ const CopusMatrix = () => {
 		"Waiting",
 		"Other",
 	];
-	// Load selections when minute changes
+
 	useEffect(() => {
-		const saved = selectionsByMinute[minute];
-		setCurrentStudent(saved?.student ?? null);
-		setCurrentTeacher(saved?.teacher ?? null);
+		const saved = selectionsByMinute[minute] || {
+			student: [],
+			teacher: [],
+		};
+		setCurrentStudentSelections(saved.student);
+		setCurrentTeacherSelections(saved.teacher);
 	}, [minute, selectionsByMinute]);
 
-	// Update tallies whenever selections change
 	useEffect(() => {
 		calculateTallies();
 	}, [selectionsByMinute]);
+
 	const getTotalMinutesObserved = () => {
 		return Object.values(selectionsByMinute).filter(
-			(selection) => selection.student && selection.teacher,
+			(selection) =>
+				selection.student.length > 0 && selection.teacher.length > 0,
 		).length;
 	};
 
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setCountdown((prev) => {
-				if (prev === 1) {
-					// When countdown hits 0, move to next box
-					setActiveMinute((prevMinute) => {
-						if (prevMinute < MAX_MINUTE - 1) {
-							return prevMinute + 1;
-						} else {
-							clearInterval(interval); // Stop timer if last minute reached
-							return prevMinute;
-						}
-					});
-					return 120; // Reset countdown
-				}
-				return prev - 1;
-			});
-		}, 1000); // tick every second
-
-		return () => clearInterval(interval); // cleanup on unmount
-	}, []);
-
 	const calculateTallies = () => {
+		let totalStudentSelections = 0;
+		let totalTeacherSelections = 0;
+
+		// First pass: count totals
+		Object.values(selectionsByMinute).forEach((selection) => {
+			totalStudentSelections += selection.student.length;
+			totalTeacherSelections += selection.teacher.length;
+		});
+
+		// Second pass: calculate percentages
 		const newStudentTallies: { [key: string]: number } = {};
 		const newTeacherTallies: { [key: string]: number } = {};
 
-		// Initialize tallies to 0
 		studentOptions.forEach((option) => (newStudentTallies[option] = 0));
 		teacherOptions.forEach((option) => (newTeacherTallies[option] = 0));
 
-		// Count selections from all minutes
 		Object.values(selectionsByMinute).forEach((selection) => {
-			if (selection.student) {
-				newStudentTallies[selection.student]++;
-			}
-			if (selection.teacher) {
-				newTeacherTallies[selection.teacher]++;
-			}
+			selection.student.forEach((activity) => {
+				newStudentTallies[activity]++;
+			});
+			selection.teacher.forEach((activity) => {
+				newTeacherTallies[activity]++;
+			});
 		});
+
+		// Convert to percentages
+		if (totalStudentSelections > 0) {
+			studentOptions.forEach((option) => {
+				newStudentTallies[option] =
+					(newStudentTallies[option] / totalStudentSelections) * 100;
+			});
+		}
+
+		if (totalTeacherSelections > 0) {
+			teacherOptions.forEach((option) => {
+				newTeacherTallies[option] =
+					(newTeacherTallies[option] / totalTeacherSelections) * 100;
+			});
+		}
 
 		setStudentTallies(newStudentTallies);
 		setTeacherTallies(newTeacherTallies);
@@ -215,52 +163,44 @@ const CopusMatrix = () => {
 
 	const updateSelections = async (
 		type: "student" | "teacher",
-		label: string | null,
+		selections: string[],
 	) => {
 		setSelectionsByMinute((prev) => {
 			const prevForMinute = prev[minute] || {
-				student: null,
-				teacher: null,
+				student: [],
+				teacher: [],
 			};
 			const updated = {
 				...prev,
 				[minute]: {
 					...prevForMinute,
-					[type]: label,
+					[type]: selections,
 				},
 			};
 			return updated;
 		});
 
-		// Update current state immediately
-		if (type === "student") setCurrentStudent(label);
-		else setCurrentTeacher(label);
+		if (type === "student") setCurrentStudentSelections(selections);
+		else setCurrentTeacherSelections(selections);
 
-		// Save updated state to back-end
 		if (!evaluationId) return;
 
 		const scoringData = {
 			student_activities: Object.entries(studentTallies).reduce(
-				(acc, [activity, count]) => ({
+				(acc, [activity, percentage]) => ({
 					...acc,
-					[activity]: `${(
-						(count / getTotalMinutesObserved()) *
-						100
-					).toFixed(1)}%`,
+					[activity]: `${percentage}%`,
 				}),
 				{},
 			),
 			instructor_activities: Object.entries(teacherTallies).reduce(
-				(acc, [activity, count]) => ({
+				(acc, [activity, percentage]) => ({
 					...acc,
-					[activity]: `${(
-						(count / getTotalMinutesObserved()) *
-						100
-					).toFixed(1)}%`,
+					[activity]: `${percentage}%`,
 				}),
 				{},
 			),
-			elapsedTime, // Send the most recent elapsed time
+			elapsedTime,
 			startTime: startTime?.toISOString(),
 		};
 
@@ -279,14 +219,97 @@ const CopusMatrix = () => {
 
 	const handleStudentToggle = (label: string) => {
 		startTimer();
-		// If clicking same selected, deselect it, else select new
-		updateSelections("student", currentStudent === label ? null : label);
+		const newSelections = currentStudentSelections.includes(label)
+			? currentStudentSelections.filter((item) => item !== label)
+			: [...currentStudentSelections, label];
+		updateSelections("student", newSelections);
 	};
 
 	const handleTeacherToggle = (label: string) => {
 		startTimer();
-		updateSelections("teacher", currentTeacher === label ? null : label);
+		const newSelections = currentTeacherSelections.includes(label)
+			? currentTeacherSelections.filter((item) => item !== label)
+			: [...currentTeacherSelections, label];
+		updateSelections("teacher", newSelections);
 	};
+
+	const startTimer = async () => {
+		if (!isTimerStarted) {
+			const startTimeValue = new Date();
+			setStartTime(startTimeValue);
+			setIsTimerStarted(true);
+
+			try {
+				const response = await api.post("/api/evaluations", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						schedule: 1,
+						startTime: startTimeValue.toISOString(),
+					}),
+				});
+				const data = await response.json();
+				setEvaluationId(data.id);
+			} catch (error) {
+				console.error("Failed to start evaluation", error);
+			}
+		}
+	};
+
+	useEffect(() => {
+		if (!isTimerStarted) {
+			setCurrentTime(
+				new Date().toLocaleTimeString([], {
+					hour: "2-digit",
+					minute: "2-digit",
+				}),
+			);
+			return;
+		}
+
+		const timer = setInterval(() => {
+			const now = new Date();
+			setCurrentTime(
+				now.toLocaleTimeString([], {
+					hour: "2-digit",
+					minute: "2-digit",
+				}),
+			);
+
+			if (startTime) {
+				const elapsed = now.getTime() - startTime.getTime();
+				const totalMinutes = Math.floor(elapsed / (1000 * 60));
+				setElapsedTime(totalMinutes.toString().padStart(2, "0"));
+			}
+		}, 1000);
+
+		return () => clearInterval(timer);
+	}, [startTime, isTimerStarted]);
+
+	useEffect(() => {
+		if (!isTimerStarted) return;
+
+		const interval = setInterval(() => {
+			setCountdown((prev) => {
+				if (prev === 1) {
+					setActiveMinute((prevMinute) => {
+						if (prevMinute < MAX_MINUTE - 1) {
+							return prevMinute + 1;
+						} else {
+							clearInterval(interval);
+							return prevMinute;
+						}
+					});
+					return 120;
+				}
+				return prev - 1;
+			});
+		}, 1000);
+
+		return () => clearInterval(interval);
+	}, [isTimerStarted]);
 
 	const handlePrev = () => {
 		setMinute((prev) => Math.max(prev - INCREMENT, MIN_MINUTE));
@@ -296,22 +319,16 @@ const CopusMatrix = () => {
 		setMinute((prev) => Math.min(prev + INCREMENT, MAX_MINUTE));
 	};
 
-	// Condition: student AND teacher selected for current minute
+	useEffect(() => {
+		setMinute(activeMinute + 2);
+	}, [activeMinute]);
+
 	const hasStudentAndTeacherSelected =
-		currentStudent !== null && currentTeacher !== null;
-
-	useEffect(() => {
-		console.log("Active minute is now:", activeMinute);
-	}, [activeMinute]);
-
-	useEffect(() => {
-		// Sync the minute shown with the active minute
-		setMinute(activeMinute + 2); // activeMinute is 0-based, minute is 2-based
-	}, [activeMinute]);
+		currentStudentSelections.length > 0 &&
+		currentTeacherSelections.length > 0;
 
 	return (
 		<div className="mb-4 rounded-lg border border-gray-300 p-4">
-			{" "}
 			<div className="mb-4 text-center text-sm font-semibold text-gray-700">
 				<div className="flex w-full flex-row justify-between">
 					<span>Current Time: {currentTime}</span>
@@ -322,7 +339,7 @@ const CopusMatrix = () => {
 							hour: "2-digit",
 							minute: "2-digit",
 						})}{" "}
-					</span>{" "}
+					</span>
 					<span>|</span>
 					<span>Time Elapsed: {elapsedTime} Minutes</span>
 				</div>
@@ -330,51 +347,59 @@ const CopusMatrix = () => {
 			<div className="mb-4 flex items-center justify-center gap-3">
 				<div className="flex flex-col items-center gap-4">
 					<div className="text-center text-sm text-gray-400">
-						The Observer must select an option for both the student
-						and teacher doing in order to complete the minute.
-						<br /> Timer will start after the selecting an option.
+						The Observer must select at least one option for both
+						the student and teacher to complete the minute.
+						<br /> Timer will start after selecting an option.
 					</div>
-					{/* Navigation */}
 					<div className="flex items-center justify-center gap-4">
 						<button
-							className="tooltip text-xl font-bold disabled:opacity-30"
+							className="tooltip hidden text-xl font-bold disabled:opacity-30"
 							onClick={handlePrev}
-							disabled={minute === MIN_MINUTE}
+							disabled={
+								minute === MIN_MINUTE || navigationDisabled
+							}
 							data-tip="Click to go back to the previous minutes"
 						>
 							&larr;
-						</button>{" "}
+						</button>
 						<h2 className="text-xl font-bold">
 							{`Minutes ${minute - 2} - ${minute}`}
 						</h2>
 						<button
-							className="tooltip text-xl font-bold disabled:opacity-30"
+							className="tooltip hidden text-xl font-bold disabled:opacity-30"
 							onClick={handleNext}
-							disabled={minute === MAX_MINUTE}
+							disabled={
+								minute === MIN_MINUTE || navigationDisabled
+							}
 							data-tip="Click to go to the next minutes"
 						>
 							&rarr;
 						</button>
 					</div>
-					{/* Minute Boxes */}
 					<p>
 						Next minute in: {Math.floor(countdown / 60)}:
 						{String(countdown % 60).padStart(2, "0")}
 					</p>
 					<div className="grid grid-cols-5 gap-2 md:grid-cols-15">
 						{minuteBoxes.map((m) => {
-							const selections = selectionsByMinute[m];
+							const selections = selectionsByMinute[m] || {
+								student: [],
+								teacher: [],
+							};
 							const answered =
-								selections?.student != null &&
-								selections?.teacher != null;
+								selections.student.length > 0 &&
+								selections.teacher.length > 0;
 
 							return (
 								<button
 									key={m}
 									onClick={() => {
-										startTimer();
-										setMinute(m);
+										if (!navigationDisabled) {
+											startTimer();
+											setMinute(m);
+										}
 									}}
+									disabled={navigationDisabled}
 									className={`h-10 w-10 rounded-md text-sm font-semibold ${
 										minute === m
 											? hasStudentAndTeacherSelected
@@ -400,25 +425,24 @@ const CopusMatrix = () => {
 					<ToggleBox
 						key={index}
 						label={label}
-						active={currentStudent === label}
+						active={currentStudentSelections.includes(label)}
 						onToggle={handleStudentToggle}
 					/>
 				))}
 			</div>
 			<div className="mb-6 text-center text-lg font-semibold text-gray-700">
 				Teacher Doing
-			</div>{" "}
+			</div>
 			<div className="flex flex-wrap justify-center gap-2">
 				{teacherOptions.map((label, index) => (
 					<ToggleBox
 						key={index}
 						label={label}
-						active={currentTeacher === label}
+						active={currentTeacherSelections.includes(label)}
 						onToggle={handleTeacherToggle}
 					/>
 				))}
-			</div>{" "}
-			{/* Activity Summary */}
+			</div>
 			<div className="collapse-arrow collapse mt-8 rounded-xl border border-gray-300">
 				<input type="checkbox" />
 				<div className="collapse-title text-center text-lg font-semibold">
@@ -426,7 +450,6 @@ const CopusMatrix = () => {
 				</div>
 				<div className="collapse-content">
 					<div className="grid gap-8 md:grid-cols-2">
-						{/* Student Activities */}
 						<div>
 							<h4 className="mb-2 text-center font-semibold">
 								Student Activities
@@ -440,12 +463,12 @@ const CopusMatrix = () => {
 										>
 											<span>{activity}:</span>
 											<span>
-												{count} times (
+												{(count / 10).toFixed(0)} times
+												(
 												{count > 0
 													? (
-															(count /
-																getTotalMinutesObserved()) *
-															100
+															count /
+															getTotalMinutesObserved()
 														).toFixed(1)
 													: "0"}
 												%)
@@ -455,8 +478,6 @@ const CopusMatrix = () => {
 								)}
 							</div>
 						</div>
-
-						{/* Teacher Activities */}
 						<div>
 							<h4 className="mb-2 text-center font-semibold">
 								Teacher Activities
@@ -470,12 +491,12 @@ const CopusMatrix = () => {
 										>
 											<span>{activity}:</span>
 											<span>
-												{count} times (
+												{(count / 10).toFixed(0)} times
+												(
 												{count > 0
 													? (
-															(count /
-																getTotalMinutesObserved()) *
-															100
+															count /
+															getTotalMinutesObserved()
 														).toFixed(1)
 													: "0"}
 												%)
@@ -486,11 +507,9 @@ const CopusMatrix = () => {
 							</div>
 						</div>
 					</div>
-
 					<div className="mt-4 text-center text-sm text-gray-600">
 						Total Minutes Observed: {getTotalMinutesObserved() * 2}
 					</div>
-
 					<div className="mt-4 flex justify-center">
 						<button
 							onClick={async () => {
@@ -552,7 +571,6 @@ const CopusMatrix = () => {
 						>
 							Save Evaluation
 						</button>
-						;
 					</div>
 				</div>
 			</div>
