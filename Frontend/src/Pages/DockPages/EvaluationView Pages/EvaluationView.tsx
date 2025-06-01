@@ -1,11 +1,18 @@
 import { useState } from "react";
 import CopusMatrix from "../../../Components/Evaluation Components/Copus Matrix";
 import PieChartWithTable from "../../../Components/Evaluation Components/Piechart with Table";
+import { ActivityData } from "../../../Components/Evaluation Components/Copus Matrix";
 interface EvalProps {
 	setActiveView: (view: string) => void;
 }
 
 function Evaluation({ setActiveView }: EvalProps) {
+	const [studentTallies, setStudentTallies] = useState<
+		Record<string, ActivityData>
+	>({});
+	const [teacherTallies, setTeacherTallies] = useState<
+		Record<string, ActivityData>
+	>({});
 	const [tableData] = useState([
 		{
 			course: "Renzo Cua",
@@ -326,7 +333,14 @@ function Evaluation({ setActiveView }: EvalProps) {
 														</table>
 														<div className="mt-6 flex flex-col items-center justify-center gap-6 md:flex-row">
 															{/* Pie Chart 1 + Table */}
-															<PieChartWithTable />
+															<PieChartWithTable
+																studentTallies={
+																	studentTallies
+																}
+																teacherTallies={
+																	teacherTallies
+																}
+															/>
 														</div>
 													</div>
 												</div>
@@ -388,8 +402,20 @@ function Evaluation({ setActiveView }: EvalProps) {
 												</div>
 
 												{/* COPUS Matrix */}
-												<CopusMatrix />
-
+												<CopusMatrix
+													onTalliesUpdate={(
+														student,
+														teacher,
+													) => {
+														// Pass these to your PieChart
+														setStudentTallies(
+															student,
+														);
+														setTeacherTallies(
+															teacher,
+														);
+													}}
+												/>
 												{/* Additional Information */}
 												<div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
 													<input type="checkbox" />
@@ -433,5 +459,4 @@ function Evaluation({ setActiveView }: EvalProps) {
 		</div>
 	);
 }
-
 export default Evaluation;

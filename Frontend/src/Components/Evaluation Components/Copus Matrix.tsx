@@ -32,16 +32,28 @@ function ToggleBox({ label, active, onToggle }: ToggleBoxProps) {
 	);
 }
 
-const CopusMatrix = () => {
+export type ActivityData = {
+	count: number;
+	percentage: number;
+};
+
+interface CopusMatrixProps {
+	onTalliesUpdate?: (
+		studentTallies: Record<string, ActivityData>,
+		teacherTallies: Record<string, ActivityData>,
+	) => void;
+}
+
+const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
 	const MIN_MINUTE = 2;
 	const MAX_MINUTE = 60;
 	const INCREMENT = 2;
 
 	const [studentTallies, setStudentTallies] = useState<{
-		[key: string]: number;
+		[key: string]: ActivityData;
 	}>({});
 	const [teacherTallies, setTeacherTallies] = useState<{
-		[key: string]: number;
+		[key: string]: ActivityData;
 	}>({});
 	const [minute, setMinute] = useState(MIN_MINUTE);
 	const [currentTime, setCurrentTime] = useState<string>("");
@@ -105,10 +117,6 @@ const CopusMatrix = () => {
 		setCurrentTeacherSelections(saved.teacher);
 	}, [minute, selectionsByMinute]);
 
-	useEffect(() => {
-		calculateTallies();
-	}, [selectionsByMinute]);
-
 	const getTotalMinutesObserved = () => {
 		return Object.values(selectionsByMinute).filter(
 			(selection) =>
@@ -120,46 +128,57 @@ const CopusMatrix = () => {
 		let totalStudentSelections = 0;
 		let totalTeacherSelections = 0;
 
-		// First pass: count totals
-		Object.values(selectionsByMinute).forEach((selection) => {
-			totalStudentSelections += selection.student.length;
-			totalTeacherSelections += selection.teacher.length;
+		const newStudentTallies: { [key: string]: ActivityData } = {};
+		const newTeacherTallies: { [key: string]: ActivityData } = {};
+
+		// Initialize all options
+		studentOptions.forEach((option) => {
+			newStudentTallies[option] = { count: 0, percentage: 0 };
+		});
+		teacherOptions.forEach((option) => {
+			newTeacherTallies[option] = { count: 0, percentage: 0 };
 		});
 
-		// Second pass: calculate percentages
-		const newStudentTallies: { [key: string]: number } = {};
-		const newTeacherTallies: { [key: string]: number } = {};
-
-		studentOptions.forEach((option) => (newStudentTallies[option] = 0));
-		teacherOptions.forEach((option) => (newTeacherTallies[option] = 0));
-
+		// Count all selections
 		Object.values(selectionsByMinute).forEach((selection) => {
 			selection.student.forEach((activity) => {
-				newStudentTallies[activity]++;
+				newStudentTallies[activity].count++;
+				totalStudentSelections++;
 			});
 			selection.teacher.forEach((activity) => {
-				newTeacherTallies[activity]++;
+				newTeacherTallies[activity].count++;
+				totalTeacherSelections++;
 			});
 		});
 
-		// Convert to percentages
+		// Calculate percentages
 		if (totalStudentSelections > 0) {
 			studentOptions.forEach((option) => {
-				newStudentTallies[option] =
-					(newStudentTallies[option] / totalStudentSelections) * 100;
+				newStudentTallies[option].percentage =
+					(newStudentTallies[option].count / totalStudentSelections) *
+					100;
 			});
 		}
 
 		if (totalTeacherSelections > 0) {
 			teacherOptions.forEach((option) => {
-				newTeacherTallies[option] =
-					(newTeacherTallies[option] / totalTeacherSelections) * 100;
+				newTeacherTallies[option].percentage =
+					(newTeacherTallies[option].count / totalTeacherSelections) *
+					100;
 			});
 		}
 
 		setStudentTallies(newStudentTallies);
 		setTeacherTallies(newTeacherTallies);
+
+		if (onTalliesUpdate) {
+			onTalliesUpdate(newStudentTallies, newTeacherTallies);
+		}
 	};
+
+	useEffect(() => {
+		calculateTallies();
+	}, [selectionsByMinute]);
 
 	const updateSelections = async (
 		type: "student" | "teacher",
@@ -186,22 +205,29 @@ const CopusMatrix = () => {
 		if (!evaluationId) return;
 
 		const scoringData = {
-			student_activities: Object.entries(studentTallies).reduce(
-				(acc, [activity, percentage]) => ({
-					...acc,
-					[activity]: `${percentage}%`,
-				}),
-				{},
+			student_activities: studentOptions.reduce(
+				(acc, option) => {
+					acc[option] = {
+						count: studentTallies[option]?.count || 0,
+						percentage: studentTallies[option]?.percentage || 0,
+					};
+					return acc;
+				},
+				{} as Record<string, ActivityData>,
 			),
-			instructor_activities: Object.entries(teacherTallies).reduce(
-				(acc, [activity, percentage]) => ({
-					...acc,
-					[activity]: `${percentage}%`,
-				}),
-				{},
+			instructor_activities: teacherOptions.reduce(
+				(acc, option) => {
+					acc[option] = {
+						count: teacherTallies[option]?.count || 0,
+						percentage: teacherTallies[option]?.percentage || 0,
+					};
+					return acc;
+				},
+				{} as Record<string, ActivityData>,
 			),
-			elapsedTime,
+			totalMinutesObserved: getTotalMinutesObserved() * 2,
 			startTime: startTime?.toISOString(),
+			elapsedTime: elapsedTime,
 		};
 
 		try {
@@ -455,27 +481,23 @@ const CopusMatrix = () => {
 								Student Activities
 							</h4>
 							<div className="space-y-2">
-								{Object.entries(studentTallies).map(
-									([activity, count]) => (
-										<div
-											key={activity}
-											className="flex justify-between"
-										>
-											<span>{activity}:</span>
-											<span>
-												{(count / 10).toFixed(0)} times
-												(
-												{count > 0
-													? (
-															count /
-															getTotalMinutesObserved()
-														).toFixed(1)
-													: "0"}
-												%)
-											</span>
-										</div>
-									),
-								)}
+								{studentOptions.map((activity) => (
+									<div
+										key={activity}
+										className="flex justify-between"
+									>
+										<span>{activity}:</span>
+										<span>
+											{studentTallies[activity]?.count ||
+												0}{" "}
+											times (
+											{studentTallies[
+												activity
+											]?.percentage.toFixed(2) || "0.00"}
+											%)
+										</span>
+									</div>
+								))}
 							</div>
 						</div>
 						<div>
@@ -483,27 +505,23 @@ const CopusMatrix = () => {
 								Teacher Activities
 							</h4>
 							<div className="space-y-2">
-								{Object.entries(teacherTallies).map(
-									([activity, count]) => (
-										<div
-											key={activity}
-											className="flex justify-between"
-										>
-											<span>{activity}:</span>
-											<span>
-												{(count / 10).toFixed(0)} times
-												(
-												{count > 0
-													? (
-															count /
-															getTotalMinutesObserved()
-														).toFixed(1)
-													: "0"}
-												%)
-											</span>
-										</div>
-									),
-								)}
+								{teacherOptions.map((activity) => (
+									<div
+										key={activity}
+										className="flex justify-between"
+									>
+										<span>{activity}:</span>
+										<span>
+											{teacherTallies[activity]?.count ||
+												0}{" "}
+											times (
+											{teacherTallies[
+												activity
+											]?.percentage.toFixed(2) || "0.00"}
+											%)
+										</span>
+									</div>
+								))}
 							</div>
 						</div>
 					</div>
@@ -514,34 +532,37 @@ const CopusMatrix = () => {
 						<button
 							onClick={async () => {
 								const scoringData = {
-									student_activities: Object.entries(
-										studentTallies,
-									).reduce(
-										(acc, [activity, count]) => ({
-											...acc,
-											[activity]: `${(
-												(count /
-													getTotalMinutesObserved()) *
-												100
-											).toFixed(1)}%`,
-										}),
-										{},
+									student_activities: studentOptions.reduce(
+										(acc, option) => {
+											acc[option] = {
+												count:
+													studentTallies[option]
+														?.count || 0,
+												percentage:
+													studentTallies[option]
+														?.percentage || 0,
+											};
+											return acc;
+										},
+										{} as Record<string, ActivityData>,
 									),
-									instructor_activities: Object.entries(
-										teacherTallies,
-									).reduce(
-										(acc, [activity, count]) => ({
-											...acc,
-											[activity]: `${(
-												(count /
-													getTotalMinutesObserved()) *
-												100
-											).toFixed(1)}%`,
-										}),
-										{},
-									),
+									instructor_activities:
+										teacherOptions.reduce(
+											(acc, option) => {
+												acc[option] = {
+													count:
+														teacherTallies[option]
+															?.count || 0,
+													percentage:
+														teacherTallies[option]
+															?.percentage || 0,
+												};
+												return acc;
+											},
+											{} as Record<string, ActivityData>,
+										),
 									totalMinutesObserved:
-										getTotalMinutesObserved(),
+										getTotalMinutesObserved() * 2,
 									startTime: startTime?.toISOString(),
 									elapsedTime: elapsedTime,
 								};
