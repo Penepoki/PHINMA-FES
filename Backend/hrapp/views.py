@@ -1,6 +1,8 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
+
+from hrapp.serializers import TimestampSerializer, EvaluationSerializer
 from hrapp.utils.evaluation_utils import *
 from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
@@ -107,6 +109,37 @@ def user_view_profile(request):
     return Response(serializers.data)
 
 #Evaluation View
+#CRUD BELOW FOR TIMESTAMP(COPUS EVALUATION RELATED)
+class TimestampViewSet(viewsets.ModelViewSet):
+    queryset = Timestamp.objects.all()
+    serializer_class = TimestampSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Filter timestamps by evaluation ID
+        - List:   GET    /timestamps/
+        - Create: POST   /timestamps/
+        - Retrieve: GET  /timestamps/<id>/
+        - Update: PUT/PATCH /timestamps/<id>/
+        - Delete: DELETE /timestamps/<id>/
+        """
+        queryset = super().get_queryset()
+        evaluation_id = self.request.query_params.get('evaluation')
+        if evaluation_id:
+            queryset = queryset.filter(evaluation_id=evaluation_id)
+        return queryset
+
+    def destroy(self, request, *args, **kwargs):
+        """DELETE TIMTEMSTALMP"""
+        return super().destroy(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        """POST TIMTEMSTALMP"""
+        return  super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
 #CRUD BELOW FOR EVALUATION (COPUS)----------------------------------------------
 #Create
 class EvaluationViewSet(viewsets.ModelViewSet):

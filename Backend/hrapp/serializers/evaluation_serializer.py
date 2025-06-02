@@ -1,27 +1,19 @@
-from hrapp.models.evaluation_models import Evaluation
+from hrapp.models.evaluation_models import Evaluation, Timestamp
 from rest_framework import serializers
 from .schedules_serializer import ScheduleSerializer
+from ..models import Schedule
 
 
-
-
-
-class EvaluationSerializer(serializers.ModelSerializer):
-
-    schedule = ScheduleSerializer()
-    evaluator = serializers.StringRelatedField()
+class TimestampSerializer(serializers.Serializer):
+    evaluation = serializers.ModelSerializer()
 
     class Meta:
-        model = Evaluation
-        fields = [
-            'schedule', 'observation_date', 'evaluation_type',
-            'student_activities', 'student_comments', 'instructor_activities',
-            'instructor_comments'
-        ]
+        model = Timestamp
+        fields = ('evaluation','student_activities','student_comments','instructor_activities','instructor_comments', 'time_record')
 
     def validate_student_activities(self, value):
         """VALIDATION FOR STUDENT ACTIVITIES, ALLOW BOTH DISPLAY NAMES AND INTERNAL KEYS INPUT"""
-        valid_choices = dict(self.Evaluation.STUDENT_ACTIVITY_CHOICES)
+        valid_choices = dict(Timestamp.STUDENT_ACTIVITY_CHOICES)
         display_to_key = {v: k for k, v in valid_choices.items()}
 
         validated_activities = {}
@@ -44,7 +36,7 @@ class EvaluationSerializer(serializers.ModelSerializer):
     def validate_instructor_activities(self, value):
         """VALIDATION FOR INSTRUCTOR ACTIVITIES, ALLOW BOTH DISPLAY NAMES AND INTERNAL KEYS INPUT"""
         valid_choices = dict(
-            Evaluation.INSTRUCTOR_ACTIVITY_CHOICES)
+            Timestamp.INSTRUCTOR_ACTIVITY_CHOICES)
             #Convert to dict
         display_to_key = {v: k for k, v in valid_choices.items()} #Reverse Mapping
 
@@ -65,10 +57,21 @@ class EvaluationSerializer(serializers.ModelSerializer):
         return validated_activities
 
 
+class EvaluationSerializer(serializers.ModelSerializer):
+
+    schedule = serializers.PrimaryKeyRelatedField(queryset=Schedule.objects.all())
+    evaluator = serializers.StringRelatedField(read_only=True)
+    timestamps = TimestampSerializer(many=True, read_only=True)
+    class Meta:
+        model = Evaluation
+        fields = [
+            'schedule', 'observation_date', 'evaluation_type','timestamps',
+        ]
+
+
+
     def create(self, validated_data):
         schedule = validated_data.pop('schedule_id')
         evaluation = Evaluation.objects.create(schedule=schedule, **validated_data)
         return evaluation
 
-class TimestampSerializer(serializers.Serializer):
-    evaluation = EvaluationSerializer()
