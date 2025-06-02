@@ -72,15 +72,13 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
   const [countdown, setCountdown] = useState<number>(120);
   const [navigationDisabled, setNavigationDisabled] = useState(true);
   const [selectionsByMinute, setSelectionsByMinute] = useState<{
-    [key: number]: { student: string[]; teacher: string[] };
+    [key: number]: { student: string[]; teacher: string[]; studentComments: string; teacherComments: string };
   }>({});
   const [currentStudentSelections, setCurrentStudentSelections] = useState<string[]>([]);
   const [currentTeacherSelections, setCurrentTeacherSelections] = useState<string[]>([]);
-
-  // Add this new state variable to track timestamp IDs
+  const [currentStudentComments, setCurrentStudentComments] = useState<string>("");
+  const [currentTeacherComments, setCurrentTeacherComments] = useState<string>("");
   const [timestampIds, setTimestampIds] = useState<{ [key: number]: number }>({});
-
-  // Add these for time constraints
   const [isWithinScheduleTime, setIsWithinScheduleTime] = useState(true);
   const [canEditEvaluation, setCanEditEvaluation] = useState(false);
   const [schedule, setSchedule] = useState<any>(null);
@@ -149,17 +147,15 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
   // Define the timestamp API functions
   const timestampApi = {
     createTimestamp: async (data: TimestampData) => {
-      const response = await api.post('/api/timestamps/', data);
+      const response = await api.post('/timestamps/', data);
       return response.data;
     },
-
     updateTimestamp: async (id: number, data: Partial<TimestampData>) => {
-      const response = await api.patch(`/api/timestamps/${id}/`, data);
+      const response = await api.patch(`/timestamps/${id}/`, data);
       return response.data;
     },
-
     getTimestamps: async (evaluationId: number) => {
-      const response = await api.get(`/api/timestamps/?evaluation=${evaluationId}`);
+      const response = await api.get(`/timestamps/?evaluation=${evaluationId}`);
       return response.data;
     }
   };
@@ -216,61 +212,48 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
   const loadExistingTimestamps = async (evalId: number) => {
     try {
       const timestamps = await timestampApi.getTimestamps(evalId);
-
-      // Process timestamps and update state
-      const selections: { [key: number]: { student: string[], teacher: string[] } } = {};
+      const selections: { [key: number]: { student: string[], teacher: string[], studentComments: string, teacherComments: string } } = {};
       const ids: { [key: number]: number } = {};
-
       timestamps.forEach(timestamp => {
-        // Extract minute from time_record (assuming format like "14:30:00")
         const timeParts = timestamp.time_record.split(':');
-        const hour = parseInt(timeParts[0]);
-        const minute = parseInt(timeParts[1]);
-
-        // Calculate which 2-minute block this belongs to
-        const minuteBlock = Math.ceil(minute / 2) * 2;
-
-        // Convert backend keys to frontend display names
+        const minuteVal = parseInt(timeParts[1]);
+        const minuteBlock = Math.ceil(minuteVal / 2) * 2;
         const studentActivities = Object.entries(timestamp.student_activities)
-            .filter(([_, value]) => value)
-            .map(([key, _]) => {
-              // Find the display name for this key
-              const displayName = Object.entries(studentActivityMap)
-                  .find(([_, k]) => k === key)?.[0];
-              return displayName || key;
-            });
-
+          .filter(([_, value]) => value)
+          .map(([key, _]) => Object.entries(studentActivityMap).find(([_, k]) => k === key)?.[0] || key);
         const teacherActivities = Object.entries(timestamp.instructor_activities)
-            .filter(([_, value]) => value)
-            .map(([key, _]) => {
-              // Find the display name for this key
-              const displayName = Object.entries(teacherActivityMap)
-                  .find(([_, k]) => k === key)?.[0];
-              return displayName || key;
-            });
-
+          .filter(([_, value]) => value)
+          .map(([key, _]) => Object.entries(teacherActivityMap).find(([_, k]) => k === key)?.[0] || key);
         selections[minuteBlock] = {
           student: studentActivities,
-          teacher: teacherActivities
+          teacher: teacherActivities,
+          studentComments: timestamp.student_comments?.comment || "",
+          teacherComments: timestamp.instructor_comments?.comment || ""
         };
-
         ids[minuteBlock] = timestamp.id;
       });
-
       setSelectionsByMinute(selections);
       setTimestampIds(ids);
-
     } catch (error) {
       console.error("Failed to load existing timestamps", error);
     }
   };
+  useEffect(() => {
+    if (evaluationId) {
+      loadExistingTimestamps(evaluationId);
+    }
+  }, [evaluationId]);
+
 
   // Keep your existing useEffect hooks
   useEffect(() => {
-    const saved = selectionsByMinute[minute] || {student: [], teacher: []};
+    const saved = selectionsByMinute[minute] || {student: [], teacher: [], studentComments: "", teacherComments: ""};
     setCurrentStudentSelections(saved.student);
     setCurrentTeacherSelections(saved.teacher);
+    setCurrentStudentComments(saved.studentComments);
+    setCurrentTeacherComments(saved.teacherComments);
   }, [minute, selectionsByMinute]);
+
 
   // Your existing getTotalMinutesObserved function
   const getTotalMinutesObserved = () => {
@@ -338,16 +321,20 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
   // Update your updateSelections function to use the timestamp API
   const updateSelections = async (
       type: "student" | "teacher",
-      selections: string[]
+      selections: string[],
+      studentComments: string = currentStudentComments,
+      teacherComments: string = currentTeacherComments
   ) => {
     // Update local state first (same as your existing code)
     setSelectionsByMinute((prev) => {
-      const prevForMinute = prev[minute] || {student: [], teacher: []};
+      const prevForMinute = prev[minute] || {student: [], teacher: [], studentComments: "", teacherComments: ""};
       const updated = {
         ...prev,
         [minute]: {
           ...prevForMinute,
           [type]: selections,
+          studentComments: studentComments,
+          teacherComments: teacherComments
         },
       };
       return updated;
@@ -366,7 +353,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
     }
 
     // Get the current selections for both student and teacher
-    const currentSelections = selectionsByMinute[minute] || {student: [], teacher: []};
+    const currentSelections = selectionsByMinute[minute] || {student: [], teacher: [], studentComments: "", teacherComments: ""};
     const studentSelections = type === "student" ? selections : currentSelections.student;
     const teacherSelections = type === "teacher" ? selections : currentSelections.teacher;
 
@@ -388,20 +375,19 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
       ),
       // Format time based on the minute
       time_record: formatTimeForMinute(minute),
+      // Add comments if provided
+      student_comments: { comment: studentComments },
+      instructor_comments: { comment: teacherComments }
     };
 
     try {
-      // Check if we already have a timestamp for this minute
       if (timestampIds[minute]) {
-        // Update existing timestamp
         await timestampApi.updateTimestamp(timestampIds[minute], timestampData);
       } else {
-        // Create new timestamp
         const response = await timestampApi.createTimestamp(timestampData);
-        // Store the timestamp ID for future updates
-        setTimestampIds(prev => ({
+        setTimestampIds((prev) => ({
           ...prev,
-          [minute]: response.id
+          [minute]: response.id,
         }));
       }
     } catch (error) {
@@ -415,7 +401,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
     const newSelections = currentStudentSelections.includes(label)
         ? currentStudentSelections.filter((item) => item !== label)
         : [...currentStudentSelections, label];
-    updateSelections("student", newSelections);
+    updateSelections("student", newSelections, currentStudentComments, currentTeacherComments);
   };
 
   const handleTeacherToggle = (label: string) => {
@@ -423,7 +409,17 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
     const newSelections = currentTeacherSelections.includes(label)
         ? currentTeacherSelections.filter((item) => item !== label)
         : [...currentTeacherSelections, label];
-    updateSelections("teacher", newSelections);
+    updateSelections("teacher", newSelections, currentStudentComments, currentTeacherComments);
+  };
+
+    const handleStudentCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCurrentStudentComments(e.target.value);
+    updateSelections("student", currentStudentSelections, e.target.value, currentTeacherComments);
+  };
+
+  const handleTeacherCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCurrentTeacherComments(e.target.value);
+    updateSelections("teacher", currentTeacherSelections, currentStudentComments, e.target.value);
   };
 
   // Update your startTimer function to load timestamps if an evaluation ID is provided
@@ -671,23 +667,49 @@ useEffect(() => {
                 </div>
 
                 <div className="mb-6 text-center text-lg font-semibold text-gray-700">
-                  Students Doing
-                </div>
-
-                <div className="mb-4 flex flex-wrap justify-center gap-2">
-                  {studentOptions.map((label, index) => (
-                      <ToggleBox
-                          key={index}
-                          label={label}
-                          active={currentStudentSelections.includes(label)}
-                          onToggle={handleStudentToggle}
-                      />
-                  ))}
-                </div>
-
-                <div className="mb-6 text-center text-lg font-semibold text-gray-700">
-                  Teacher Doing
-                </div>
+        Students Doing
+      </div>
+      <div className="mb-4 flex flex-wrap justify-center gap-2">
+        {studentOptions.map((label, index) => (
+          <ToggleBox
+            key={index}
+            label={label}
+            active={currentStudentSelections.includes(label)}
+            onToggle={handleStudentToggle}
+          />
+        ))}
+      </div>
+      <div className="mb-2 flex flex-col items-center">
+        <label className="mb-1 text-sm font-medium text-gray-700">Student Comments</label>
+        <textarea
+          className="w-full max-w-md rounded border border-gray-300 p-2"
+          value={currentStudentComments}
+          onChange={handleStudentCommentChange}
+          disabled={!isWithinScheduleTime && !canEditEvaluation}
+        />
+      </div>
+          <div className="mb-6 text-center text-lg font-semibold text-gray-700">
+            Teacher Doing
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            {teacherOptions.map((label, index) => (
+              <ToggleBox
+                key={index}
+                label={label}
+                active={currentTeacherSelections.includes(label)}
+                onToggle={handleTeacherToggle}
+              />
+            ))}
+          </div>
+          <div className="mb-2 flex flex-col items-center">
+            <label className="mb-1 text-sm font-medium text-gray-700">Teacher Comments</label>
+            <textarea
+              className="w-full max-w-md rounded border border-gray-300 p-2"
+              value={currentTeacherComments}
+              onChange={handleTeacherCommentChange}
+              disabled={!isWithinScheduleTime && !canEditEvaluation}
+            />
+          </div>
 
                 <div className="flex flex-wrap justify-center gap-2">
                   {teacherOptions.map((label, index) => (
