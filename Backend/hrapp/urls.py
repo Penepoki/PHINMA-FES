@@ -22,6 +22,9 @@ schedule_router.register(r'schedules', ScheduleViewSet, basename='schedule')
 evaluation_router = DefaultRouter()
 evaluation_router.register(r'evaluations', EvaluationViewSet, basename='evaluation')
 
+#EVALUATION TIMESTAMP ROUTER
+timestamp_router = DefaultRouter()
+timestamp_router.register(r'timestamps', TimestampViewSet, basename='timestamp')
 
 #ROOM ROUTER
 room_router = DefaultRouter()
@@ -36,6 +39,8 @@ urlpatterns = [
     path('schedule/', include(schedule_router.urls)),
 
     path('evaluation/', include(evaluation_router.urls)),
+
+    path('timestamp/', include(timestamp_router.urls)),
     path('login/', login_view),
 
     path('logout/', logout_view, name='logout'),

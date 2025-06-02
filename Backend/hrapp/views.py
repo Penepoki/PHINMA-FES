@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
-
+from django.db import transaction
 from hrapp.serializers import TimestampSerializer, EvaluationSerializer
 from hrapp.utils.evaluation_utils import *
 from hrapp.utils.user_utils import *
@@ -18,6 +18,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
+from django.shortcuts import get_object_or_404
 #from rest_framework.filter import Search
 import pandas as pd
 
@@ -114,6 +115,8 @@ class TimestampViewSet(viewsets.ModelViewSet):
     queryset = Timestamp.objects.all()
     serializer_class = TimestampSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['evaluation']
 
     def get_queryset(self):
         """
@@ -126,19 +129,62 @@ class TimestampViewSet(viewsets.ModelViewSet):
         """
         queryset = super().get_queryset()
         evaluation_id = self.request.query_params.get('evaluation')
+
         if evaluation_id:
             queryset = queryset.filter(evaluation_id=evaluation_id)
+
+            try:
+                evaluation = Evaluation.objects.get(id=evaluation_id)
+                if not user_can_access_evaluation(self.request.user, evaluation):
+                    return Timestamp.objects.none()
+            except Evaluation.DoesNotExist:
+                return Timestamp.objects.none()
+
         return queryset
+
+    @action(detail=False, methods=['get'], url_path='options')
+    def get_options(self, request, **kwargs):
+        """RETURNS THE CHOICES FOR INSTRUC AND STUDENTS"""
+        student_activities = [choice[1] for choice in Timestamp.STUDENT_ACTIVITY_CHOICES]
+        instructor_activities = [choice[1] for choice in Timestamp.INSTRUCTOR_ACTIVITY_CHOICES]
+
+        return Response({'student_activities': student_activities,
+                         'instructor_activities': instructor_activities})
 
     def destroy(self, request, *args, **kwargs):
         """DELETE TIMTEMSTALMP"""
         return super().destroy(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
-        """POST TIMTEMSTALMP"""
-        return  super().create(request, *args, **kwargs)
+        """
+        Create a new timestamp with validation.
+        """
+        # Ensure the user has permission to add timestamps to this evaluation
+        evaluation_id = request.data.get('evaluation')
+        if evaluation_id:
+            try:
+                evaluation = Evaluation.objects.get(id=evaluation_id)
+                if not user_can_access_evaluation(request.user, evaluation):
+                    return Response(
+                        {"detail": "You do not have permission to add timestamps to this evaluation."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Evaluation.DoesNotExist:
+                return Response(
+                    {"detail": "Evaluation not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+        return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
+        """Update an existing timestamp with validation"""
+        instance = self.get_object()
+        # Check if user has permission to update this timestamp
+        if not user_can_access_evaluation(request.user, instance.evaluation):
+            return Response(
+                {"detail": "You do not have permission to access this evaluation."}, status=status.HTTP_403_FORBIDDEN
+            )
         return super().update(request, *args, **kwargs)
 #CRUD BELOW FOR EVALUATION (COPUS)----------------------------------------------
 #Create

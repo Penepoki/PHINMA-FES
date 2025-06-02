@@ -83,3 +83,30 @@ class ExpiredTokenAuthentication(TokenAuthentication):
             raise AuthenticationFailed("Token has expired. Please log in again.")
 
         return (token.user, token)
+
+
+# Permission check for evaluation access
+def user_can_access_evaluation(user, evaluation):
+    """Determines if a user has permission to access a specific evaluation.
+
+    Args:
+        user: The user requesting access
+        evaluation: The evaluation object to check access for
+
+    Returns:
+        bool: True if the user can access the evaluation, False otherwise
+    """
+    # HR, Dean, and Program Head can access all evaluations
+    if user.groups.filter(name__in=['HR', 'Dean', 'Program Head']).exists():
+        return True
+
+    # The evaluator of the evaluation can access it
+    if evaluation.evaluator == user:
+        return True
+
+    # If the evaluation has a schedule, check if the user is the instructor
+    if evaluation.schedule and evaluation.schedule.instructor == user:
+        return True
+
+    # Default: no access
+    return False

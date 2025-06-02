@@ -2,7 +2,6 @@
 
 
 
-
 """def format_evaluation(evaluation):
     return {
         'id': evaluation.id,
@@ -152,7 +151,5 @@ def get_latest_evaluation():
     except Evaluation.DoesNotExist:
         return {'error': 'No evaluations found'}
 #----------------------------------------------------------
-
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #END OF CRUD CODE"""
-
