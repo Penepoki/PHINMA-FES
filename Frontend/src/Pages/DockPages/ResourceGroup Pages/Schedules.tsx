@@ -4,7 +4,6 @@ import api from "../../../utils/api";
 import DataTable, {
 	Column,
 } from "../../../Components/Evaluation Components/Data Table";
-import { FunnelIcon } from "@heroicons/react/16/solid";
 // Assuming you have your generic DataTable component exported
 
 interface SchedulesProps {
@@ -439,26 +438,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
 					placeholder="Search by schedule name"
 					className="input input-bordered w-full max-w-xs"
 				/>
-				<div className="dropdown dropdown-end ml-2">
-					<div
-						tabIndex={0}
-						role="button"
-						className="btn border-0 bg-[#1c402a] text-white shadow-xl"
-					>
-						<FunnelIcon className="h-5 w-5" />
-					</div>
-					<ul
-						tabIndex={0}
-						className="dropdown-content menu bg-base-100 rounded-box z-10 w-52 p-2 shadow-sm"
-					>
-						<li>
-							<a href="#">Item 1</a>
-						</li>
-						<li>
-							<a href="#">Item 2</a>
-						</li>
-					</ul>
-				</div>
 			</div>
 			{/* New Schedule Modal */}
 			<dialog id="create_new_schedule" className="modal">

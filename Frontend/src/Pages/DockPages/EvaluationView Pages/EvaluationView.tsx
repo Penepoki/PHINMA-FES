@@ -47,6 +47,8 @@ function Evaluation({ setActiveView }: EvalProps) {
 		},
 	]);
 
+	const firstName = localStorage.getItem("firstName") || "User";
+
 	return (
 		<div className="custom-container gap-y-6">
 			<div className="breadcrumbs text-md text-white">
@@ -365,7 +367,9 @@ function Evaluation({ setActiveView }: EvalProps) {
 														<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 															<input
 																type="text"
-																placeholder="Observer Name"
+																value={
+																	firstName
+																}
 																className="input input-bordered w-full"
 															/>
 															<input

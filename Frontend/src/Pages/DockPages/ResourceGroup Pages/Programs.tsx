@@ -4,7 +4,6 @@ import api from "../../../utils/api";
 import DataTable, {
 	Column,
 } from "../../../Components/Evaluation Components/Data Table";
-import { FunnelIcon } from "@heroicons/react/16/solid";
 // Assuming you have your generic DataTable component exported
 
 interface ProgramProps {
@@ -95,13 +94,17 @@ function Programs({ setActiveView }: ProgramProps) {
 			await api.patch(`/program/programs/${program.id}/`, {
 				is_active: !program.is_active, // Send the toggled state
 			});
-			alert(`Program status updated to ${!program.is_active ? "Active" : "Inactive"}`);
+			alert(
+				`Program status updated to ${!program.is_active ? "Active" : "Inactive"}`,
+			);
 		} catch (error: any) {
-			console.error("Error updating program status:", error.response?.data || error.message);
+			console.error(
+				"Error updating program status:",
+				error.response?.data || error.message,
+			);
 			alert("Failed to update the program status. Please try again.");
-			}
+		}
 	};
-
 
 	const deleteProgram = async (programId: number) => {
 		try {
@@ -483,26 +486,6 @@ function Programs({ setActiveView }: ProgramProps) {
 					placeholder="Search by program name"
 					className="input input-bordered w-full max-w-xs"
 				/>
-				<div className="dropdown dropdown-end ml-2">
-					<div
-						tabIndex={0}
-						role="button"
-						className="btn border-0 bg-[#1c402a] text-white shadow-xl"
-					>
-						<FunnelIcon className="h-5 w-5" />
-					</div>
-					<ul
-						tabIndex={0}
-						className="dropdown-content menu bg-base-100 rounded-box z-10 w-52 p-2 shadow-sm"
-					>
-						<li>
-							<a href="#">Item 1</a>
-						</li>
-						<li>
-							<a href="#">Item 2</a>
-						</li>
-					</ul>
-				</div>
 			</div>
 			{/* New Program Modal */}
 			<dialog id="create_new_program" className="modal">
