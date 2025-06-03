@@ -89,9 +89,9 @@ class Evaluation(models.Model):
                                   help_text = "THE USER WHO IS CONDUCTING THE EVALUATION")
 
 
-    """ Use a constrained Single Instructor If Needed
+
     instructor = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True,
-                                   related_name='primary_evaluations')"""
+                                   related_name='primary_evaluations')
 
     constraints = [
         models.UniqueConstraint(fields=['schedule', 'observation_date', 'instructor'],

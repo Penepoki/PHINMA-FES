@@ -147,26 +147,26 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
   // Define the timestamp API functions
   const timestampApi = {
     createTimestamp: async (data: TimestampData) => {
-      const response = await api.post('/timestamps/', data);
+      const response = await api.post('/timestamp/timestamps/', data);
       return response.data;
     },
     updateTimestamp: async (id: number, data: Partial<TimestampData>) => {
-      const response = await api.patch(`/timestamps/${id}/`, data);
+      const response = await api.patch(`/timestamp/timestamps/${id}/`, data);
       return response.data;
     },
     getTimestamps: async (evaluationId: number) => {
-      const response = await api.get(`/timestamps/?evaluation=${evaluationId}`);
+      const response = await api.get(`/timestamp/timestamps/?evaluation=${evaluationId}`);
       return response.data;
     }
   };
   const checkTimeConstraints = async (evalId: number) => {
     try {
       // Get the evaluation to find its schedule
-      const evaluation = await api.get(`/api/evaluations/${evalId}/`);
+      const evaluation = await api.get(`/evaluation/evaluations/${evalId}/`);
       const scheduleId = evaluation.data.schedule;
 
       // Get the schedule
-      const scheduleData = await api.get(`/api/schedules/${scheduleId}/`);
+      const scheduleData = await api.get(`/schedule/schedules/${scheduleId}/`);
       setSchedule(scheduleData.data);
 
       // Check if current time is within schedule time
@@ -186,7 +186,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
 
       // Check if user has permission to edit outside schedule time
       try {
-        const permissionCheck = await api.get(`/api/evaluations/${evalId}/can-edit/`);
+        const permissionCheck = await api.get(`/api/evaluation/evaluations/${evalId}/can-edit/`);
         setCanEditEvaluation(permissionCheck.data.can_edit);
       } catch (error) {
         // If the endpoint doesn't exist, default to false

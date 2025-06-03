@@ -114,7 +114,6 @@ def user_view_profile(request):
 class TimestampViewSet(viewsets.ModelViewSet):
     queryset = Timestamp.objects.all()
     serializer_class = TimestampSerializer
-    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['evaluation']
 
@@ -195,7 +194,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     """
     queryset = Evaluation.objects.filter(deleted_at__isnull=True).select_related('schedule', 'evaluator')
     serializer_class = EvaluationSerializer
-    permission_classes = [IsAuthenticated, IsHR | IsDean | IsProgramHead]  # Ensure the user is authenticated
+    permission_classes = [IsAuthenticated]   #Ensure the user is authenticated
 
     def create(self, request, *args, **kwargs):
         """

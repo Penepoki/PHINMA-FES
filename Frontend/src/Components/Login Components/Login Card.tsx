@@ -3,7 +3,8 @@ import {
 	UserIcon,
 	LockClosedIcon,
 } from "@heroicons/react/24/outline";
-import axios, { AxiosError } from "axios";
+import api from "../../utils/api.ts";
+import { AxiosError } from "axios";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -29,8 +30,8 @@ function LoginCard() {
 	const handleLogin = async () => {
 		setIsLoading(true); // Start loading
 		try {
-			const response = await axios.post(
-				"http://127.0.0.1:8000/api/login/",
+			const response = await api.post(
+				"/login/",
 				{
 					username: identifier,
 					password,
@@ -72,8 +73,8 @@ function LoginCard() {
 				setError("Passwords do not match");
 				return;
 			}
-			const response = await axios.post(
-				"http://127.0.0.1:8000/api/signup/",
+			const response = await api.post(
+				"/signup/",
 				{
 					first_name,
 					last_name,
@@ -106,7 +107,7 @@ function LoginCard() {
 	const handleResetPassword = async () => {
 		setIsLoading(true); // Start loading
 		try {
-			await axios.post("http://127.0.0.1:8000/api/forgot-password/", {
+			await api.post("/forgot-password/", {
 				email,
 			});
 			setIsOtpSent(true); // switch to OTP input view
@@ -125,8 +126,8 @@ function LoginCard() {
 		}
 
 		try {
-			const response = await axios.post(
-				"http://127.0.0.1:8000/api/set-new-password/",
+			const response = await api.post(
+				"/set-new-password/",
 				{
 					email,
 					new_password: newPassword,
@@ -182,8 +183,8 @@ function LoginCard() {
 
 	const handleResendOtp = async () => {
 		try {
-			const response = await axios.post(
-				"http://127.0.0.1:8000/api/forgot-password/",
+			const response = await api.post(
+				"/forgot-password/",
 				{
 					email,
 				},
@@ -212,8 +213,8 @@ function LoginCard() {
 		setIsLoading(true); // Start loading
 
 		try {
-			const response = await axios.post(
-				"http://127.0.0.1:8000/api/verify-otp/",
+			const response = await api.post(
+				"/verify-otp/",
 				{
 					email,
 					otp: enteredOtp,

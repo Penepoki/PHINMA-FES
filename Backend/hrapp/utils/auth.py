@@ -105,8 +105,8 @@ def user_can_access_evaluation(user, evaluation):
         return True
 
     # If the evaluation has a schedule, check if the user is the instructor
-    if evaluation.schedule and evaluation.schedule.instructor == user:
-        return True
+    #if evaluation.schedule and evaluation.schedule.instructor == user:
+        #return True
 
     # Default: no access
     return False

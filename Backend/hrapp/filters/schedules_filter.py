@@ -40,4 +40,4 @@ class ScheduleFilter(filters.FilterSet):
 
     class Meta:
         model = Schedule
-        fields = ['name', 'section', 'is_active', 'start_time']
+        fields = ['id','name', 'section', 'is_active', 'start_time']
