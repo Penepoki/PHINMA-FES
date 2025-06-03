@@ -189,37 +189,40 @@ class TimestampViewSet(viewsets.ModelViewSet):
 #CRUD BELOW FOR EVALUATION (COPUS)----------------------------------------------
 #Create
 class EvaluationViewSet(viewsets.ModelViewSet):
-    """
-    A viewset for managing evaluations.
-    Includes soft delete, restore, and custom creation.
-    """
     queryset = Evaluation.objects.filter(deleted_at__isnull=True).select_related('schedule', 'evaluator')
     serializer_class = EvaluationSerializer
-    permission_classes = [IsAuthenticated]   #Ensure the user is authenticated
+    permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
-        """
-        Custom creation of an evaluation with the evaluator auto-set to the logged-in user.
-        """
-        data = request.data
-        data['evaluator'] = request.user.id
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        evaluation = serializer.save()
+        print("DEBUG: Received Evaluation Creation Request")
+        print("DEBUG: Request Data:", request.data)  # Print the incoming request data
 
-        # Bulk create 30 timestamp rows (every 2 minutes for 60 minutes)
-        timestamps = []
-        for i in range(30):
-            minute = 2 + i * 2
-            t = (datetime.combine(datetime.today(), time(0, 0)) + timedelta(minutes=minute)).time()
-            timestamps.append(Timestamp(evaluation=evaluation, time_record=t))
-        Timestamp.objects.bulk_create(timestamps)
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        if not serializer.is_valid():
+            print("DEBUG: Serializer Validation Errors:", serializer.errors)  # Print serializer validation errors
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(
-            {"message": "Evaluation created successfully", "data": serializer.data},
-            status=status.HTTP_201_CREATED,
-        )
+        try:
+            evaluation = serializer.save()
+            print("DEBUG: Successfully Saved Evaluation:", evaluation)  # Confirm successful creation
 
+            # Create the timestamps
+            timestamps = []
+            for i in range(30):
+                minute = 2 + i * 2
+                t = (datetime.combine(datetime.today(), time(0, 0)) + timedelta(minutes=minute)).time()
+                timestamps.append(Timestamp(evaluation=evaluation, time_record=t))
+            Timestamp.objects.bulk_create(timestamps)
+            print("DEBUG: Timestamps Created Successfully")  # Log timestamp creation
+
+            return Response(
+                {"message": "Evaluation created successfully", "data": serializer.data},
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            print("DEBUG: Exception Occurred During Creation:", str(e))  # Capture unexpected errors
+            return Response({"error": "An error occurred during evaluation creation."},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def destroy(self, request, *args, **kwargs):
         """Custom Soft Delete"""
@@ -674,3 +677,19 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+# USER VIEWS.
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_professors(request):
+    """Get all users with professor role"""
+    try:
+        # Filter users who belong to a group named 'professor'
+        professors = User.objects.filter(groups__name='professor')
+        serializer = UserProgramProfessorSerializer(professors, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

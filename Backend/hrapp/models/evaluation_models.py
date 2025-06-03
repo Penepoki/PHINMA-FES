@@ -103,11 +103,15 @@ class Evaluation(models.Model):
         return self.schedule.instructor if self.schedule else None
 
     def save(self, *args, **kwargs):
-        if not self.pk:
-            super().save(*args, **kwargs) # Save the obj to generate ID
+        # Check if this is a new object (no primary key yet)
+        is_new = not self.pk
 
-        instructor_name = str(self.professor) if self.professor else "No instructor"
-        self.name = f"{self.schedule.name} - {instructor_name} - {self.observation_date}"
+        # Set the name before saving
+        if self.schedule:
+            instructor_name = str(self.professor) if self.professor else "No instructor"
+            self.name = f"{self.schedule.name} - {instructor_name} - {self.observation_date}"
+
+        # Save only once
         super().save(*args, **kwargs)
 
     def get_duration(self):
@@ -226,6 +230,5 @@ class StudentEvaluationResponse(models.Model):
     def restore(self):
         self.deleted_at = None
         self.save()
-
 
 
