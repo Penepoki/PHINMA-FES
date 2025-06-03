@@ -124,3 +124,4 @@ class SectionAdmin(admin.ModelAdmin):
     def get_students(self, obj):
         return ", ".join([str(student) for student in obj.students.all()])
     get_students.short_description = 'Students'
+

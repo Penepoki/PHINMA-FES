@@ -21,6 +21,7 @@ from rest_framework.exceptions import ValidationError, PermissionDenied, NotFoun
 from django.shortcuts import get_object_or_404
 #from rest_framework.filter import Search
 import pandas as pd
+from datetime import datetime, timedelta, time
 
 
 
@@ -201,13 +202,18 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         Custom creation of an evaluation with the evaluator auto-set to the logged-in user.
         """
         data = request.data
-
-        # Automatically set the evaluator to the logged-in user
         data['evaluator'] = request.user.id
-
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         evaluation = serializer.save()
+
+        # Bulk create 30 timestamp rows (every 2 minutes for 60 minutes)
+        timestamps = []
+        for i in range(30):
+            minute = 2 + i * 2
+            t = (datetime.combine(datetime.today(), time(0, 0)) + timedelta(minutes=minute)).time()
+            timestamps.append(Timestamp(evaluation=evaluation, time_record=t))
+        Timestamp.objects.bulk_create(timestamps)
 
         return Response(
             {"message": "Evaluation created successfully", "data": serializer.data},
