@@ -160,17 +160,10 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
 				<input
 					type="text"
-					className="input w-full max-w-md rounded-lg border border-gray-300"
+					className="input w-full max-w-md border border-gray-300"
 					placeholder="Search"
 				/>
 				<div className="dropdown dropdown-end ml-2">
-					<div
-						tabIndex={0}
-						role="button"
-						className="btn border-0 bg-[#1c402a] text-white shadow-xl"
-					>
-						<FunnelIcon className="h-5 w-5" />
-					</div>
 					<ul
 						tabIndex={0}
 						className="dropdown-content menu bg-base-100 rounded-box z-10 w-52 p-2 shadow-sm"

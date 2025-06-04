@@ -12,6 +12,7 @@ interface Evaluation {
 	observation_date: string;
 	evaluation_type: string;
 	additional_comments?: string;
+	instructor?: string;
 }
 
 interface Schedule {
@@ -93,6 +94,8 @@ function Evaluation({ setActiveView }: EvalProps) {
 	  }
 	};
 
+
+
 	// Add this function to EvaluationView.tsx
 	const updateEvaluation = async (id: number, evaluationData: Partial<Evaluation>) => {
 	  try {
@@ -172,7 +175,9 @@ function Evaluation({ setActiveView }: EvalProps) {
 	const firstName = localStorage.getItem("firstName") || "User";
 
 	if (loading) return <div className="text-white">Loading...</div>;
-
+	console.log("Professors:", professors);
+	console.log("Evaluations:", evaluations);
+	console.log("Schedules:", schedules);
 	return (
 		<div className="custom-container gap-y-6">
 			<div className="breadcrumbs text-md text-white">
@@ -254,6 +259,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 
 			{/* Professors Table */}
 			<div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg">
+
 				<table className="table">
 					<thead className="bg-[#1c402a]/50 text-xl font-bold text-white shadow-xl">
 						<tr>
@@ -282,42 +288,23 @@ function Evaluation({ setActiveView }: EvalProps) {
 													e.stopPropagation()
 												}
 											>
-												{profEvaluations.map(
-													(evaluation, evalIndex) => (
-														<label
-															key={evaluation.id}
-															className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300"
-														>
-															<input
-																name={`copus-${prof.id}`}
-																className="hidden"
-																onClick={() => {
-																	setModalOpen(
-																		`copus-${evaluation.id}`,
-																	);
-																	setSelectedEvaluation(
-																		evaluation,
-																	);
-																	setSelectedProfessor(
-																		prof,
-																	);
-																	setSelectedSchedule(
-																		profSchedules.find(
-																			(
-																				s,
-																			) =>
-																				s.id ===
-																				evaluation.schedule,
-																		) ||
-																			null,
-																	);
-																}}
-															/>
-															Copus{" "}
-															{evalIndex + 1}
-														</label>
-													),
-												)}
+												{profEvaluations.map((evaluation, evalIndex) => (
+												  <label
+													key={evaluation.id}
+													className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300"
+												  >
+													<button
+													  key={evaluation.id}
+													  onClick={() => {
+														setSelectedEvaluation(evaluation); // Set the currently selected evaluation
+														setModalOpen("copus-matrix");     // Open the modal containing CopusMatrix
+													  }}
+													  className="rounded bg-[#2c503a] px-5 py-2 text-white hover:bg-[#1c402a]"
+													>
+													  Evaluate
+													</button>
+												  </label>
+												))}
 											</div>
 											<div className="collapse-content flex bg-black/20 text-lg">
 												<div className="flex h-full w-full flex-col justify-center">
@@ -409,29 +396,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 																)}
 															</tbody>
 														</table>
-														{profEvaluations.length >
-															0 && (
-															<div className="mt-6 flex flex-col items-center justify-center gap-6 md:flex-row">
-																<PieChartWithTable
-																	studentTallies={
-																		evaluationTallies[
-																			profEvaluations[0]
-																				.id
-																		]
-																			?.studentTallies ||
-																		{}
-																	}
-																	teacherTallies={
-																		evaluationTallies[
-																			profEvaluations[0]
-																				.id
-																		]
-																			?.teacherTallies ||
-																		{}
-																	}
-																/>
-															</div>
-														)}
 													</div>
 												</div>
 											</div>
@@ -646,6 +610,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 								}));
 							}}
 							evaluationId={selectedEvaluation.id}
+
 						/>
 
 						{/* COPUS Summary Chart */}
@@ -696,6 +661,53 @@ function Evaluation({ setActiveView }: EvalProps) {
 					</div>
 				</dialog>
 			)}
+						{modalOpen === "copus-matrix" && selectedEvaluation && (
+			  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+				<div className="relative w-full max-w-4xl p-6 bg-white rounded-md shadow-xl">
+				  <button
+					onClick={() => setModalOpen(null)}
+					className="absolute top-4 right-4 text-gray-700 hover:text-gray-900"
+				  >
+					✖
+				  </button>
+				  <h2 className="mb-4 text-2xl font-semibold text-gray-800">
+					Evaluation: {selectedEvaluation.evaluation_type} -{" "}
+					{selectedEvaluation.observation_date}
+				  </h2>
+				  <CopusMatrix
+					onTalliesUpdate={(studentTallies, teacherTallies) => {
+					  console.log("Updated Tallies:", studentTallies, teacherTallies);
+					}}
+					// Pass the selected evaluation's ID to CopusMatrix
+				  />
+
+				  {/* Patch All Timestamps Button */}
+				  <button
+					className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+					onClick={async () => {
+					  // Example: Patch all timestamp data for the selected evaluation
+					  if (!selectedEvaluation) return;
+					  try {
+						// TODO: Replace with actual fetch of timestamp data related to the evaluation
+						const response = await api.get(`/evaluation/timestamps/?evaluation_id=${selectedEvaluation.id}`);
+						const timestamps = response.data; // Adjust if your API returns differently
+						for (const ts of timestamps) {
+						  // TODO: Replace with actual data to patch
+						  await api.put(`/evaluation/timestamps/${ts.id}/`, { ...ts, patched: true });
+						}
+						alert('All timestamps patched successfully!');
+					  } catch (err) {
+						console.error('Error patching timestamps:', err);
+						alert('Failed to patch timestamps.');
+					  }
+					}}
+				  >
+					Patch All Timestamps
+				  </button>
+				</div>
+			  </div>
+			)}
+
 		</div>
 	);
 }

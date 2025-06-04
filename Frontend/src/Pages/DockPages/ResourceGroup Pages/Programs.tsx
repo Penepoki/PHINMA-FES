@@ -484,7 +484,7 @@ function Programs({ setActiveView }: ProgramProps) {
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
 					placeholder="Search by program name"
-					className="input input-bordered w-full max-w-xs"
+					className="input input-bordered w-full max-w-md"
 				/>
 			</div>
 			{/* New Program Modal */}

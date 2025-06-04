@@ -436,7 +436,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
 					placeholder="Search by schedule name"
-					className="input input-bordered w-full max-w-xs"
+					className="input input-bordered w-full max-w-md"
 				/>
 			</div>
 			{/* New Schedule Modal */}

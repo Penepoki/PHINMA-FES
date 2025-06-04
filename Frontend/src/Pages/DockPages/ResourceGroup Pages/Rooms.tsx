@@ -359,7 +359,7 @@ function Rooms({ setActiveView }: RoomsProps) {
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
 					placeholder="Search by room name"
-					className="input input-bordered w-full max-w-xs"
+					className="input input-bordered w-full max-w-md"
 				/>
 			</div>
 			{/* New Room Modal */}

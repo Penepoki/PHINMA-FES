@@ -30,13 +30,10 @@ function LoginCard() {
 	const handleLogin = async () => {
 		setIsLoading(true); // Start loading
 		try {
-			const response = await api.post(
-				"/login/",
-				{
-					username: identifier,
-					password,
-				},
-			);
+			const response = await api.post("/login/", {
+				username: identifier,
+				password,
+			});
 			if (response.data.token) {
 				const userRole = response.data.roles[0];
 				localStorage.setItem("token", response.data.token);
@@ -73,16 +70,13 @@ function LoginCard() {
 				setError("Passwords do not match");
 				return;
 			}
-			const response = await api.post(
-				"/signup/",
-				{
-					first_name,
-					last_name,
-					username,
-					password,
-					email,
-				},
-			);
+			const response = await api.post("/signup/", {
+				first_name,
+				last_name,
+				username,
+				password,
+				email,
+			});
 
 			if (response.data.token) {
 				localStorage.setItem("token", response.data.token);
@@ -126,13 +120,10 @@ function LoginCard() {
 		}
 
 		try {
-			const response = await api.post(
-				"/set-new-password/",
-				{
-					email,
-					new_password: newPassword,
-				},
-			);
+			const response = await api.post("/set-new-password/", {
+				email,
+				new_password: newPassword,
+			});
 
 			if (response.data.message === "password reset successful") {
 				setError("");
@@ -183,12 +174,9 @@ function LoginCard() {
 
 	const handleResendOtp = async () => {
 		try {
-			const response = await api.post(
-				"/forgot-password/",
-				{
-					email,
-				},
-			);
+			const response = await api.post("/forgot-password/", {
+				email,
+			});
 			if (response.data[0] === "OTP sent successfully") {
 				setError("");
 				alert("OTP resent!");
@@ -213,13 +201,10 @@ function LoginCard() {
 		setIsLoading(true); // Start loading
 
 		try {
-			const response = await api.post(
-				"/verify-otp/",
-				{
-					email,
-					otp: enteredOtp,
-				},
-			);
+			const response = await api.post("/verify-otp/", {
+				email,
+				otp: enteredOtp,
+			});
 			if (response.data.message === "OTP verified") {
 				setIsOtpVerified(true);
 				setError("");

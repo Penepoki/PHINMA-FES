@@ -11,7 +11,7 @@ interface StudentEvalProps {
 
 function StudentEvaluation({ setActiveView }: StudentEvalProps) {
 	return (
-		<div className="custom-container">
+		<div className="custom-container gap-y-6">
 			<div className="breadcrumbs">
 				<ul>
 					<li>

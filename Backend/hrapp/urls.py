@@ -56,6 +56,7 @@ urlpatterns = [
     path('verify-otp/', verify_otp_view),
 
     path('set-new-password/', set_new_password_view),
+
     path('users/professors/', get_professors, name='get-professors'),
 
 ]
