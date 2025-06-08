@@ -420,58 +420,66 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 	};
 
 	// Your existing calculateTallies function
-	const calculateTallies = () => {
-		let totalStudentSelections = 0;
-		let totalTeacherSelections = 0;
-		const newStudentTallies: { [key: string]: ActivityData } = {};
-		const newTeacherTallies: { [key: string]: ActivityData } = {};
+			const calculateTallies = () => {
+			let totalStudentSelections = 0;
+			let totalTeacherSelections = 0;
+			const newStudentTallies: { [key: string]: ActivityData } = {};
+			const newTeacherTallies: { [key: string]: ActivityData } = {};
 
-		// Initialize all options
-		studentOptions.forEach((option) => {
-			newStudentTallies[option] = { count: 0, percentage: 0 };
-		});
-
-		teacherOptions.forEach((option) => {
-			newTeacherTallies[option] = { count: 0, percentage: 0 };
-		});
-
-		// Count all selections
-		Object.values(selectionsByMinute).forEach((selection) => {
-			selection.student.forEach((activity) => {
-				newStudentTallies[activity].count++;
-				totalStudentSelections++;
-			});
-
-			selection.teacher.forEach((activity) => {
-				newTeacherTallies[activity].count++;
-				totalTeacherSelections++;
-			});
-		});
-
-		// Calculate percentages
-		if (totalStudentSelections > 0) {
+			// Initialize all options
 			studentOptions.forEach((option) => {
-				newStudentTallies[option].percentage =
-					(newStudentTallies[option].count / totalStudentSelections) *
-					100;
+				newStudentTallies[option] = { count: 0, percentage: 0 };
 			});
-		}
 
-		if (totalTeacherSelections > 0) {
 			teacherOptions.forEach((option) => {
-				newTeacherTallies[option].percentage =
-					(newTeacherTallies[option].count / totalTeacherSelections) *
-					100;
+				newTeacherTallies[option] = { count: 0, percentage: 0 };
 			});
-		}
 
-		setStudentTallies(newStudentTallies);
-		setTeacherTallies(newTeacherTallies);
+			// Count all selections
+			Object.values(selectionsByMinute).forEach((selection) => {
+				selection.student.forEach((activity) => {
+					const displayName = Object.keys(studentActivityMap).find(
+						key => studentActivityMap[key] === activity
+					) || activity;
+					if (newStudentTallies[displayName]) {
+						newStudentTallies[displayName].count++;
+						totalStudentSelections++;
+					}
+				});
 
-		if (onTalliesUpdate) {
-			onTalliesUpdate(newStudentTallies, newTeacherTallies);
-		}
-	};
+				selection.teacher.forEach((activity) => {
+					const displayName = Object.keys(teacherActivityMap).find(
+						key => teacherActivityMap[key] === activity
+					) || activity;
+					if (newTeacherTallies[displayName]) {
+						newTeacherTallies[displayName].count++;
+						totalTeacherSelections++;
+					}
+				});
+			}); // <-- This closing brace was missing
+
+			// Calculate percentages
+			if (totalStudentSelections > 0) {
+				studentOptions.forEach((option) => {
+					newStudentTallies[option].percentage =
+						(newStudentTallies[option].count / totalStudentSelections) * 100;
+				});
+			}
+
+			if (totalTeacherSelections > 0) {
+				teacherOptions.forEach((option) => {
+					newTeacherTallies[option].percentage =
+						(newTeacherTallies[option].count / totalTeacherSelections) * 100;
+				});
+			}
+
+			setStudentTallies(newStudentTallies);
+			setTeacherTallies(newTeacherTallies);
+
+			if (onTalliesUpdate) {
+				onTalliesUpdate(newStudentTallies, newTeacherTallies);
+			}
+		};
 
 	useEffect(() => {
 		calculateTallies();
