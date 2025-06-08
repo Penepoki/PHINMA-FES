@@ -33,7 +33,7 @@ function LoginCard() {
 			const response = await api.post("/login/", {
 				username: identifier,
 				password,
-			});
+			}, { skipAuth: true });
 			if (response.data.token) {
 				const userRole = response.data.roles[0];
 				localStorage.setItem("token", response.data.token);

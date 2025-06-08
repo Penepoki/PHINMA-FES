@@ -7,14 +7,18 @@ const api = axios.create({
 	},
 });
 api.interceptors.request.use(
-	(config) => {
-		const token = localStorage.getItem("token");
-		if (token) {
-			config.headers.Authorization = `Token ${token}`; // <-- Use Token, not Bearer
-		}
-		return config;
-	},
-	(error) => Promise.reject(error),
+  (config) => {
+    // If skipAuth is set, do not add the Authorization header
+    if (config.skipAuth) {
+      return config;
+    }
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Token ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
 export default api;

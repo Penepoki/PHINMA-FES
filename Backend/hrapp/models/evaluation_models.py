@@ -78,7 +78,6 @@ class Evaluation(models.Model):
     observation_date = models.DateField()
     evaluation_type = models.CharField(default=list,max_length=20)
     additional_comments = models.TextField(blank=True, null=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)

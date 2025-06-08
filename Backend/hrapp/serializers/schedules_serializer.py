@@ -158,7 +158,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
     )
     class Meta:
         model = Schedule
-        fields = ['id','section_name', 'subject_name', 'room_name', 'program_name', 'name' ,'start_time','end_time', 'semester']
+        fields = ['id','section_name', 'subject_name', 'instructor','room_name', 'program_name', 'name' ,'start_time','end_time', 'semester']
         read_only_fields = ['deleted_at', 'created_at', 'updated_at']
 
     def validate_start_time(self, value):

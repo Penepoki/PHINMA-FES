@@ -38,6 +38,7 @@ export type ActivityData = {
 };
 
 interface CopusMatrixProps {
+	evaluationId: number;
 	onTalliesUpdate?: (
 		studentTallies: Record<string, ActivityData>,
 		teacherTallies: Record<string, ActivityData>,
@@ -54,7 +55,7 @@ interface TimestampData {
 	time_record: string;
 }
 
-const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
+const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate }) => {
 	const MIN_MINUTE = 2;
 	const MAX_MINUTE = 60;
 	const INCREMENT = 2;
@@ -71,7 +72,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
 	const [startTime, setStartTime] = useState<Date | null>(null);
 	const [elapsedTime, setElapsedTime] = useState<string>("00");
 	const [isTimerStarted, setIsTimerStarted] = useState(false);
-	const [evaluationId, setEvaluationId] = useState<number | null>(null);
+	// evaluationId is now a prop, not local state
 	const [activeMinute, setActiveMinute] = useState<number>(0);
 	const [countdown, setCountdown] = useState<number>(120);
 	const [navigationDisabled, setNavigationDisabled] = useState(true);
@@ -628,32 +629,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ onTalliesUpdate }) => {
 			const startTimeValue = new Date();
 			setStartTime(startTimeValue);
 			setIsTimerStarted(true);
-
-			try {
-				// Create a new evaluation if we don't have one
-				if (!evaluationId) {
-					const response = await api.post("/evaluations/", {
-						schedule: 1, // You might want to make this configurable
-						observation_date: startTimeValue
-							.toISOString()
-							.split("T")[0],
-						evaluation_type: "copus_1", // You might want to make this configurable
-					});
-
-					setEvaluationId(response.data.id);
-
-					// Check time constraints for the new evaluation
-					await checkTimeConstraints(response.data.id);
-				}
-			} catch (error) {
-				console.error("Failed to start evaluation", error);
-				// Optionally reset the timer state if evaluation creation fails
-				setIsTimerStarted(false);
-				setStartTime(null);
-
-				// Show an error message to the user
-				alert("Failed to start evaluation. Please try again.");
-			}
+			// No need to create evaluation here, evaluationId is always provided as a prop
 		}
 	};
 

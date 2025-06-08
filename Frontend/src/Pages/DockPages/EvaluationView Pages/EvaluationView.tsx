@@ -5,7 +5,6 @@ import api from "../../../utils/api";
 import { ActivityData } from "../../../Components/Evaluation Components/Copus Matrix";
 import CreateEvaluationForm from '../../../Components/Evaluation Components/CreateEvaluationForm';
 
-
 interface Evaluation {
 	id: number;
 	schedule: number;
@@ -50,11 +49,6 @@ interface EvalProps {
 	setActiveView: (view: string) => void;
 }
 
-interface CreateEvaluationProps {
-  onSuccess: (evaluation: any) => void;
-  schedules: Schedule[];
-}
-
 function Evaluation({ setActiveView }: EvalProps) {
 	const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
 	const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -81,11 +75,11 @@ function Evaluation({ setActiveView }: EvalProps) {
 	const [searchSchedule, setSearchSchedule] = useState("");
 	const [searchSemester, setSearchSemester] = useState("");
 	const [showCreateForm, setShowCreateForm] = useState(false);
-		// Add this function to EvaluationView.tsx
+	const [error, setError] = useState<string | null>(null);
+
 	const createEvaluation = async (evaluationData: Partial<Evaluation>) => {
 	  try {
 		const response = await api.post('/evaluation/evaluations/', evaluationData);
-		// Add the new evaluation to the state
 		setEvaluations([...evaluations, response.data.data]);
 		return response.data.data;
 	  } catch (error) {
@@ -94,17 +88,12 @@ function Evaluation({ setActiveView }: EvalProps) {
 	  }
 	};
 
-
-
-	// Add this function to EvaluationView.tsx
 	const updateEvaluation = async (id: number, evaluationData: Partial<Evaluation>) => {
 	  try {
 		const response = await api.put(`/evaluation/evaluations/${id}/`, evaluationData);
-		// Update the evaluation in the state
 		setEvaluations(evaluations.map(evaluation =>
 		  evaluation.id === id ? { ...evaluation, ...response.data } : evaluation
 		));
-
 		return response.data;
 	  } catch (error) {
 		console.error('Error updating evaluation:', error);
@@ -112,11 +101,9 @@ function Evaluation({ setActiveView }: EvalProps) {
 	  }
 	};
 
-		// Add this function to EvaluationView.tsx
 	const deleteEvaluation = async (id: number) => {
 	  try {
 		await api.delete(`/evaluation/evaluations/${id}/`);
-		// Remove the evaluation from the state
 		setEvaluations(evaluations.filter(evaluation => evaluation.id !== id));
 	  } catch (error) {
 		console.error('Error deleting evaluation:', error);
@@ -124,7 +111,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 	  }
 	};
 
-		// Enhance your existing useEffect in EvaluationView.tsx
 	useEffect(() => {
 	  async function fetchData() {
 		setLoading(true);
@@ -141,7 +127,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 		  setProgramProfessors(progProfRes.data);
 		} catch (err) {
 		  console.error("Error fetching data:", err);
-		  // Add error state handling here
 		  setError("Failed to load data. Please try again later.");
 		} finally {
 		  setLoading(false);
@@ -150,14 +135,12 @@ function Evaluation({ setActiveView }: EvalProps) {
 	  fetchData();
 	}, []);
 
-	// Group by professor
 	const professors = Array.from(
 		new Map(
 			programProfessors.map((pp) => [pp.professor, pp.professor_details]),
 		).values(),
 	);
 
-	// For each professor, get their schedules and evaluations
 	const getProfessorSchedules = (prof: Professor) =>
 		schedules.filter((s) => s.instructor === prof.id);
 	const getProfessorEvaluations = (prof: Professor) => {
@@ -165,7 +148,17 @@ function Evaluation({ setActiveView }: EvalProps) {
 		return evaluations.filter((e) => profSchedules.includes(e.schedule));
 	};
 
-	// Filter professors based on search
+	const COPUS_TYPE_CHOICES = [
+	  { value: "copus_1", label: "COPUS 1" },
+	  { value: "copus_2", label: "COPUS 2" },
+	  { value: "copus_3", label: "COPUS 3" },
+	];
+
+	const getEvaluationByType = (prof: Professor, copusType: string) => {
+	  const profEvals = getProfessorEvaluations(prof);
+	  return profEvals.find(e => e.evaluation_type === copusType);
+	};
+
 	const filteredProfessors = professors.filter((prof) =>
 		`${prof.first_name} ${prof.last_name}`
 			.toLowerCase()
@@ -175,9 +168,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 	const firstName = localStorage.getItem("firstName") || "User";
 
 	if (loading) return <div className="text-white">Loading...</div>;
-	console.log("Professors:", professors);
-	console.log("Evaluations:", evaluations);
-	console.log("Schedules:", schedules);
 	return (
 		<div className="custom-container gap-y-6">
 			<div className="breadcrumbs text-md text-white">
@@ -288,23 +278,75 @@ function Evaluation({ setActiveView }: EvalProps) {
 													e.stopPropagation()
 												}
 											>
-												{profEvaluations.map((evaluation, evalIndex) => (
-												  <label
-													key={evaluation.id}
-													className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300"
-												  >
-													<button
-													  key={evaluation.id}
-													  onClick={() => {
-														setSelectedEvaluation(evaluation); // Set the currently selected evaluation
-														setModalOpen("copus-matrix");     // Open the modal containing CopusMatrix
-													  }}
-													  className="rounded bg-[#2c503a] px-5 py-2 text-white hover:bg-[#1c402a]"
-													>
-													  Evaluate
-													</button>
-												  </label>
-												))}
+												{/* COPUS Type Buttons */}
+{(() => {
+  // Find the first missing COPUS type for this professor
+  const firstMissingType = COPUS_TYPE_CHOICES.find(
+    copus => !getEvaluationByType(prof, copus.value)
+  );
+  return COPUS_TYPE_CHOICES.map((copus) => {
+    const evalForType = getEvaluationByType(prof, copus.value);
+    if (evalForType) {
+      // Show Edit button for existing evaluation
+      return (
+        <label
+          key={copus.value}
+          className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300 mx-1"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedEvaluation(evalForType);
+              setSelectedProfessor(prof);
+              setModalOpen("copus-matrix");
+            }}
+            className="rounded px-5 py-2 text-white bg-[#2c503a] hover:bg-[#1c402a]"
+          >
+            {`Edit ${copus.label}`}
+          </button>
+        </label>
+      );
+    } else if (copus.value === firstMissingType?.value) {
+      // Show only one New button for the first missing type
+      return (
+        <label
+          key={copus.value}
+          className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300 mx-1"
+        >
+          <button
+            type="button"
+            onClick={async () => {
+              const profSchedules = getProfessorSchedules(prof);
+              if (profSchedules.length === 0) {
+                alert("No schedule found for this professor.");
+                return;
+              }
+              const newEvalData = {
+                schedule: profSchedules[0].id,
+                observation_date: new Date().toISOString().split('T')[0],
+                evaluation_type: copus.value,
+                instructor: prof.id,
+              };
+              try {
+                const created = await createEvaluation(newEvalData);
+                setSelectedEvaluation(created);
+                setSelectedProfessor(prof);
+                setModalOpen("copus-matrix");
+              } catch (err) {
+                alert("Failed to create evaluation.");
+              }
+            }}
+            className="rounded px-5 py-2 text-white bg-blue-600 hover:bg-blue-700"
+          >
+            {`New ${copus.label}`}
+          </button>
+        </label>
+      );
+    }
+    // Otherwise, don't show a button
+    return null;
+  });
+})()}
 											</div>
 											<div className="collapse-content flex bg-black/20 text-lg">
 												<div className="flex h-full w-full flex-col justify-center">
@@ -316,41 +358,23 @@ function Evaluation({ setActiveView }: EvalProps) {
 														</div>
 														<div className="ml-6 flex w-full flex-col justify-center border-b-2 border-gray-300">
 															<div>
-																Department:{" "}
+																Department: {" "}
 																<strong>
-																	{prof.department ||
-																		"N/A"}
+																	{prof.department || "N/A"}
 																</strong>
 															</div>
-															{profSchedules.length >
-																0 && (
+															{profSchedules.length > 0 && (
 																<>
 																	<div>
-																		Room and
-																		Subject:{" "}
+																		Room and Subject: {" "}
 																		<strong>
-																			{
-																				profSchedules[0]
-																					.room
-																			}{" "}
-																			{
-																				profSchedules[0]
-																					.subject
-																			}
+																			{profSchedules[0].room} {profSchedules[0].subject}
 																		</strong>
 																	</div>
 																	<div>
-																		Year and
-																		Semester:{" "}
+																		Year and Semester: {" "}
 																		<strong>
-																			{
-																				profSchedules[0]
-																					.year
-																			}{" "}
-																			{
-																				profSchedules[0]
-																					.semester
-																			}
+																			{profSchedules[0].year} {profSchedules[0].semester}
 																		</strong>
 																	</div>
 																</>
@@ -361,39 +385,17 @@ function Evaluation({ setActiveView }: EvalProps) {
 														<table className="table w-full border-b-2 border-gray-300">
 															<thead className="text-gray-300">
 																<tr>
-																	<th>
-																		Evaluated
-																		Subject
-																	</th>
-																	<th>
-																		Schedule
-																	</th>
+																	<th>Evaluated Subject</th>
+																	<th>Schedule</th>
 																</tr>
 															</thead>
 															<tbody>
-																{profSchedules.map(
-																	(
-																		schedule,
-																		schedIndex,
-																	) => (
-																		<tr
-																			key={
-																				schedIndex
-																			}
-																		>
-																			<td>
-																				{
-																					schedule.subject
-																				}
-																			</td>
-																			<td>
-																				{
-																					schedule.name
-																				}
-																			</td>
-																		</tr>
-																	),
-																)}
+																{profSchedules.map((schedule, schedIndex) => (
+																	<tr key={schedIndex}>
+																		<td>{schedule.subject}</td>
+																		<td>{schedule.name}</td>
+																	</tr>
+																))}
 															</tbody>
 														</table>
 													</div>
@@ -408,31 +410,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 				</table>
 			</div>
 
-						{showCreateForm ? (
-			  <div className="p-4 bg-white rounded shadow">
-				<CreateEvaluationForm
-				  onSuccess={(newEvaluation) => {
-					setEvaluations([...evaluations, newEvaluation]);
-					setShowCreateForm(false);
-				  }}
-				  schedules={schedules}
-				/>
-				<button
-				  className="mt-2 text-gray-500"
-				  onClick={() => setShowCreateForm(false)}
-				>
-				  Cancel
-				</button>
-			  </div>
-			) : (
-			  <button
-				className="px-4 py-2 bg-[#1c402a] text-white rounded hover:bg-[#2a5e3e]"
-				onClick={() => setShowCreateForm(true)}
-			  >
-				Create New Evaluation
-			  </button>
-			)}
-
 			{/* Create New Copus Modal */}
 			{modalOpen === "create-new-copus" && (
 				<dialog open className="modal">
@@ -440,101 +417,22 @@ function Evaluation({ setActiveView }: EvalProps) {
 						<h3 className="mb-4 text-center text-2xl font-bold">
 							New Copus
 						</h3>
-						<form method="dialog" className="flex flex-col gap-6">
-							{/* Professor Dropdown */}
-							<div className="flex flex-col gap-2 md:flex-row md:items-center">
-								<label className="text-left text-lg font-bold md:w-1/4">
-									Professor:
-								</label>
-								<select
-									className="input input-bordered w-full"
-									required
-									onChange={(e) => {
-										const prof = professors.find(
-											(p) =>
-												p.id === Number(e.target.value),
-										);
-										setSelectedProfessor(prof || null);
-									}}
-								>
-									<option value="">Select professor</option>
-									{professors.map((prof) => (
-										<option key={prof.id} value={prof.id}>
-											{prof.first_name} {prof.last_name}
-										</option>
-									))}
-								</select>
-							</div>
-
-							{/* Schedule Dropdown */}
-							<div className="flex flex-col gap-2 md:flex-row md:items-center">
-								<label className="text-left text-lg font-bold md:w-1/4">
-									Schedule:
-								</label>
-								<select
-									className="input input-bordered w-full"
-									required
-									disabled={!selectedProfessor}
-									onChange={(e) => {
-										const sched = schedules.find(
-											(s) =>
-												s.id === Number(e.target.value),
-										);
-										setSelectedSchedule(sched || null);
-									}}
-								>
-									<option value="">Select schedule</option>
-									{selectedProfessor &&
-										getProfessorSchedules(
-											selectedProfessor,
-										).map((s) => (
-											<option key={s.id} value={s.id}>
-												{s.name} - {s.room} {s.subject}
-											</option>
-										))}
-								</select>
-							</div>
-
-							{/* Date */}
-							<div className="flex flex-col gap-2 md:flex-row md:items-center">
-								<label className="text-left text-lg font-bold md:w-1/4">
-									Observation Date:
-								</label>
-								<input
-									type="date"
-									className="input input-bordered w-full"
-									required
-								/>
-							</div>
-
-							{/* Evaluation Type */}
-							<div className="flex flex-col gap-2 md:flex-row md:items-center">
-								<label className="text-left text-lg font-bold md:w-1/4">
-									Evaluation Type:
-								</label>
-								<input
-									type="text"
-									className="input input-bordered w-full"
-									required
-								/>
-							</div>
-
-							<div className="modal-action">
-								<button
-									type="submit"
-									className="btn btn-success text-white"
-								>
-									Submit
-								</button>
-								<button
-									type="button"
-									className="btn btn-cancel"
-									onClick={() => setModalOpen(null)}
-								>
-									Cancel
-								</button>
-							</div>
-						</form>
+						<CreateEvaluationForm
+						  onSuccess={(newEvaluation) => {
+							setEvaluations([...evaluations, newEvaluation]);
+							setModalOpen(null);
+						  }}
+						  schedules={schedules}
+						/>
+						<div className="modal-action">
+							<button
+								type="button"
+								className="btn btn-cancel"
+								onClick={() => setModalOpen(null)}
+							>
+								Cancel
+							</button>
+						</div>
 					</div>
 				</dialog>
 			)}
@@ -544,8 +442,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 				<dialog open className="modal">
 					<div className="modal-box w-11/12 max-w-5xl text-black">
 						<h3 className="mb-4 text-xl font-bold">
-							{selectedProfessor.first_name}{" "}
-							{selectedProfessor.last_name} - COPUS Evaluation
+							{selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Evaluation
 						</h3>
 
 						{/* Basic Information */}
@@ -564,9 +461,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 									/>
 									<input
 										type="date"
-										value={
-											selectedEvaluation.observation_date
-										}
+										value={selectedEvaluation.observation_date}
 										className="input input-bordered w-full"
 										readOnly
 									/>
@@ -622,7 +517,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 								}
 								teacherTallies={
 									evaluationTallies[selectedEvaluation.id]
-										?.teacherTallies || {}
+									?.teacherTallies || {}
 								}
 							/>
 						</div>
@@ -661,7 +556,8 @@ function Evaluation({ setActiveView }: EvalProps) {
 					</div>
 				</dialog>
 			)}
-						{modalOpen === "copus-matrix" && selectedEvaluation && (
+
+			{modalOpen === "copus-matrix" && selectedEvaluation && (
 			  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
 				<div className="relative w-full max-w-4xl p-6 bg-white rounded-md shadow-xl">
 				  <button
@@ -671,7 +567,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 					✖
 				  </button>
 				  <h2 className="mb-4 text-2xl font-semibold text-gray-800">
-					Evaluation: {selectedEvaluation.evaluation_type} -{" "}
+					Evaluation: {selectedEvaluation.evaluation_type} - {" "}
 					{selectedEvaluation.observation_date}
 				  </h2>
 				  <CopusMatrix
@@ -685,14 +581,11 @@ function Evaluation({ setActiveView }: EvalProps) {
 				  <button
 					className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
 					onClick={async () => {
-					  // Example: Patch all timestamp data for the selected evaluation
 					  if (!selectedEvaluation) return;
 					  try {
-						// TODO: Replace with actual fetch of timestamp data related to the evaluation
 						const response = await api.get(`/evaluation/timestamps/?evaluation_id=${selectedEvaluation.id}`);
-						const timestamps = response.data; // Adjust if your API returns differently
+						const timestamps = response.data;
 						for (const ts of timestamps) {
-						  // TODO: Replace with actual data to patch
 						  await api.put(`/evaluation/timestamps/${ts.id}/`, { ...ts, patched: true });
 						}
 						alert('All timestamps patched successfully!');
