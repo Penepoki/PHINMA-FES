@@ -22,6 +22,7 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({ onSuccess, sche
   });
   const [loading, setLoading] = useState(false);
   const [instructors, setInstructors] = useState<User[]>([]);
+  const [selectedInstructor, setSelectedInstructor] = useState<User | null>(null);
   const [error, setError] = useState('');
 
  // Fetch instructors when component mounts
@@ -39,9 +40,35 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({ onSuccess, sche
     fetchInstructors();
   }, []);
 
+  // When schedule changes, update instructor to match the schedule's instructor
+  useEffect(() => {
+    if (formData.schedule) {
+      const selectedSchedule = schedules.find(s => String(s.id) === formData.schedule);
+      if (selectedSchedule) {
+        const instructor = instructors.find(i => i.id === selectedSchedule.instructor);
+        setFormData(f => ({ ...f, instructor: selectedSchedule.instructor ? String(selectedSchedule.instructor) : '' }));
+        setSelectedInstructor(instructor || null);
+      } else {
+        setSelectedInstructor(null);
+      }
+    } else {
+      setSelectedInstructor(null);
+    }
+  }, [formData.schedule, instructors, schedules]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    if (name === "schedule") {
+      // Find the selected schedule and set the instructor to match
+      const selectedSchedule = schedules.find(s => String(s.id) === value);
+      setFormData({
+        ...formData,
+        schedule: value,
+        instructor: selectedSchedule ? String(selectedSchedule.instructor) : '',
+      });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,22 +119,15 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({ onSuccess, sche
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Instructor</label>
-                <select
+        <input
+          type="text"
           name="instructor"
-          value={formData.instructor}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-        >
-          <option value="">Select an instructor (optional)</option>
-          {instructors.map((instructor) => (
-            <option key={instructor.id} value={instructor.id}>
-              {instructor.first_name} {instructor.last_name}
-            </option>
-          ))}
-        </select>
-
+          value={selectedInstructor ? `${selectedInstructor.first_name} ${selectedInstructor.last_name}` : ''}
+          readOnly
+          className="mt-1 block w-full rounded-md border border-gray-300 p-2 bg-gray-100 cursor-not-allowed"
+        />
         <p className="text-xs text-gray-500 mt-1">
-          If not selected, the schedule's instructor will be used
+          Instructor is automatically set based on the selected schedule.
         </p>
       </div>
 
