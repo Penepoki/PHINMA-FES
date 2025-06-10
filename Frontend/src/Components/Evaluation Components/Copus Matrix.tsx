@@ -106,13 +106,13 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 		(_, index) => MIN_MINUTE + index * INCREMENT,
 	);
 
-	// Keep your existing options arrays
+	// Use backend display names and keys exactly
 	const studentOptions = [
 		"Listening",
 		"Individual Thinking",
-		"Group Activity",
-		"Answering Questions",
-		"Asking Questions",
+		"Group",
+		"Answer Question",
+		"Ask Question",
 		"Whole Class Discussion",
 		"Student Presentations",
 		"Test/Quiz",
@@ -122,44 +122,44 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 
 	const teacherOptions = [
 		"Lecture",
-		"Real-time Writing",
+		"Realtime Writing",
 		"Moving/Guiding",
-		"Answering Questions",
-		"Posing Questions",
-		"Follow-up",
-		"1-on-1 Discussion",
-		"Demonstrate/Video",
-		"Administrative Tasks",
+		"Answer Questions",
+		"Pose Question",
+		"Follow-up Question",
+		"1-on-1 discussion",
+		"Demonstrative",
+		"Administrative",
 		"Waiting",
 		"Other",
 	];
 
-	// Define the mapping between frontend labels and backend keys
+	// Define the mapping between frontend labels and backend keys (1:1 now)
 	const studentActivityMap: Record<string, string> = {
-		Listening: "listening",
+		"Listening": "listening",
 		"Individual Thinking": "individual_thinking",
-		"Group Activity": "group",
-		"Answering Questions": "answer_question",
-		"Asking Questions": "ask_question",
+		"Group": "group",
+		"Answer Question": "answer_question",
+		"Ask Question": "ask_question",
 		"Whole Class Discussion": "whole_class_discussion",
 		"Student Presentations": "student_presentations",
 		"Test/Quiz": "test/quiz",
-		Waiting: "waiting",
-		Other: "other",
+		"Waiting": "waiting",
+		"Other": "other",
 	};
 
 	const teacherActivityMap: Record<string, string> = {
-		Lecture: "lecture",
-		"Real-time Writing": "realtime_writing",
+		"Lecture": "lecture",
+		"Realtime Writing": "realtime_writing",
 		"Moving/Guiding": "moving/guiding",
-		"Answering Questions": "answer_questions",
-		"Posing Questions": "pose_question",
-		"Follow-up": "follow_up_question",
-		"1-on-1 Discussion": "1_on_1_discussion",
-		"Demonstrate/Video": "demonstrative",
-		"Administrative Tasks": "administrative",
-		Waiting: "waiting",
-		Other: "other",
+		"Answer Questions": "answer_questions",
+		"Pose Question": "pose_question",
+		"Follow-up Question": "follow_up_question",
+		"1-on-1 discussion": "1_on_1_discussion",
+		"Demonstrative": "demonstrative",
+		"Administrative": "administrative",
+		"Waiting": "waiting",
+		"Other": "other",
 	};
 
 	// Define the timestamp API functions
@@ -322,14 +322,21 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 		  // Store the timestamp ID
 		  newTimestampIds[minuteValue] = timestamp.id;
 
-		  // Convert student_activities and instructor_activities to arrays of selected options
+		  // Convert student_activities and instructor_activities to arrays of selected display labels
 		  const studentSelections = Object.entries(timestamp.student_activities || {})
 			.filter(([_, isSelected]) => isSelected)
-			.map(([key]) => key);
+			.map(([key]) => {
+			  // Map backend key to display label
+			  const displayLabel = Object.keys(studentActivityMap).find(label => studentActivityMap[label] === key);
+			  return displayLabel || key;
+			 });
 
 		  const teacherSelections = Object.entries(timestamp.instructor_activities || {})
 			.filter(([_, isSelected]) => isSelected)
-			.map(([key]) => key);
+			.map(([key]) => {
+			  const displayLabel = Object.keys(teacherActivityMap).find(label => teacherActivityMap[label] === key);
+			  return displayLabel || key;
+			 });
 
 		  // Store the selections for this minute
 		  newSelectionsByMinute[minuteValue] = {
@@ -370,20 +377,26 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 		setTimestampIds(newTimestampIds);
 
 		// If there are timestamps, set the active minute to the first one
-		if (timestamps.length > 0) {
-		  const firstMinute = Math.min(...Object.keys(newSelectionsByMinute).map(Number));
-		  setActiveMinute(firstMinute);
-		  setMinute(firstMinute);
+				if (timestamps.length > 0) {
+		  // Find the first minute that has any student or teacher activity
+		  const evaluatedMinutes = Object.entries(newSelectionsByMinute)
+			.filter(([_, sel]) => (sel.student.length > 0 || sel.teacher.length > 0))
+			.map(([minute]) => Number(minute));
+		  const firstEvaluatedMinute = evaluatedMinutes.length > 0
+			? evaluatedMinutes[0]
+			: Math.min(...Object.keys(newSelectionsByMinute).map(Number));
+		  setActiveMinute(firstEvaluatedMinute);
+		  setMinute(firstEvaluatedMinute);
 
 		  // Load the selections for the active minute
-		  const activeSelections = newSelectionsByMinute[firstMinute];
+		  const activeSelections = newSelectionsByMinute[firstEvaluatedMinute];
 		  if (activeSelections) {
 			setCurrentStudentSelections(activeSelections.student);
 			setCurrentTeacherSelections(activeSelections.teacher);
 			setCurrentStudentComments(activeSelections.studentComments);
 			setCurrentTeacherComments(activeSelections.teacherComments);
 		  }
-		}
+}
 
 		// Enable navigation since we've loaded existing data
 		setNavigationDisabled(false);
