@@ -198,7 +198,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 		  }, {} as Record<string, boolean>),
 		  student_comments: { notes: currentStudentComments },
 		  instructor_comments: { notes: currentTeacherComments },
-		  time_record: formatTimeRecord(activeMinute),
+		  time_record: formatStaticTimeRecord(activeMinute),
 		};
 
 		if (timestampId) {
@@ -315,9 +315,9 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 
 		// Process each timestamp
 		timestamps.forEach(timestamp => {
-		  // Extract the minute from the time_record
-		  const timeRecord = new Date(`2000-01-01T${timestamp.time_record}`);
-		  const minuteValue = timeRecord.getMinutes();
+		  // Extract the minute from the time_record ("00:MM:00")
+		  const [hh, mm] = timestamp.time_record.split(":");
+		  const minuteValue = parseInt(mm, 10);
 
 		  // Store the timestamp ID
 		  newTimestampIds[minuteValue] = timestamp.id;
@@ -342,8 +342,8 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 		  newSelectionsByMinute[minuteValue] = {
 			student: studentSelections,
 			teacher: teacherSelections,
-			studentComments: timestamp.student_comments?.notes || '',
-			teacherComments: timestamp.instructor_comments?.notes || '',
+			studentComments: (timestamp.student_comments?.comment || timestamp.student_comments?.notes || ''),
+			teacherComments: (timestamp.instructor_comments?.comment || timestamp.instructor_comments?.notes || ''),
 		  };
 		});
 
@@ -567,8 +567,8 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 					teacherSelections.includes(display),
 				]),
 			),
-			// Format time based on the minute
-			time_record: formatTimeForMinute(minute),
+			// Always use static time_record
+			time_record: formatTimeRecord(minute),
 			// Add comments if provided
 			student_comments: { comment: studentComments },
 			instructor_comments: { comment: teacherComments },

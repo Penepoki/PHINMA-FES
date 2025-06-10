@@ -40,7 +40,7 @@ class Timestamp(models.Model):
     instructor_activities = models.JSONField(default=list, blank=True, null=True)
     student_comments = models.JSONField(default=dict, blank=True, null=True)
     instructor_comments = models.JSONField(default=dict, blank=True, null=True)
-    time_record = models.TimeField(default=timezone.now)
+    time_record = models.TimeField()
 
     def clean(self):
         valid_student_keys = [choice[0] for choice in self.STUDENT_ACTIVITY_CHOICES]

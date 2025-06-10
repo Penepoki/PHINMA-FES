@@ -206,11 +206,11 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             evaluation = serializer.save()
             print("DEBUG: Successfully Saved Evaluation:", evaluation)  # Confirm successful creation
 
-            # Create the timestamps
+            # In EvaluationViewSet.create (replace the timestamp creation loop)
             timestamps = []
             for i in range(30):
                 minute = 2 + i * 2
-                t = (datetime.combine(datetime.today(), time(0, 0)) + timedelta(minutes=minute)).time()
+                t = time(hour=minute // 60, minute=minute % 60, second=0)
                 timestamps.append(Timestamp(evaluation=evaluation, time_record=t))
             Timestamp.objects.bulk_create(timestamps)
             print("DEBUG: Timestamps Created Successfully")  # Log timestamp creation
