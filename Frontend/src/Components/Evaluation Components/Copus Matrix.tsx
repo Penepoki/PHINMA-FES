@@ -797,8 +797,10 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 
 	return (
 		<div className="mb-4 rounded-lg border border-gray-300 p-4">
-			{renderTimeConstraintWarning()}
+			{/* Prevent layout jump with fixed height */}
+			<div style={{ minHeight: "2.5rem" }}>{renderTimeConstraintWarning()}</div>
 
+			{/* Time + Countdown */}
 			<div className="mb-4 text-center text-sm font-semibold text-gray-700">
 				<div className="flex w-full flex-row justify-between">
 					<span>Current Time: {currentTime}</span>
@@ -808,18 +810,18 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 						{startTime?.toLocaleTimeString([], {
 							hour: "2-digit",
 							minute: "2-digit",
-						})}{" "}
+						})}
 					</span>
 					<span>|</span>
 					<span>Time Elapsed: {elapsedTime} Minutes</span>
 				</div>
 			</div>
 
+			{/* Navigation */}
 			<div className="mb-4 flex items-center justify-center gap-3">
 				<div className="flex flex-col items-center gap-4">
 					<div className="text-center text-sm text-gray-400">
-						The Observer must select at least one option for both
-						the student and teacher to complete the minute.
+						The Observer must select at least one option for both student and teacher.
 						<br />
 						Timer will start after selecting an option.
 					</div>
@@ -829,7 +831,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 							className="tooltip hidden text-xl font-bold disabled:opacity-30"
 							onClick={handlePrev}
 							disabled={
-								minute === MIN_MINUTE ||
+								minute === 2 ||
 								navigationDisabled ||
 								(!isWithinScheduleTime && !canEditEvaluation)
 							}
@@ -842,7 +844,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 							className="tooltip hidden text-xl font-bold disabled:opacity-30"
 							onClick={handleNext}
 							disabled={
-								minute === MAX_MINUTE ||
+								minute === 30 ||
 								navigationDisabled ||
 								(!isWithinScheduleTime && !canEditEvaluation)
 							}
@@ -857,6 +859,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 						{String(countdown % 60).padStart(2, "0")}
 					</p>
 
+					{/* Minute Grid */}
 					<div className="grid grid-cols-5 gap-2 md:grid-cols-15">
 						{minuteBoxes.map((m) => {
 							const selections = selectionsByMinute[m] || {
@@ -871,19 +874,13 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 								<button
 									key={m}
 									onClick={() => {
-										if (
-											!navigationDisabled &&
-											(isWithinScheduleTime ||
-												canEditEvaluation)
-										) {
+										if (!navigationDisabled && (isWithinScheduleTime || canEditEvaluation)) {
 											startTimer();
 											setMinute(m);
 										}
 									}}
 									disabled={
-										navigationDisabled ||
-										(!isWithinScheduleTime &&
-											!canEditEvaluation)
+										navigationDisabled || (!isWithinScheduleTime && !canEditEvaluation)
 									}
 									className={`h-10 w-10 rounded-md text-sm font-semibold ${
 										minute === m
@@ -903,6 +900,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 				</div>
 			</div>
 
+			{/* Student Options */}
 			<div className="mb-6 text-center text-lg font-semibold text-gray-700">
 				Students Doing
 			</div>
@@ -916,6 +914,8 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 					/>
 				))}
 			</div>
+
+			{/* Teacher Options */}
 			<div className="mb-6 text-center text-lg font-semibold text-gray-700">
 				Teacher Doing
 			</div>
@@ -930,11 +930,10 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 				))}
 			</div>
 
+			{/* Comments */}
 			<div className="collapse-arrow collapse mt-4 border-1 border-gray-300">
 				<input type="checkbox" />
-				<div className="collapse-title text-lg font-semibold">
-					Observation Comments
-				</div>
+				<div className="collapse-title text-lg font-semibold">Observation Comments</div>
 				<div className="collapse-content">
 					<div className="mb-2 flex flex-col items-center">
 						<label className="mb-1 text-sm font-medium text-gray-700">
@@ -944,9 +943,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 							className="w-full max-w-md rounded border border-gray-300 p-2"
 							value={currentTeacherComments}
 							onChange={handleTeacherCommentChange}
-							disabled={
-								!isWithinScheduleTime && !canEditEvaluation
-							}
+							disabled={!isWithinScheduleTime && !canEditEvaluation}
 						/>
 					</div>
 					<div className="mb-2 flex flex-col items-center">
@@ -957,14 +954,13 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 							className="w-full max-w-md rounded border border-gray-300 p-2"
 							value={currentStudentComments}
 							onChange={handleStudentCommentChange}
-							disabled={
-								!isWithinScheduleTime && !canEditEvaluation
-							}
+							disabled={!isWithinScheduleTime && !canEditEvaluation}
 						/>
 					</div>
 				</div>
 			</div>
 
+			{/* Activity Summary */}
 			<div className="collapse-arrow collapse mt-8 rounded-xl border border-gray-300">
 				<input type="checkbox" />
 				<div className="collapse-title text-center text-lg font-semibold">
@@ -972,73 +968,47 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 				</div>
 				<div className="collapse-content">
 					<div className="grid gap-8 md:grid-cols-2">
+						{/* Student Activities */}
 						<div>
-							<h4 className="mb-2 text-center font-semibold">
-								Student Activities
-							</h4>
+							<h4 className="mb-2 text-center font-semibold">Student Activities</h4>
 							<div className="space-y-2">
 								{studentOptions.map((activity) => (
-									<div
-										key={activity}
-										className="flex justify-between"
-									>
+									<div key={activity} className="flex justify-between">
 										<span>{activity}:</span>
 										<span>
-											{studentTallies[activity]?.count ||
-												0}{" "}
-											times (
-											{studentTallies[
-												activity
-											]?.percentage.toFixed(2) || "0.00"}
-											%)
+											{studentTallies[activity]?.count || 0} times (
+											{studentTallies[activity]?.percentage?.toFixed(2) || "0.00"}%)
 										</span>
 									</div>
 								))}
 							</div>
 						</div>
+
+						{/* Teacher Activities */}
 						<div>
-							<h4 className="mb-2 text-center font-semibold">
-								Teacher Activities
-							</h4>
+							<h4 className="mb-2 text-center font-semibold">Teacher Activities</h4>
 							<div className="space-y-2">
 								{teacherOptions.map((activity) => (
-									<div
-										key={activity}
-										className="flex justify-between"
-									>
+									<div key={activity} className="flex justify-between">
 										<span>{activity}:</span>
 										<span>
-											{teacherTallies[activity]?.count ||
-												0}{" "}
-											times (
-											{teacherTallies[
-												activity
-											]?.percentage.toFixed(2) || "0.00"}
-											%)
+											{teacherTallies[activity]?.count || 0} times (
+											{teacherTallies[activity]?.percentage?.toFixed(2) || "0.00"}%)
 										</span>
 									</div>
 								))}
 							</div>
 						</div>
 					</div>
+
 					<div className="mt-4 text-center text-sm text-gray-600">
 						Total Minutes Observed: {getTotalMinutesObserved() * 2}
 					</div>
-					<div className="mt-4 flex justify-center">
-						<button
-							onClick={handleSaveEvaluation}
-							className="rounded-lg bg-[#1c402a] px-6 py-2 text-white transition-colors hover:bg-[#2c503a]"
-							disabled={
-								getTotalMinutesObserved() === 0 ||
-								(!isWithinScheduleTime && !canEditEvaluation)
-							}
-						>
-							Save Evaluation
-						</button>
-					</div>
+
 				</div>
 			</div>
 		</div>
 	);
 };
+
 export default CopusMatrix;

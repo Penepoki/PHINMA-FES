@@ -23,6 +23,12 @@ interface Schedule {
 	room: string;
 	semester: string;
 	year: string;
+	section_name?: string;
+  subject_name?: string;
+  room_name?: string;
+  program_name?: string;
+  start_time?: string;
+  end_time?: string;
 }
 
 interface Program {
@@ -77,6 +83,17 @@ function Evaluation({ setActiveView }: EvalProps) {
 	const [showCreateForm, setShowCreateForm] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	// Lazy render CopusMatrix after dialog opens
+	const [showMatrix, setShowMatrix] = useState(false);
+	useEffect(() => {
+		if (modalOpen === "copus-matrix" && selectedEvaluation && selectedProfessor) {
+			const timeout = setTimeout(() => setShowMatrix(true), 50);
+			return () => clearTimeout(timeout);
+		} else {
+			setShowMatrix(false);
+		}
+	}, [modalOpen, selectedEvaluation, selectedProfessor]);
+
 	const createEvaluation = async (evaluationData: Partial<Evaluation>) => {
 	  try {
 		const response = await api.post('/evaluation/evaluations/', evaluationData);
@@ -87,6 +104,16 @@ function Evaluation({ setActiveView }: EvalProps) {
 		throw error;
 	  }
 	};
+	const handleOpenEvaluation = (evaluation) => {
+	  setSelectedEvaluation(evaluation);
+	  const scheduleObj = schedules.find(s => s.id === evaluation.schedule);
+	  console.log("Schedules:", schedules);
+console.log("Evaluation.schedule:", evaluation.schedule);
+console.log("Matched scheduleObj:", scheduleObj);
+	  setSelectedSchedule(scheduleObj || null);
+	  setModalOpen("copus-matrix");
+	};
+
 
 	const updateEvaluation = async (id: number, evaluationData: Partial<Evaluation>) => {
 	  try {
@@ -299,6 +326,7 @@ function Evaluation({ setActiveView }: EvalProps) {
               setSelectedEvaluation(evalForType);
               setSelectedProfessor(prof);
               setModalOpen("copus-matrix");
+			  handleOpenEvaluation(evalForType);
             }}
             className="rounded px-5 py-2 text-white bg-[#2c503a] hover:bg-[#1c402a]"
           >
@@ -439,10 +467,10 @@ function Evaluation({ setActiveView }: EvalProps) {
 
 			{/* View/Edit Copus Modal */}
 			{selectedEvaluation && selectedProfessor && (
-				<dialog open className="modal">
-					<div className="modal-box w-11/12 max-w-5xl text-black">
-						<h3 className="mb-4 text-xl font-bold">
-							{selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Evaluation
+				<dialog open className="modal ">
+					<div className="modal-box w-[95vw] max-w-screen-2xl max-h-[90vh] overflow-y-auto text-black p-6 rounded-xl border border-gray-300 shadow-xl bg-white">
+						<h3 className="mb-6 mt-2 text-xl font-bold">
+							{selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Evaluation - {selectedEvaluation.evaluation_type}
 						</h3>
 
 						{/* Basic Information */}
@@ -450,45 +478,21 @@ function Evaluation({ setActiveView }: EvalProps) {
 							<input type="checkbox" />
 							<div className="collapse-title text-lg font-semibold">
 								Basic Information
+
 							</div>
+							// Displaying basic information about the evaluation!!!!!
 							<div className="collapse-content space-y-2">
 								<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-									<input
-										type="text"
-										value={firstName}
-										className="input input-bordered w-full"
-										readOnly
-									/>
-									<input
-										type="date"
-										value={selectedEvaluation.observation_date}
-										className="input input-bordered w-full"
-										readOnly
-									/>
-									<input
-										type="text"
-										value={`${selectedProfessor.first_name} ${selectedProfessor.last_name}`}
-										readOnly
-										className="input input-bordered w-full"
-									/>
-									<input
-										type="text"
-										value={selectedSchedule?.room || ""}
-										readOnly
-										className="input input-bordered w-full"
-									/>
-									<input
-										type="text"
-										value={selectedSchedule?.semester || ""}
-										readOnly
-										className="input input-bordered w-full"
-									/>
-									<input
-										type="text"
-										value={selectedSchedule?.year || ""}
-										readOnly
-										className="input input-bordered w-full"
-									/>
+								  <input type="text" value={firstName} className="input input-bordered w-full" readOnly />
+								  <input type="date" value={selectedEvaluation.observation_date} className="input input-bordered w-full" readOnly />
+								  <input type="text" value={`${selectedProfessor.first_name} ${selectedProfessor.last_name}`} readOnly className="input input-bordered w-full" />
+								  <input type="text" value={selectedSchedule?.section_name || ""} readOnly className="input input-bordered w-full" />
+								  <input type="text" value={selectedSchedule?.subject_name || ""} readOnly className="input input-bordered w-full" />
+								  <input type="text" value={selectedSchedule?.room_name || ""} readOnly className="input input-bordered w-full" />
+								  <input type="text" value={selectedSchedule?.program_name || "Null"} readOnly className="input input-bordered w-full" />
+								  <input type="text" value={selectedSchedule?.start_time || ""} readOnly className="input input-bordered w-full" />
+								  <input type="text" value={selectedSchedule?.end_time || ""} readOnly className="input input-bordered w-full" />
+								  <input type="text" value={selectedSchedule?.semester || ""} readOnly className="input input-bordered w-full" />
 								</div>
 							</div>
 						</div>
@@ -543,63 +547,45 @@ function Evaluation({ setActiveView }: EvalProps) {
 
 						{/* Actions */}
 						<div className="modal-action">
-							<form method="dialog">
-								<button
-									type="submit"
-									className="btn bg-[#1c402a] text-white"
-									onClick={() => setModalOpen(null)}
-								>
-									Close
-								</button>
-							</form>
+						  <form method="dialog" className="flex flex-wrap gap-4">
+							<button type="submit" className="btn bg-[#1c402a] text-white" onClick={() => {
+							  setModalOpen(null);
+							  setSelectedEvaluation(null);
+							  setSelectedProfessor(null);
+							  setSelectedSchedule(null);
+							}}>
+							  Close
+							</button>
+							<button className="btn btn-success px-6" onClick={() => {
+							  setModalOpen(null);
+							  setSelectedEvaluation(null);
+							  setSelectedProfessor(null);
+							  setSelectedSchedule(null);
+							}}>
+							  Save
+							</button>
+							<button className="btn btn-primary px-6 text-white" onClick={() => {
+							  setModalOpen(null);
+							  setSelectedEvaluation(null);
+							  setSelectedProfessor(null);
+							  setSelectedSchedule(null);
+							}}>
+							  Save and Continue
+							</button>
+							<button className="btn btn-error px-6" onClick={() => {
+							  setModalOpen(null);
+							  setSelectedEvaluation(null);
+							  setSelectedProfessor(null);
+							  setSelectedSchedule(null);
+							}}>
+							  Exit
+							</button>
+						  </form>
 						</div>
 					</div>
 				</dialog>
 			)}
 
-			{modalOpen === "copus-matrix" && selectedEvaluation && (
-			  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-				<div className="relative w-full max-w-4xl p-6 bg-white rounded-md shadow-xl">
-				  <button
-					onClick={() => setModalOpen(null)}
-					className="absolute top-4 right-4 text-gray-700 hover:text-gray-900"
-				  >
-					✖
-				  </button>
-				  <h2 className="mb-4 text-2xl font-semibold text-gray-800">
-					Evaluation: {selectedEvaluation.evaluation_type} - {" "}
-					{selectedEvaluation.observation_date}
-				  </h2>
-				  <CopusMatrix
-					onTalliesUpdate={(studentTallies, teacherTallies) => {
-					  console.log("Updated Tallies:", studentTallies, teacherTallies);
-					}}
-					// Pass the selected evaluation's ID to CopusMatrix
-				  />
-
-				  {/* Patch All Timestamps Button */}
-				  <button
-					className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-					onClick={async () => {
-					  if (!selectedEvaluation) return;
-					  try {
-						const response = await api.get(`/evaluation/timestamps/?evaluation_id=${selectedEvaluation.id}`);
-						const timestamps = response.data;
-						for (const ts of timestamps) {
-						  await api.put(`/evaluation/timestamps/${ts.id}/`, { ...ts, patched: true });
-						}
-						alert('All timestamps patched successfully!');
-					  } catch (err) {
-						console.error('Error patching timestamps:', err);
-						alert('Failed to patch timestamps.');
-					  }
-					}}
-				  >
-					Patch All Timestamps
-				  </button>
-				</div>
-			  </div>
-			)}
 
 		</div>
 	);
