@@ -83,7 +83,7 @@ class Evaluation(models.Model):
     deleted_at = models.DateTimeField(blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
     help_text = "THIS IS FOR COPUS EVALUATION ONLY"
-
+    ai_feedback = models.JSONField(null=True, blank=True)
     evaluator = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True,
                                   help_text = "THE USER WHO IS CONDUCTING THE EVALUATION")
 

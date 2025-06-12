@@ -20,5 +20,10 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+export async function generateAIFeedback(evaluationId: number, force = false) {
+  const url = `/evaluation/evaluations/${evaluationId}/generate_feedback/${force ? '?force=true' : ''}`;
+  const response = await api.post(url);
+  return response.data;
+}
 
 export default api;

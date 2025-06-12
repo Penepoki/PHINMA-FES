@@ -15,6 +15,7 @@ python-decouple = "*"
 pandas = "*"
 django-filter = "*"
 pillow = "*"
+requests = "*"
 
 [dev-packages]
 

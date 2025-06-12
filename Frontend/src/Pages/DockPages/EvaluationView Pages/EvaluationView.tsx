@@ -4,6 +4,7 @@ import PieChartWithTable from "../../../Components/Evaluation Components/Piechar
 import api from "../../../utils/api";
 import { ActivityData } from "../../../Components/Evaluation Components/Copus Matrix";
 import CreateEvaluationForm from '../../../Components/Evaluation Components/CreateEvaluationForm';
+import { generateAIFeedback} from "../../../utils/api";
 
 interface Evaluation {
 	id: number;
@@ -57,6 +58,9 @@ interface EvalProps {
 
 function Evaluation({ setActiveView }: EvalProps) {
 	const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+	const [aiFeedback, setAiFeedback] = useState<string | null>(null);
+	const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
+	const [aiFeedbackError, setAiFeedbackError] = useState<string | null>(null);
 	const [schedules, setSchedules] = useState<Schedule[]>([]);
 	const [programs, setPrograms] = useState<Program[]>([]);
 	const [programProfessors, setProgramProfessors] = useState<
@@ -83,16 +87,33 @@ function Evaluation({ setActiveView }: EvalProps) {
 	const [showCreateForm, setShowCreateForm] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	// Lazy render CopusMatrix after dialog opens
-	const [showMatrix, setShowMatrix] = useState(false);
-	useEffect(() => {
-		if (modalOpen === "copus-matrix" && selectedEvaluation && selectedProfessor) {
-			const timeout = setTimeout(() => setShowMatrix(true), 50);
-			return () => clearTimeout(timeout);
-		} else {
-			setShowMatrix(false);
-		}
-	}, [modalOpen, selectedEvaluation, selectedProfessor]);
+	// Fetch AI feedback when modal opens and selectedEvaluation changes
+useEffect(() => {
+  if (selectedEvaluation && selectedEvaluation.id) {
+    setAiFeedbackLoading(true);
+    setAiFeedbackError(null);
+    api.get(`/evaluation/evaluations/${selectedEvaluation.id}/`) // or wherever you fetch the evaluation
+      .then(res => {
+        setAiFeedback(res.data.ai_feedback?.feedback || null);
+      })
+      .catch(() => setAiFeedback(null))
+      .finally(() => setAiFeedbackLoading(false));
+  }
+}, [selectedEvaluation]);
+
+const handleGenerateAIFeedback = async () => {
+  if (!selectedEvaluation) return;
+  setAiFeedbackLoading(true);
+  setAiFeedbackError(null);
+  try {
+    const res = await generateAIFeedback(selectedEvaluation.id);
+    setAiFeedback(res.ai_feedback.feedback);
+  } catch (err: any) {
+    setAiFeedbackError("Failed to generate AI feedback.");
+  } finally {
+    setAiFeedbackLoading(false);
+  }
+};
 
 	const createEvaluation = async (evaluationData: Partial<Evaluation>) => {
 	  try {
@@ -467,8 +488,8 @@ console.log("Matched scheduleObj:", scheduleObj);
 
 			{/* View/Edit Copus Modal */}
 			{selectedEvaluation && selectedProfessor && (
-				<dialog open className="modal ">
-					<div className="modal-box w-[95vw] max-w-screen-2xl max-h-[90vh] overflow-y-auto text-black p-6 rounded-xl border border-gray-300 shadow-xl bg-white">
+				<dialog open className="modal">
+					<div className="modal-box w-[95vw] max-w-fit max-h-[90vh] overflow-y-auto overflow-x-auto text-black p-6 rounded-xl border border-gray-300 shadow-xl bg-white">
 						<h3 className="mb-6 mt-2 text-xl font-bold">
 							{selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Evaluation - {selectedEvaluation.evaluation_type}
 						</h3>
@@ -480,7 +501,7 @@ console.log("Matched scheduleObj:", scheduleObj);
 								Basic Information
 
 							</div>
-							// Displaying basic information about the evaluation!!!!!
+
 							<div className="collapse-content space-y-2">
 								<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 								  <input type="text" value={firstName} className="input input-bordered w-full" readOnly />
@@ -526,23 +547,34 @@ console.log("Matched scheduleObj:", scheduleObj);
 							/>
 						</div>
 
-						{/* Additional Information */}
+						{/* AI Feedback */}
 						<div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
-							<input type="checkbox" />
-							<div className="collapse-title text-lg font-semibold">
-								Additional Information
+						  <input type="checkbox" />
+						  <div className="collapse-title text-lg font-semibold">
+							AI Feedback
+							{aiFeedbackLoading && <span className="ml-4 text-sm text-gray-500">Loading...</span>}
+						  </div>
+						  <div className="collapse-content">
+							<div className="flex items-center mb-2">
+							  {aiFeedback === null && !aiFeedbackLoading && (
+								<button
+								  className="btn btn-primary btn-xs mr-4"
+								  onClick={handleGenerateAIFeedback}
+								  disabled={aiFeedbackLoading}
+								  type="button"
+								>
+								  Generate AI Feedback
+								</button>
+							  )}
+							  {aiFeedbackError && <div className="text-red-500">{aiFeedbackError}</div>}
 							</div>
-							<div className="collapse-content">
-								<textarea
-									className="textarea textarea-bordered min-h-[100px] w-full"
-									placeholder="Enter any additional comments or observations here..."
-									defaultValue={
-										selectedEvaluation.additional_comments ||
-										""
-									}
-									readOnly
-								></textarea>
-							</div>
+							<textarea
+							  className="textarea textarea-bordered min-h-[100px] w-full"
+							  placeholder="AI feedback will appear here..."
+							  value={aiFeedback || ""}
+							  readOnly
+							/>
+						  </div>
 						</div>
 
 						{/* Actions */}

@@ -3,13 +3,12 @@ from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
 from hrapp.serializers import TimestampSerializer, EvaluationSerializer
-from hrapp.utils.evaluation_utils import *
 from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
 from hrapp.utils.decorators import *
+from hrapp.utils.generate_insight_online import generate_ai_feedback_for_evaluation
 from hrapp.serializers.user_serializer import *
 from hrapp.serializers.schedules_serializer import *
-from hrapp.models.schedules_models import *
 from hrapp.filters.schedules_filter import *
 from rest_framework import viewsets, status
 from rest_framework.response import Response
@@ -192,6 +191,42 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     queryset = Evaluation.objects.filter(deleted_at__isnull=True).select_related('schedule', 'evaluator')
     serializer_class = EvaluationSerializer
     permission_classes = [IsAuthenticated]
+
+    #AI SUMMARY GENERATOR
+
+    @action(detail=True, methods=["post"], url_path="generate_feedback")
+    def generate_feedback(self, request, pk=None):
+        print("DEBUG: Entered generate_feedback endpoint")
+        force = request.query_params.get('force', "false").lower() == "true"
+        print(f"DEBUG: force param value: {force}")
+        evaluation = self.get_object()
+        print(f"DEBUG: Evaluation object: {evaluation}")
+        print(f"DEBUG: Current ai_feedback: {evaluation.ai_feedback}")
+        if evaluation.ai_feedback and not force:
+            print("DEBUG: Feedback already exists, returning existing feedback.")
+            return Response(
+                {"message": "AI feedback already exists for this evaluation.", "ai_feedback": evaluation.ai_feedback},
+                status=status.HTTP_200_OK
+            )
+        try:
+            print("DEBUG: Generating AI feedback...")
+            feedback = generate_ai_feedback_for_evaluation(evaluation)
+            print(f"DEBUG: AI feedback generated: {feedback}")
+            evaluation.ai_feedback = feedback
+            evaluation.save()
+            print("DEBUG: Feedback saved to evaluation.")
+            return Response(
+                {"message": "AI feedback generated successfully.", "ai_feedback": feedback},
+                status=status.HTTP_200_OK
+            )
+        except Exception as exc:
+            print(f"DEBUG: Exception occurred: {exc}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {"error": str(exc)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     def create(self, request, *args, **kwargs):
         print("DEBUG: Received Evaluation Creation Request")

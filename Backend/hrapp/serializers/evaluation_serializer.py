@@ -67,7 +67,7 @@ class EvaluationSerializer(serializers.ModelSerializer):
             model = Evaluation
             fields = [
                 'id', 'schedule', 'observation_date', 'evaluation_type', 'timestamps',
-                'evaluator', 'instructor', 'additional_comments'
+                'evaluator', 'instructor', 'additional_comments', 'ai_feedback'
             ]
 
 
