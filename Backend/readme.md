@@ -57,6 +57,7 @@ Open the .env file and replace the placeholder values with your own keys and cre
 Look at .env.example or Copy this below:
 ### Django settings
 SECRET_KEY=django-insecure-<your-secret-key-here>
+HF_API_KEY=<your-hugging-face-key-here>
 
 DEBUG=True
 ### Database settings
