@@ -55,7 +55,10 @@ interface TimestampData {
 	time_record: string;
 }
 
-const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate }) => {
+const CopusMatrix: React.FC<CopusMatrixProps> = ({
+	evaluationId,
+	onTalliesUpdate,
+}) => {
 	const MIN_MINUTE = 2;
 	const MAX_MINUTE = 60;
 	const INCREMENT = 2;
@@ -136,30 +139,30 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 
 	// Define the mapping between frontend labels and backend keys (1:1 now)
 	const studentActivityMap: Record<string, string> = {
-		"Listening": "listening",
+		Listening: "listening",
 		"Individual Thinking": "individual_thinking",
-		"Group": "group",
+		Group: "group",
 		"Answer Question": "answer_question",
 		"Ask Question": "ask_question",
 		"Whole Class Discussion": "whole_class_discussion",
 		"Student Presentations": "student_presentations",
 		"Test/Quiz": "test/quiz",
-		"Waiting": "waiting",
-		"Other": "other",
+		Waiting: "waiting",
+		Other: "other",
 	};
 
 	const teacherActivityMap: Record<string, string> = {
-		"Lecture": "lecture",
+		Lecture: "lecture",
 		"Realtime Writing": "realtime_writing",
 		"Moving/Guiding": "moving/guiding",
 		"Answer Questions": "answer_questions",
 		"Pose Question": "pose_question",
 		"Follow-up Question": "follow_up_question",
 		"1-on-1 discussion": "1_on_1_discussion",
-		"Demonstrative": "demonstrative",
-		"Administrative": "administrative",
-		"Waiting": "waiting",
-		"Other": "other",
+		Demonstrative: "demonstrative",
+		Administrative: "administrative",
+		Waiting: "waiting",
+		Other: "other",
 	};
 
 	// Define the timestamp API functions
@@ -169,7 +172,10 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 			return response.data;
 		},
 		updateTimestamp: async (id: number, data: Partial<TimestampData>) => {
-			const response = await api.patch(`/timestamp/timestamps/${id}/`, data);
+			const response = await api.patch(
+				`/timestamp/timestamps/${id}/`,
+				data,
+			);
 			return response.data;
 		},
 		getTimestamps: async (evaluationId: number) => {
@@ -180,73 +186,89 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 		},
 	};
 
-		// Add or update this function in CopusMatrix.tsx
+	// Add or update this function in CopusMatrix.tsx
 	const saveCurrentSelections = async () => {
-	  if (!evaluationId) return;
+		if (!evaluationId) return;
 
-	  try {
-		const timestampId = timestampIds[activeMinute];
-		const timestampData = {
-		  evaluation: evaluationId,
-		  student_activities: currentStudentSelections.reduce((acc, key) => {
-			acc[key] = true;
-			return acc;
-		  }, {} as Record<string, boolean>),
-		  instructor_activities: currentTeacherSelections.reduce((acc, key) => {
-			acc[key] = true;
-			return acc;
-		  }, {} as Record<string, boolean>),
-		  student_comments: { notes: currentStudentComments },
-		  instructor_comments: { notes: currentTeacherComments },
-		  time_record: formatStaticTimeRecord(activeMinute),
-		};
+		try {
+			const timestampId = timestampIds[activeMinute];
+			const timestampData = {
+				evaluation: evaluationId,
+				student_activities: currentStudentSelections.reduce(
+					(acc, key) => {
+						acc[key] = true;
+						return acc;
+					},
+					{} as Record<string, boolean>,
+				),
+				instructor_activities: currentTeacherSelections.reduce(
+					(acc, key) => {
+						acc[key] = true;
+						return acc;
+					},
+					{} as Record<string, boolean>,
+				),
+				student_comments: { notes: currentStudentComments },
+				instructor_comments: { notes: currentTeacherComments },
+				time_record: formatStaticTimeRecord(activeMinute),
+			};
 
-		if (timestampId) {
-		  // Update existing timestamp
-		  await api.put(`/timestamp/timestamps/${timestampId}/`, timestampData);
-		} else {
-		  // Create new timestamp (shouldn't normally happen with bulk creation)
-		  const response = await api.post('/timestamp/timestamps/', timestampData);
-		  // Update the timestamp IDs mapping
-		  setTimestampIds({
-			...timestampIds,
-			[activeMinute]: response.data.id,
-		  });
+			if (timestampId) {
+				// Update existing timestamp
+				await api.put(
+					`/timestamp/timestamps/${timestampId}/`,
+					timestampData,
+				);
+			} else {
+				// Create new timestamp (shouldn't normally happen with bulk creation)
+				const response = await api.post(
+					"/timestamp/timestamps/",
+					timestampData,
+				);
+				// Update the timestamp IDs mapping
+				setTimestampIds({
+					...timestampIds,
+					[activeMinute]: response.data.id,
+				});
+			}
+
+			// Update the selections by minute
+			setSelectionsByMinute({
+				...selectionsByMinute,
+				[activeMinute]: {
+					student: currentStudentSelections,
+					teacher: currentTeacherSelections,
+					studentComments: currentStudentComments,
+					teacherComments: currentTeacherComments,
+				},
+			});
+
+			// Show success message
+			console.log("Timestamp saved successfully");
+		} catch (error) {
+			console.error("Error saving timestamp:", error);
 		}
-
-		// Update the selections by minute
-		setSelectionsByMinute({
-		  ...selectionsByMinute,
-		  [activeMinute]: {
-			student: currentStudentSelections,
-			teacher: currentTeacherSelections,
-			studentComments: currentStudentComments,
-			teacherComments: currentTeacherComments,
-		  },
-		});
-
-		// Show success message
-		console.log('Timestamp saved successfully');
-	  } catch (error) {
-		console.error('Error saving timestamp:', error);
-	  }
 	};
 
 	// Helper function to format time record
 	const formatTimeRecord = (minutes: number) => {
-	  const hours = Math.floor(minutes / 60);
-	  const mins = minutes % 60;
-	  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:00`;
+		const hours = Math.floor(minutes / 60);
+		const mins = minutes % 60;
+		return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:00`;
 	};
 
 	const checkTimeConstraints = async (evalId: number) => {
 		try {
 			// Get the evaluation to find its schedule
-			const evaluation = await api.get(`/evaluation/evaluations/${evalId}/`);
+			const evaluation = await api.get(
+				`/evaluation/evaluations/${evalId}/`,
+			);
 			const scheduleId = evaluation.data.schedule;
 
 			// Get the schedule
-			const scheduleData = await api.get(`/schedule/schedules/${scheduleId}/`);
+			const scheduleData = await api.get(
+				`/schedule/schedules/${scheduleId}/`,
+			);
 			setSchedule(scheduleData.data);
 
 			// Check if current time is within schedule time
@@ -295,114 +317,139 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 
 	// Enhance the loadExistingTimestamps function in CopusMatrix.tsx
 	const loadExistingTimestamps = async (evalId: number) => {
-	  try {
-		// Fetch all timestamps for this evaluation
-		const response = await api.get(`/timestamp/timestamps/?evaluation=${evalId}`);
-		const timestamps: TimestampData[] = response.data;
+		try {
+			// Fetch all timestamps for this evaluation
+			const response = await api.get(
+				`/timestamp/timestamps/?evaluation=${evalId}`,
+			);
+			const timestamps: TimestampData[] = response.data;
 
-		// Initialize the selections by minute
-		const newSelectionsByMinute: {
-		  [key: number]: {
-			student: string[];
-			teacher: string[];
-			studentComments: string;
-			teacherComments: string;
-		  };
-		} = {};
+			// Initialize the selections by minute
+			const newSelectionsByMinute: {
+				[key: number]: {
+					student: string[];
+					teacher: string[];
+					studentComments: string;
+					teacherComments: string;
+				};
+			} = {};
 
-		// Initialize the timestamp IDs mapping
-		const newTimestampIds: { [key: number]: number } = {};
+			// Initialize the timestamp IDs mapping
+			const newTimestampIds: { [key: number]: number } = {};
 
-		// Process each timestamp
-		timestamps.forEach(timestamp => {
-		  // Extract the minute from the time_record ("00:MM:00")
-		  const [hh, mm] = timestamp.time_record.split(":");
-		  const minuteValue = parseInt(mm, 10);
+			// Process each timestamp
+			timestamps.forEach((timestamp) => {
+				// Extract the minute from the time_record ("00:MM:00")
+				const [hh, mm] = timestamp.time_record.split(":");
+				const minuteValue = parseInt(mm, 10);
 
-		  // Store the timestamp ID
-		  newTimestampIds[minuteValue] = timestamp.id;
+				// Store the timestamp ID
+				newTimestampIds[minuteValue] = timestamp.id;
 
-		  // Convert student_activities and instructor_activities to arrays of selected display labels
-		  const studentSelections = Object.entries(timestamp.student_activities || {})
-			.filter(([_, isSelected]) => isSelected)
-			.map(([key]) => {
-			  // Map backend key to display label
-			  const displayLabel = Object.keys(studentActivityMap).find(label => studentActivityMap[label] === key);
-			  return displayLabel || key;
-			 });
+				// Convert student_activities and instructor_activities to arrays of selected display labels
+				const studentSelections = Object.entries(
+					timestamp.student_activities || {},
+				)
+					.filter(([_, isSelected]) => isSelected)
+					.map(([key]) => {
+						// Map backend key to display label
+						const displayLabel = Object.keys(
+							studentActivityMap,
+						).find((label) => studentActivityMap[label] === key);
+						return displayLabel || key;
+					});
 
-		  const teacherSelections = Object.entries(timestamp.instructor_activities || {})
-			.filter(([_, isSelected]) => isSelected)
-			.map(([key]) => {
-			  const displayLabel = Object.keys(teacherActivityMap).find(label => teacherActivityMap[label] === key);
-			  return displayLabel || key;
-			 });
+				const teacherSelections = Object.entries(
+					timestamp.instructor_activities || {},
+				)
+					.filter(([_, isSelected]) => isSelected)
+					.map(([key]) => {
+						const displayLabel = Object.keys(
+							teacherActivityMap,
+						).find((label) => teacherActivityMap[label] === key);
+						return displayLabel || key;
+					});
 
-		  // Store the selections for this minute
-		  newSelectionsByMinute[minuteValue] = {
-			student: studentSelections,
-			teacher: teacherSelections,
-			studentComments: (timestamp.student_comments?.comment || timestamp.student_comments?.notes || ''),
-			teacherComments: (timestamp.instructor_comments?.comment || timestamp.instructor_comments?.notes || ''),
-		  };
-		});
+				// Store the selections for this minute
+				newSelectionsByMinute[minuteValue] = {
+					student: studentSelections,
+					teacher: teacherSelections,
+					studentComments:
+						timestamp.student_comments?.comment ||
+						timestamp.student_comments?.notes ||
+						"",
+					teacherComments:
+						timestamp.instructor_comments?.comment ||
+						timestamp.instructor_comments?.notes ||
+						"",
+				};
+			});
 
-				// Add or update these functions in CopusMatrix.tsx
-		const handleMinuteChange = (newMinute: number) => {
-		  // Save current selections before changing
-		  saveCurrentSelections();
+			// Add or update these functions in CopusMatrix.tsx
+			const handleMinuteChange = (newMinute: number) => {
+				// Save current selections before changing
+				saveCurrentSelections();
 
-		  // Update the active minute
-		  setActiveMinute(newMinute);
-		  setMinute(newMinute);
+				// Update the active minute
+				setActiveMinute(newMinute);
+				setMinute(newMinute);
 
-		  // Load the selections for the new minute
-		  const newSelections = selectionsByMinute[newMinute];
-		  if (newSelections) {
-			setCurrentStudentSelections(newSelections.student);
-			setCurrentTeacherSelections(newSelections.teacher);
-			setCurrentStudentComments(newSelections.studentComments);
-			setCurrentTeacherComments(newSelections.teacherComments);
-		  } else {
-			// Initialize empty selections if none exist
-			setCurrentStudentSelections([]);
-			setCurrentTeacherSelections([]);
-			setCurrentStudentComments('');
-			setCurrentTeacherComments('');
-		  }
-		};
+				// Load the selections for the new minute
+				const newSelections = selectionsByMinute[newMinute];
+				if (newSelections) {
+					setCurrentStudentSelections(newSelections.student);
+					setCurrentTeacherSelections(newSelections.teacher);
+					setCurrentStudentComments(newSelections.studentComments);
+					setCurrentTeacherComments(newSelections.teacherComments);
+				} else {
+					// Initialize empty selections if none exist
+					setCurrentStudentSelections([]);
+					setCurrentTeacherSelections([]);
+					setCurrentStudentComments("");
+					setCurrentTeacherComments("");
+				}
+			};
 
-		// Update state
-		setSelectionsByMinute(newSelectionsByMinute);
-		setTimestampIds(newTimestampIds);
+			// Update state
+			setSelectionsByMinute(newSelectionsByMinute);
+			setTimestampIds(newTimestampIds);
 
-		// If there are timestamps, set the active minute to the first one
-				if (timestamps.length > 0) {
-		  // Find the first minute that has any student or teacher activity
-		  const evaluatedMinutes = Object.entries(newSelectionsByMinute)
-			.filter(([_, sel]) => (sel.student.length > 0 || sel.teacher.length > 0))
-			.map(([minute]) => Number(minute));
-		  const firstEvaluatedMinute = evaluatedMinutes.length > 0
-			? evaluatedMinutes[0]
-			: Math.min(...Object.keys(newSelectionsByMinute).map(Number));
-		  setActiveMinute(firstEvaluatedMinute);
-		  setMinute(firstEvaluatedMinute);
+			// If there are timestamps, set the active minute to the first one
+			if (timestamps.length > 0) {
+				// Find the first minute that has any student or teacher activity
+				const evaluatedMinutes = Object.entries(newSelectionsByMinute)
+					.filter(
+						([_, sel]) =>
+							sel.student.length > 0 || sel.teacher.length > 0,
+					)
+					.map(([minute]) => Number(minute));
+				const firstEvaluatedMinute =
+					evaluatedMinutes.length > 0
+						? evaluatedMinutes[0]
+						: Math.min(
+								...Object.keys(newSelectionsByMinute).map(
+									Number,
+								),
+							);
+				setActiveMinute(firstEvaluatedMinute);
+				setMinute(firstEvaluatedMinute);
 
-		  // Load the selections for the active minute
-		  const activeSelections = newSelectionsByMinute[firstEvaluatedMinute];
-		  if (activeSelections) {
-			setCurrentStudentSelections(activeSelections.student);
-			setCurrentTeacherSelections(activeSelections.teacher);
-			setCurrentStudentComments(activeSelections.studentComments);
-			setCurrentTeacherComments(activeSelections.teacherComments);
-		  }
-}
+				// Load the selections for the active minute
+				const activeSelections =
+					newSelectionsByMinute[firstEvaluatedMinute];
+				if (activeSelections) {
+					setCurrentStudentSelections(activeSelections.student);
+					setCurrentTeacherSelections(activeSelections.teacher);
+					setCurrentStudentComments(activeSelections.studentComments);
+					setCurrentTeacherComments(activeSelections.teacherComments);
+				}
+			}
 
-		// Enable navigation since we've loaded existing data
-		setNavigationDisabled(false);
-	  } catch (error) {
-		console.error('Error loading timestamps:', error);
-	  }
+			// Enable navigation since we've loaded existing data
+			setNavigationDisabled(false);
+		} catch (error) {
+			console.error("Error loading timestamps:", error);
+		}
 	};
 	useEffect(() => {
 		if (evaluationId) {
@@ -433,66 +480,70 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 	};
 
 	// Your existing calculateTallies function
-			const calculateTallies = () => {
-			let totalStudentSelections = 0;
-			let totalTeacherSelections = 0;
-			const newStudentTallies: { [key: string]: ActivityData } = {};
-			const newTeacherTallies: { [key: string]: ActivityData } = {};
+	const calculateTallies = () => {
+		let totalStudentSelections = 0;
+		let totalTeacherSelections = 0;
+		const newStudentTallies: { [key: string]: ActivityData } = {};
+		const newTeacherTallies: { [key: string]: ActivityData } = {};
 
-			// Initialize all options
+		// Initialize all options
+		studentOptions.forEach((option) => {
+			newStudentTallies[option] = { count: 0, percentage: 0 };
+		});
+
+		teacherOptions.forEach((option) => {
+			newTeacherTallies[option] = { count: 0, percentage: 0 };
+		});
+
+		// Count all selections
+		Object.values(selectionsByMinute).forEach((selection) => {
+			selection.student.forEach((activity) => {
+				const displayName =
+					Object.keys(studentActivityMap).find(
+						(key) => studentActivityMap[key] === activity,
+					) || activity;
+				if (newStudentTallies[displayName]) {
+					newStudentTallies[displayName].count++;
+					totalStudentSelections++;
+				}
+			});
+
+			selection.teacher.forEach((activity) => {
+				const displayName =
+					Object.keys(teacherActivityMap).find(
+						(key) => teacherActivityMap[key] === activity,
+					) || activity;
+				if (newTeacherTallies[displayName]) {
+					newTeacherTallies[displayName].count++;
+					totalTeacherSelections++;
+				}
+			});
+		}); // <-- This closing brace was missing
+
+		// Calculate percentages
+		if (totalStudentSelections > 0) {
 			studentOptions.forEach((option) => {
-				newStudentTallies[option] = { count: 0, percentage: 0 };
+				newStudentTallies[option].percentage =
+					(newStudentTallies[option].count / totalStudentSelections) *
+					100;
 			});
+		}
 
+		if (totalTeacherSelections > 0) {
 			teacherOptions.forEach((option) => {
-				newTeacherTallies[option] = { count: 0, percentage: 0 };
+				newTeacherTallies[option].percentage =
+					(newTeacherTallies[option].count / totalTeacherSelections) *
+					100;
 			});
+		}
 
-			// Count all selections
-			Object.values(selectionsByMinute).forEach((selection) => {
-				selection.student.forEach((activity) => {
-					const displayName = Object.keys(studentActivityMap).find(
-						key => studentActivityMap[key] === activity
-					) || activity;
-					if (newStudentTallies[displayName]) {
-						newStudentTallies[displayName].count++;
-						totalStudentSelections++;
-					}
-				});
+		setStudentTallies(newStudentTallies);
+		setTeacherTallies(newTeacherTallies);
 
-				selection.teacher.forEach((activity) => {
-					const displayName = Object.keys(teacherActivityMap).find(
-						key => teacherActivityMap[key] === activity
-					) || activity;
-					if (newTeacherTallies[displayName]) {
-						newTeacherTallies[displayName].count++;
-						totalTeacherSelections++;
-					}
-				});
-			}); // <-- This closing brace was missing
-
-			// Calculate percentages
-			if (totalStudentSelections > 0) {
-				studentOptions.forEach((option) => {
-					newStudentTallies[option].percentage =
-						(newStudentTallies[option].count / totalStudentSelections) * 100;
-				});
-			}
-
-			if (totalTeacherSelections > 0) {
-				teacherOptions.forEach((option) => {
-					newTeacherTallies[option].percentage =
-						(newTeacherTallies[option].count / totalTeacherSelections) * 100;
-				});
-			}
-
-			setStudentTallies(newStudentTallies);
-			setTeacherTallies(newTeacherTallies);
-
-			if (onTalliesUpdate) {
-				onTalliesUpdate(newStudentTallies, newTeacherTallies);
-			}
-		};
+		if (onTalliesUpdate) {
+			onTalliesUpdate(newStudentTallies, newTeacherTallies);
+		}
+	};
 
 	useEffect(() => {
 		calculateTallies();
@@ -798,7 +849,9 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 	return (
 		<div className="mb-4 rounded-lg border border-gray-300 p-4">
 			{/* Prevent layout jump with fixed height */}
-			<div style={{ minHeight: "2.5rem" }}>{renderTimeConstraintWarning()}</div>
+			<div style={{ minHeight: "2.5rem" }}>
+				{renderTimeConstraintWarning()}
+			</div>
 
 			{/* Time + Countdown */}
 			<div className="mb-4 text-center text-sm font-semibold text-gray-700">
@@ -821,7 +874,8 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 			<div className="mb-4 flex items-center justify-center gap-3">
 				<div className="flex flex-col items-center gap-4">
 					<div className="text-center text-sm text-gray-400">
-						The Observer must select at least one option for both student and teacher.
+						The Observer must select at least one option for both
+						student and teacher.
 						<br />
 						Timer will start after selecting an option.
 					</div>
@@ -874,13 +928,19 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 								<button
 									key={m}
 									onClick={() => {
-										if (!navigationDisabled && (isWithinScheduleTime || canEditEvaluation)) {
+										if (
+											!navigationDisabled &&
+											(isWithinScheduleTime ||
+												canEditEvaluation)
+										) {
 											startTimer();
 											setMinute(m);
 										}
 									}}
 									disabled={
-										navigationDisabled || (!isWithinScheduleTime && !canEditEvaluation)
+										navigationDisabled ||
+										(!isWithinScheduleTime &&
+											!canEditEvaluation)
 									}
 									className={`h-10 w-10 rounded-md text-sm font-semibold ${
 										minute === m
@@ -933,7 +993,9 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 			{/* Comments */}
 			<div className="collapse-arrow collapse mt-4 border-1 border-gray-300">
 				<input type="checkbox" />
-				<div className="collapse-title text-lg font-semibold">Observation Comments</div>
+				<div className="collapse-title text-lg font-semibold">
+					Observation Comments
+				</div>
 				<div className="collapse-content">
 					<div className="mb-2 flex flex-col items-center">
 						<label className="mb-1 text-sm font-medium text-gray-700">
@@ -943,7 +1005,9 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 							className="w-full max-w-md rounded border border-gray-300 p-2"
 							value={currentTeacherComments}
 							onChange={handleTeacherCommentChange}
-							disabled={!isWithinScheduleTime && !canEditEvaluation}
+							disabled={
+								!isWithinScheduleTime && !canEditEvaluation
+							}
 						/>
 					</div>
 					<div className="mb-2 flex flex-col items-center">
@@ -954,7 +1018,9 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 							className="w-full max-w-md rounded border border-gray-300 p-2"
 							value={currentStudentComments}
 							onChange={handleStudentCommentChange}
-							disabled={!isWithinScheduleTime && !canEditEvaluation}
+							disabled={
+								!isWithinScheduleTime && !canEditEvaluation
+							}
 						/>
 					</div>
 				</div>
@@ -970,14 +1036,24 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 					<div className="grid gap-8 md:grid-cols-2">
 						{/* Student Activities */}
 						<div>
-							<h4 className="mb-2 text-center font-semibold">Student Activities</h4>
+							<h4 className="mb-2 text-center font-semibold">
+								Student Activities
+							</h4>
 							<div className="space-y-2">
 								{studentOptions.map((activity) => (
-									<div key={activity} className="flex justify-between">
+									<div
+										key={activity}
+										className="flex justify-between"
+									>
 										<span>{activity}:</span>
 										<span>
-											{studentTallies[activity]?.count || 0} times (
-											{studentTallies[activity]?.percentage?.toFixed(2) || "0.00"}%)
+											{studentTallies[activity]?.count ||
+												0}{" "}
+											times (
+											{studentTallies[
+												activity
+											]?.percentage?.toFixed(2) || "0.00"}
+											%)
 										</span>
 									</div>
 								))}
@@ -986,14 +1062,24 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 
 						{/* Teacher Activities */}
 						<div>
-							<h4 className="mb-2 text-center font-semibold">Teacher Activities</h4>
+							<h4 className="mb-2 text-center font-semibold">
+								Teacher Activities
+							</h4>
 							<div className="space-y-2">
 								{teacherOptions.map((activity) => (
-									<div key={activity} className="flex justify-between">
+									<div
+										key={activity}
+										className="flex justify-between"
+									>
 										<span>{activity}:</span>
 										<span>
-											{teacherTallies[activity]?.count || 0} times (
-											{teacherTallies[activity]?.percentage?.toFixed(2) || "0.00"}%)
+											{teacherTallies[activity]?.count ||
+												0}{" "}
+											times (
+											{teacherTallies[
+												activity
+											]?.percentage?.toFixed(2) || "0.00"}
+											%)
 										</span>
 									</div>
 								))}
@@ -1004,7 +1090,6 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate
 					<div className="mt-4 text-center text-sm text-gray-600">
 						Total Minutes Observed: {getTotalMinutesObserved() * 2}
 					</div>
-
 				</div>
 			</div>
 		</div>

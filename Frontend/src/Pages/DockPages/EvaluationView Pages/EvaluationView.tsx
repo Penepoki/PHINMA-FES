@@ -3,8 +3,8 @@ import CopusMatrix from "../../../Components/Evaluation Components/Copus Matrix"
 import PieChartWithTable from "../../../Components/Evaluation Components/Piechart with Table";
 import api from "../../../utils/api";
 import { ActivityData } from "../../../Components/Evaluation Components/Copus Matrix";
-import CreateEvaluationForm from '../../../Components/Evaluation Components/CreateEvaluationForm';
-import { generateAIFeedback} from "../../../utils/api";
+import CreateEvaluationForm from "../../../Components/Evaluation Components/CreateEvaluationForm";
+import { generateAIFeedback } from "../../../utils/api";
 
 interface Evaluation {
 	id: number;
@@ -25,11 +25,11 @@ interface Schedule {
 	semester: string;
 	year: string;
 	section_name?: string;
-  subject_name?: string;
-  room_name?: string;
-  program_name?: string;
-  start_time?: string;
-  end_time?: string;
+	subject_name?: string;
+	room_name?: string;
+	program_name?: string;
+	start_time?: string;
+	end_time?: string;
 }
 
 interface Program {
@@ -88,99 +88,114 @@ function Evaluation({ setActiveView }: EvalProps) {
 	const [error, setError] = useState<string | null>(null);
 
 	// Fetch AI feedback when modal opens and selectedEvaluation changes
-useEffect(() => {
-  if (selectedEvaluation && selectedEvaluation.id) {
-    setAiFeedbackLoading(true);
-    setAiFeedbackError(null);
-    api.get(`/evaluation/evaluations/${selectedEvaluation.id}/`) // or wherever you fetch the evaluation
-      .then(res => {
-        setAiFeedback(res.data.ai_feedback?.feedback || null);
-      })
-      .catch(() => setAiFeedback(null))
-      .finally(() => setAiFeedbackLoading(false));
-  }
-}, [selectedEvaluation]);
+	useEffect(() => {
+		if (selectedEvaluation && selectedEvaluation.id) {
+			setAiFeedbackLoading(true);
+			setAiFeedbackError(null);
+			api.get(`/evaluation/evaluations/${selectedEvaluation.id}/`) // or wherever you fetch the evaluation
+				.then((res) => {
+					setAiFeedback(res.data.ai_feedback?.feedback || null);
+				})
+				.catch(() => setAiFeedback(null))
+				.finally(() => setAiFeedbackLoading(false));
+		}
+	}, [selectedEvaluation]);
 
-const handleGenerateAIFeedback = async () => {
-  if (!selectedEvaluation) return;
-  setAiFeedbackLoading(true);
-  setAiFeedbackError(null);
-  try {
-    const res = await generateAIFeedback(selectedEvaluation.id);
-    setAiFeedback(res.ai_feedback.feedback);
-  } catch (err: any) {
-    setAiFeedbackError("Failed to generate AI feedback.");
-  } finally {
-    setAiFeedbackLoading(false);
-  }
-};
+	const handleGenerateAIFeedback = async () => {
+		if (!selectedEvaluation) return;
+		setAiFeedbackLoading(true);
+		setAiFeedbackError(null);
+		try {
+			const res = await generateAIFeedback(selectedEvaluation.id);
+			setAiFeedback(res.ai_feedback.feedback);
+		} catch (err: any) {
+			setAiFeedbackError("Failed to generate AI feedback.");
+		} finally {
+			setAiFeedbackLoading(false);
+		}
+	};
 
 	const createEvaluation = async (evaluationData: Partial<Evaluation>) => {
-	  try {
-		const response = await api.post('/evaluation/evaluations/', evaluationData);
-		setEvaluations([...evaluations, response.data.data]);
-		return response.data.data;
-	  } catch (error) {
-		console.error('Error creating evaluation:', error);
-		throw error;
-	  }
+		try {
+			const response = await api.post(
+				"/evaluation/evaluations/",
+				evaluationData,
+			);
+			setEvaluations([...evaluations, response.data.data]);
+			return response.data.data;
+		} catch (error) {
+			console.error("Error creating evaluation:", error);
+			throw error;
+		}
 	};
 	const handleOpenEvaluation = (evaluation) => {
-	  setSelectedEvaluation(evaluation);
-	  const scheduleObj = schedules.find(s => s.id === evaluation.schedule);
-	  console.log("Schedules:", schedules);
-console.log("Evaluation.schedule:", evaluation.schedule);
-console.log("Matched scheduleObj:", scheduleObj);
-	  setSelectedSchedule(scheduleObj || null);
-	  setModalOpen("copus-matrix");
+		setSelectedEvaluation(evaluation);
+		const scheduleObj = schedules.find((s) => s.id === evaluation.schedule);
+		console.log("Schedules:", schedules);
+		console.log("Evaluation.schedule:", evaluation.schedule);
+		console.log("Matched scheduleObj:", scheduleObj);
+		setSelectedSchedule(scheduleObj || null);
+		setModalOpen("copus-matrix");
 	};
 
-
-	const updateEvaluation = async (id: number, evaluationData: Partial<Evaluation>) => {
-	  try {
-		const response = await api.put(`/evaluation/evaluations/${id}/`, evaluationData);
-		setEvaluations(evaluations.map(evaluation =>
-		  evaluation.id === id ? { ...evaluation, ...response.data } : evaluation
-		));
-		return response.data;
-	  } catch (error) {
-		console.error('Error updating evaluation:', error);
-		throw error;
-	  }
+	const updateEvaluation = async (
+		id: number,
+		evaluationData: Partial<Evaluation>,
+	) => {
+		try {
+			const response = await api.put(
+				`/evaluation/evaluations/${id}/`,
+				evaluationData,
+			);
+			setEvaluations(
+				evaluations.map((evaluation) =>
+					evaluation.id === id
+						? { ...evaluation, ...response.data }
+						: evaluation,
+				),
+			);
+			return response.data;
+		} catch (error) {
+			console.error("Error updating evaluation:", error);
+			throw error;
+		}
 	};
 
 	const deleteEvaluation = async (id: number) => {
-	  try {
-		await api.delete(`/evaluation/evaluations/${id}/`);
-		setEvaluations(evaluations.filter(evaluation => evaluation.id !== id));
-	  } catch (error) {
-		console.error('Error deleting evaluation:', error);
-		throw error;
-	  }
+		try {
+			await api.delete(`/evaluation/evaluations/${id}/`);
+			setEvaluations(
+				evaluations.filter((evaluation) => evaluation.id !== id),
+			);
+		} catch (error) {
+			console.error("Error deleting evaluation:", error);
+			throw error;
+		}
 	};
 
 	useEffect(() => {
-	  async function fetchData() {
-		setLoading(true);
-		try {
-		  const [evalRes, schedRes, progRes, progProfRes] = await Promise.all([
-			api.get("/evaluation/evaluations/"),
-			api.get("/schedule/schedules/"),
-			api.get("/program/programs/"),
-			api.get("/program-professor/program-professors/"),
-		  ]);
-		  setEvaluations(evalRes.data);
-		  setSchedules(schedRes.data);
-		  setPrograms(progRes.data);
-		  setProgramProfessors(progProfRes.data);
-		} catch (err) {
-		  console.error("Error fetching data:", err);
-		  setError("Failed to load data. Please try again later.");
-		} finally {
-		  setLoading(false);
+		async function fetchData() {
+			setLoading(true);
+			try {
+				const [evalRes, schedRes, progRes, progProfRes] =
+					await Promise.all([
+						api.get("/evaluation/evaluations/"),
+						api.get("/schedule/schedules/"),
+						api.get("/program/programs/"),
+						api.get("/program-professor/program-professors/"),
+					]);
+				setEvaluations(evalRes.data);
+				setSchedules(schedRes.data);
+				setPrograms(progRes.data);
+				setProgramProfessors(progProfRes.data);
+			} catch (err) {
+				console.error("Error fetching data:", err);
+				setError("Failed to load data. Please try again later.");
+			} finally {
+				setLoading(false);
+			}
 		}
-	  }
-	  fetchData();
+		fetchData();
 	}, []);
 
 	const professors = Array.from(
@@ -197,14 +212,14 @@ console.log("Matched scheduleObj:", scheduleObj);
 	};
 
 	const COPUS_TYPE_CHOICES = [
-	  { value: "copus_1", label: "COPUS 1" },
-	  { value: "copus_2", label: "COPUS 2" },
-	  { value: "copus_3", label: "COPUS 3" },
+		{ value: "copus_1", label: "COPUS 1" },
+		{ value: "copus_2", label: "COPUS 2" },
+		{ value: "copus_3", label: "COPUS 3" },
 	];
 
 	const getEvaluationByType = (prof: Professor, copusType: string) => {
-	  const profEvals = getProfessorEvaluations(prof);
-	  return profEvals.find(e => e.evaluation_type === copusType);
+		const profEvals = getProfessorEvaluations(prof);
+		return profEvals.find((e) => e.evaluation_type === copusType);
 	};
 
 	const filteredProfessors = professors.filter((prof) =>
@@ -297,7 +312,6 @@ console.log("Matched scheduleObj:", scheduleObj);
 
 			{/* Professors Table */}
 			<div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg">
-
 				<table className="table">
 					<thead className="bg-[#1c402a]/50 text-xl font-bold text-white shadow-xl">
 						<tr>
@@ -327,75 +341,128 @@ console.log("Matched scheduleObj:", scheduleObj);
 												}
 											>
 												{/* COPUS Type Buttons */}
-{(() => {
-  // Find the first missing COPUS type for this professor
-  const firstMissingType = COPUS_TYPE_CHOICES.find(
-    copus => !getEvaluationByType(prof, copus.value)
-  );
-  return COPUS_TYPE_CHOICES.map((copus) => {
-    const evalForType = getEvaluationByType(prof, copus.value);
-    if (evalForType) {
-      // Show Edit button for existing evaluation
-      return (
-        <label
-          key={copus.value}
-          className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300 mx-1"
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedEvaluation(evalForType);
-              setSelectedProfessor(prof);
-              setModalOpen("copus-matrix");
-			  handleOpenEvaluation(evalForType);
-            }}
-            className="rounded px-5 py-2 text-white bg-[#2c503a] hover:bg-[#1c402a]"
-          >
-            {`Edit ${copus.label}`}
-          </button>
-        </label>
-      );
-    } else if (copus.value === firstMissingType?.value) {
-      // Show only one New button for the first missing type
-      return (
-        <label
-          key={copus.value}
-          className="btn cursor-pointer bg-gray-200 text-black hover:bg-gray-300 mx-1"
-        >
-          <button
-            type="button"
-            onClick={async () => {
-              const profSchedules = getProfessorSchedules(prof);
-              if (profSchedules.length === 0) {
-                alert("No schedule found for this professor.");
-                return;
-              }
-              const newEvalData = {
-                schedule: profSchedules[0].id,
-                observation_date: new Date().toISOString().split('T')[0],
-                evaluation_type: copus.value,
-                instructor: prof.id,
-              };
-              try {
-                const created = await createEvaluation(newEvalData);
-                setSelectedEvaluation(created);
-                setSelectedProfessor(prof);
-                setModalOpen("copus-matrix");
-              } catch (err) {
-                alert("Failed to create evaluation.");
-              }
-            }}
-            className="rounded px-5 py-2 text-white bg-blue-600 hover:bg-blue-700"
-          >
-            {`New ${copus.label}`}
-          </button>
-        </label>
-      );
-    }
-    // Otherwise, don't show a button
-    return null;
-  });
-})()}
+												{(() => {
+													// Find the first missing COPUS type for this professor
+													const firstMissingType =
+														COPUS_TYPE_CHOICES.find(
+															(copus) =>
+																!getEvaluationByType(
+																	prof,
+																	copus.value,
+																),
+														);
+													return COPUS_TYPE_CHOICES.map(
+														(copus) => {
+															const evalForType =
+																getEvaluationByType(
+																	prof,
+																	copus.value,
+																);
+															if (evalForType) {
+																// Show Edit button for existing evaluation
+																return (
+																	<label
+																		key={
+																			copus.value
+																		}
+																		className="btn mx-1 cursor-pointer bg-[#1b2e3e] text-white hover:bg-[#4e6e88]"
+																	>
+																		<button
+																			type="button"
+																			onClick={() => {
+																				setSelectedEvaluation(
+																					evalForType,
+																				);
+																				setSelectedProfessor(
+																					prof,
+																				);
+																				setModalOpen(
+																					"copus-matrix",
+																				);
+																				handleOpenEvaluation(
+																					evalForType,
+																				);
+																			}}
+																		>
+																			{`Edit ${copus.label}`}
+																		</button>
+																	</label>
+																);
+															} else if (
+																copus.value ===
+																firstMissingType?.value
+															) {
+																// Show only one New button for the first missing type
+																return (
+																	<label
+																		key={
+																			copus.value
+																		}
+																		className="btn mx-1 cursor-pointer bg-gray-300 text-white hover:bg-gray-500"
+																	>
+																		<button
+																			type="button"
+																			onClick={async () => {
+																				const profSchedules =
+																					getProfessorSchedules(
+																						prof,
+																					);
+																				if (
+																					profSchedules.length ===
+																					0
+																				) {
+																					alert(
+																						"No schedule found for this professor.",
+																					);
+																					return;
+																				}
+																				const newEvalData =
+																					{
+																						schedule:
+																							profSchedules[0]
+																								.id,
+																						observation_date:
+																							new Date()
+																								.toISOString()
+																								.split(
+																									"T",
+																								)[0],
+																						evaluation_type:
+																							copus.value,
+																						instructor:
+																							prof.id,
+																					};
+																				try {
+																					const created =
+																						await createEvaluation(
+																							newEvalData,
+																						);
+																					setSelectedEvaluation(
+																						created,
+																					);
+																					setSelectedProfessor(
+																						prof,
+																					);
+																					setModalOpen(
+																						"copus-matrix",
+																					);
+																				} catch (err) {
+																					alert(
+																						"Failed to create evaluation.",
+																					);
+																				}
+																			}}
+																		>
+																			{`New ${copus.label}`}
+																		</button>
+																	</label>
+																);
+															}
+															// Otherwise, don't show a button
+															return null;
+														},
+													);
+												})()}
 											</div>
 											<div className="collapse-content flex bg-black/20 text-lg">
 												<div className="flex h-full w-full flex-col justify-center">
@@ -407,23 +474,41 @@ console.log("Matched scheduleObj:", scheduleObj);
 														</div>
 														<div className="ml-6 flex w-full flex-col justify-center border-b-2 border-gray-300">
 															<div>
-																Department: {" "}
+																Department:{" "}
 																<strong>
-																	{prof.department || "N/A"}
+																	{prof.department ||
+																		"N/A"}
 																</strong>
 															</div>
-															{profSchedules.length > 0 && (
+															{profSchedules.length >
+																0 && (
 																<>
 																	<div>
-																		Room and Subject: {" "}
+																		Room and
+																		Subject:{" "}
 																		<strong>
-																			{profSchedules[0].room} {profSchedules[0].subject}
+																			{
+																				profSchedules[0]
+																					.room
+																			}{" "}
+																			{
+																				profSchedules[0]
+																					.subject
+																			}
 																		</strong>
 																	</div>
 																	<div>
-																		Year and Semester: {" "}
+																		Year and
+																		Semester:{" "}
 																		<strong>
-																			{profSchedules[0].year} {profSchedules[0].semester}
+																			{
+																				profSchedules[0]
+																					.year
+																			}{" "}
+																			{
+																				profSchedules[0]
+																					.semester
+																			}
 																		</strong>
 																	</div>
 																</>
@@ -434,17 +519,39 @@ console.log("Matched scheduleObj:", scheduleObj);
 														<table className="table w-full border-b-2 border-gray-300">
 															<thead className="text-gray-300">
 																<tr>
-																	<th>Evaluated Subject</th>
-																	<th>Schedule</th>
+																	<th>
+																		Evaluated
+																		Subject
+																	</th>
+																	<th>
+																		Schedule
+																	</th>
 																</tr>
 															</thead>
 															<tbody>
-																{profSchedules.map((schedule, schedIndex) => (
-																	<tr key={schedIndex}>
-																		<td>{schedule.subject}</td>
-																		<td>{schedule.name}</td>
-																	</tr>
-																))}
+																{profSchedules.map(
+																	(
+																		schedule,
+																		schedIndex,
+																	) => (
+																		<tr
+																			key={
+																				schedIndex
+																			}
+																		>
+																			<td>
+																				{
+																					schedule.subject
+																				}
+																			</td>
+																			<td>
+																				{
+																					schedule.name
+																				}
+																			</td>
+																		</tr>
+																	),
+																)}
 															</tbody>
 														</table>
 													</div>
@@ -467,11 +574,11 @@ console.log("Matched scheduleObj:", scheduleObj);
 							New Copus
 						</h3>
 						<CreateEvaluationForm
-						  onSuccess={(newEvaluation) => {
-							setEvaluations([...evaluations, newEvaluation]);
-							setModalOpen(null);
-						  }}
-						  schedules={schedules}
+							onSuccess={(newEvaluation) => {
+								setEvaluations([...evaluations, newEvaluation]);
+								setModalOpen(null);
+							}}
+							schedules={schedules}
 						/>
 						<div className="modal-action">
 							<button
@@ -489,9 +596,11 @@ console.log("Matched scheduleObj:", scheduleObj);
 			{/* View/Edit Copus Modal */}
 			{selectedEvaluation && selectedProfessor && (
 				<dialog open className="modal">
-					<div className="modal-box w-[95vw] max-w-fit max-h-[90vh] overflow-y-auto overflow-x-auto text-black p-6 rounded-xl border border-gray-300 shadow-xl bg-white">
-						<h3 className="mb-6 mt-2 text-xl font-bold">
-							{selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Evaluation - {selectedEvaluation.evaluation_type}
+					<div className="modal-box max-h-full w-full max-w-5xl text-black">
+						<h3 className="mt-2 mb-6 text-xl font-bold">
+							{selectedProfessor.first_name}{" "}
+							{selectedProfessor.last_name} - COPUS Evaluation -{" "}
+							{selectedEvaluation.evaluation_type}
 						</h3>
 
 						{/* Basic Information */}
@@ -499,21 +608,83 @@ console.log("Matched scheduleObj:", scheduleObj);
 							<input type="checkbox" />
 							<div className="collapse-title text-lg font-semibold">
 								Basic Information
-
 							</div>
 
 							<div className="collapse-content space-y-2">
 								<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-								  <input type="text" value={firstName} className="input input-bordered w-full" readOnly />
-								  <input type="date" value={selectedEvaluation.observation_date} className="input input-bordered w-full" readOnly />
-								  <input type="text" value={`${selectedProfessor.first_name} ${selectedProfessor.last_name}`} readOnly className="input input-bordered w-full" />
-								  <input type="text" value={selectedSchedule?.section_name || ""} readOnly className="input input-bordered w-full" />
-								  <input type="text" value={selectedSchedule?.subject_name || ""} readOnly className="input input-bordered w-full" />
-								  <input type="text" value={selectedSchedule?.room_name || ""} readOnly className="input input-bordered w-full" />
-								  <input type="text" value={selectedSchedule?.program_name || "Null"} readOnly className="input input-bordered w-full" />
-								  <input type="text" value={selectedSchedule?.start_time || ""} readOnly className="input input-bordered w-full" />
-								  <input type="text" value={selectedSchedule?.end_time || ""} readOnly className="input input-bordered w-full" />
-								  <input type="text" value={selectedSchedule?.semester || ""} readOnly className="input input-bordered w-full" />
+									<input
+										type="text"
+										value={firstName}
+										className="input input-bordered w-full"
+										readOnly
+									/>
+									<input
+										type="date"
+										value={
+											selectedEvaluation.observation_date
+										}
+										className="input input-bordered w-full"
+										readOnly
+									/>
+									<input
+										type="text"
+										value={`${selectedProfessor.first_name} ${selectedProfessor.last_name}`}
+										readOnly
+										className="input input-bordered w-full"
+									/>
+									<input
+										type="text"
+										value={
+											selectedSchedule?.section_name || ""
+										}
+										readOnly
+										className="input input-bordered w-full"
+									/>
+									<input
+										type="text"
+										value={
+											selectedSchedule?.subject_name || ""
+										}
+										readOnly
+										className="input input-bordered w-full"
+									/>
+									<input
+										type="text"
+										value={
+											selectedSchedule?.room_name || ""
+										}
+										readOnly
+										className="input input-bordered w-full"
+									/>
+									<input
+										type="text"
+										value={
+											selectedSchedule?.program_name ||
+											"Null"
+										}
+										readOnly
+										className="input input-bordered w-full"
+									/>
+									<input
+										type="text"
+										value={
+											selectedSchedule?.start_time || ""
+										}
+										readOnly
+										className="input input-bordered w-full"
+									/>
+									<input
+										type="text"
+										value={selectedSchedule?.end_time || ""}
+										readOnly
+										className="input input-bordered w-full"
+									/>
+									<input
+										type="text"
+										value={selectedSchedule?.semester || ""}
+										readOnly
+										className="input input-bordered w-full"
+									/>
 								</div>
 							</div>
 						</div>
@@ -530,7 +701,6 @@ console.log("Matched scheduleObj:", scheduleObj);
 								}));
 							}}
 							evaluationId={selectedEvaluation.id}
-
 						/>
 
 						{/* COPUS Summary Chart */}
@@ -542,83 +712,98 @@ console.log("Matched scheduleObj:", scheduleObj);
 								}
 								teacherTallies={
 									evaluationTallies[selectedEvaluation.id]
-									?.teacherTallies || {}
+										?.teacherTallies || {}
 								}
 							/>
 						</div>
 
 						{/* AI Feedback */}
 						<div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
-						  <input type="checkbox" />
-						  <div className="collapse-title text-lg font-semibold">
-							AI Feedback
-							{aiFeedbackLoading && <span className="ml-4 text-sm text-gray-500">Loading...</span>}
-						  </div>
-						  <div className="collapse-content">
-							<div className="flex items-center mb-2">
-							  {aiFeedback === null && !aiFeedbackLoading && (
-								<button
-								  className="btn btn-primary btn-xs mr-4"
-								  onClick={handleGenerateAIFeedback}
-								  disabled={aiFeedbackLoading}
-								  type="button"
-								>
-								  Generate AI Feedback
-								</button>
-							  )}
-							  {aiFeedbackError && <div className="text-red-500">{aiFeedbackError}</div>}
+							<input type="checkbox" />
+							<div className="collapse-title text-lg font-semibold">
+								AI Feedback
+								{aiFeedbackLoading && (
+									<span className="ml-4 text-sm text-gray-500">
+										Loading...
+									</span>
+								)}
 							</div>
-							<textarea
-							  className="textarea textarea-bordered min-h-[100px] w-full"
-							  placeholder="AI feedback will appear here..."
-							  value={aiFeedback || ""}
-							  readOnly
-							/>
-						  </div>
+							<div className="collapse-content">
+								<div className="mb-2 flex items-center">
+									{aiFeedback === null &&
+										!aiFeedbackLoading && (
+											<button
+												className="btn btn-primary btn-xs mr-4"
+												onClick={
+													handleGenerateAIFeedback
+												}
+												disabled={aiFeedbackLoading}
+												type="button"
+											>
+												Generate AI Feedback
+											</button>
+										)}
+									{aiFeedbackError && (
+										<div className="text-red-500">
+											{aiFeedbackError}
+										</div>
+									)}
+								</div>
+								<textarea
+									className="textarea textarea-bordered min-h-[100px] w-full"
+									placeholder="AI feedback will appear here..."
+									value={aiFeedback || ""}
+									readOnly
+								/>
+							</div>
 						</div>
 
 						{/* Actions */}
 						<div className="modal-action">
-						  <form method="dialog" className="flex flex-wrap gap-4">
-							<button type="submit" className="btn bg-[#1c402a] text-white" onClick={() => {
-							  setModalOpen(null);
-							  setSelectedEvaluation(null);
-							  setSelectedProfessor(null);
-							  setSelectedSchedule(null);
-							}}>
-							  Close
-							</button>
-							<button className="btn btn-success px-6" onClick={() => {
-							  setModalOpen(null);
-							  setSelectedEvaluation(null);
-							  setSelectedProfessor(null);
-							  setSelectedSchedule(null);
-							}}>
-							  Save
-							</button>
-							<button className="btn btn-primary px-6 text-white" onClick={() => {
-							  setModalOpen(null);
-							  setSelectedEvaluation(null);
-							  setSelectedProfessor(null);
-							  setSelectedSchedule(null);
-							}}>
-							  Save and Continue
-							</button>
-							<button className="btn btn-error px-6" onClick={() => {
-							  setModalOpen(null);
-							  setSelectedEvaluation(null);
-							  setSelectedProfessor(null);
-							  setSelectedSchedule(null);
-							}}>
-							  Exit
-							</button>
-						  </form>
+							<form
+								method="dialog"
+								className="flex flex-wrap gap-4"
+							>
+								<button
+									className="btn btn-success px-6"
+									onClick={() => {
+										setModalOpen(null);
+										setSelectedEvaluation(null);
+										setSelectedProfessor(null);
+										setSelectedSchedule(null);
+									}}
+								>
+									Save
+								</button>
+								<button
+									className="btn btn-primary px-6 text-white"
+									onClick={() => {
+										setModalOpen(null);
+										setSelectedEvaluation(null);
+										setSelectedProfessor(null);
+										setSelectedSchedule(null);
+									}}
+								>
+									Save and Continue
+								</button>
+
+								<button
+									type="submit"
+									className="btn btn-cancel text-white"
+									onClick={() => {
+										setModalOpen(null);
+										setSelectedEvaluation(null);
+										setSelectedProfessor(null);
+										setSelectedSchedule(null);
+									}}
+								>
+									Close
+								</button>
+							</form>
 						</div>
 					</div>
 				</dialog>
 			)}
-
-
 		</div>
 	);
 }
