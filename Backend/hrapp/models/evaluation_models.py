@@ -93,7 +93,7 @@ class Evaluation(models.Model):
                                    related_name='primary_evaluations')
 
     constraints = [
-        models.UniqueConstraint(fields=['schedule', 'observation_date', 'instructor'],
+        models.UniqueConstraint(fields=['schedule', 'evaluation_type', 'instructor'],
                                 name='unique_schedule_observation_date_instructor'),
     ]
 

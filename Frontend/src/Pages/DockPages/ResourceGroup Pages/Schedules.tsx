@@ -4,6 +4,7 @@ import api from "../../../utils/api";
 import DataTable, {
 	Column,
 } from "../../../Components/Evaluation Components/Data Table";
+import {ComboboxTextField} from "../../../Components/Resource Components/ComboTextField.tsx";
 // Assuming you have your generic DataTable component exported
 
 interface SchedulesProps {
@@ -22,6 +23,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 	const [loading, setLoading] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [newScheduleName, setNewScheduleName] = useState("");
+	const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(null);
 
 	const fetchSchedules = async () => {
 		setLoading(true);
@@ -126,6 +128,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 		},
 	];
 
+
 	return (
 		<div className="custom-container gap-y-6">
 			<div className="breadcrumbs">
@@ -181,15 +184,15 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
 							{/* Professor */}
 							<div className="flex flex-col gap-2 md:flex-row md:items-center">
-								<label className="text-left text-lg font-bold md:w-1/4">
-									Professor:
-								</label>
-								<input
-									type="text"
-									placeholder="Enter professor name"
-									className="input input-bordered w-full"
-									required
+								<ComboboxTextField
+								  label="Professor"
+								  placeholder="Enter professor name"
+								  fetchUrl="/users/professors"
+								  value={selectedProfessor}
+								  onChange={setSelectedProfessor}
 								/>
+
+
 							</div>
 
 							{/* Subject */}

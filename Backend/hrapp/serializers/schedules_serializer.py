@@ -57,7 +57,7 @@ class ProgramSerializer(serializers.ModelSerializer):
                 for professor_id in professors
             ]
             ProgramProfessor.objects.bulk_create(program_professor_instances)
-        return Program
+        return program  # <-- FIXED: return the instance, not the class
 
     # Adding a read-only field to return professor names
     def get_professor_names(self, obj):
@@ -136,30 +136,23 @@ class SectionSerializer(serializers.ModelSerializer):
 
 # SCHEDULE SERIALIZER
 class ScheduleSerializer(serializers.ModelSerializer):
-    program_name = serializers.SlugRelatedField(
-        queryset=Program.objects.all(),
-        slug_field='name',
-        source='program'
-    )
-    subject_name = serializers.SlugRelatedField(
-        queryset=Subject.objects.all(),
-        slug_field='name',
-        source='subject'
-    )
-    room_name = serializers.SlugRelatedField(
-        queryset=Room.objects.all(),
-        slug_field='name',
-        source='room'
-    )
-    section_name = serializers.SlugRelatedField(
-        queryset=Section.objects.all(),
-        slug_field='name',
-        source='section'
-    )
+    section = serializers.PrimaryKeyRelatedField(queryset=Section.objects.all())
+    subject = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all())
+    room = serializers.PrimaryKeyRelatedField(queryset=Room.objects.all())
+    instructor = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all())
+    section_name = serializers.CharField(source='section.name', read_only=True)
+    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    room_name = serializers.CharField(source='room.name', read_only=True)
+    program_name = serializers.CharField(source='program.name', read_only=True)
+    instructor_name = serializers.CharField(source='instructor.get_full_name', read_only=True)
+
     class Meta:
         model = Schedule
-        fields = ['id','section_name', 'subject_name', 'instructor','room_name', 'program_name', 'name' ,'start_time','end_time', 'semester']
-        read_only_fields = ['deleted_at', 'created_at', 'updated_at']
+        fields = [
+            'id', 'section', 'section_name', 'subject', 'subject_name', 'instructor', 'instructor_name',
+            'room', 'room_name', 'program', 'program_name', 'name', 'start_time', 'end_time', 'semester', 'year'
+        ]
 
     def validate_start_time(self, value):
             # Get end_time input

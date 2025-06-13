@@ -88,6 +88,36 @@ class EvaluationSerializer(serializers.ModelSerializer):
         # If it's already an integer ID, return it as is
         return value
 
+    def validate(self, data):
+        schedule = data.get('schedule')
+        instructor = data.get('instructor')
+        evaluation_type = data.get('evaluation_type')
+        observation_date = data.get('observation_date')
+
+        # Only check if schedule is provided
+        if schedule:
+            #Extract the relevant fields from the related schedule
+            subject = schedule.subject
+            semester = schedule.semester
+            year = schedule.year
+
+            duplicate_qs = Evaluation.objects.filter(
+                schedule__subject=subject,
+                schedule__semester=semester,
+                schedule__year=year,
+                evaluation_type=evaluation_type,
+                instructor=instructor,
+            )
+
+            # If updating, exclude the current instance
+            if self.instance:
+                duplicate_qs = duplicate_qs.exclude(pk=self.instance.pk)
+
+            if duplicate_qs.exists():
+                raise serializers.ValidationError("An evaluation with this schedule, evaluation type, and instructor already exists for the same date.")
+
+        return data
+
     def create(self, validated_data):
         print("DEBUG: Serializer Create Method Called")
         print("DEBUG: Validated Data:", validated_data)  # Print validated data
