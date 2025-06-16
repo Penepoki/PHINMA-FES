@@ -28,6 +28,7 @@ class UserManager(BaseUserManager):
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
+
         user.save(using=self._db)
         return user
 
@@ -40,7 +41,7 @@ class UserManager(BaseUserManager):
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     supervisor = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)
-    is_deleted = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False, null=True, blank=True, help_text="Soft delete flag")
 
     #ByteISO or Image (Profile PICTURE!!!)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)

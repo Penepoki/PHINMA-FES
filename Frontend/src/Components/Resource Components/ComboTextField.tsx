@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import api from "../../utils/api"; // Adjust the import path as necessary
 
 interface Option {
   id: number;
@@ -32,14 +33,16 @@ export function ComboboxTextField({
     return;
   }
   const fetchOptions = async () => {
-    try {
-      const res = await axios.get(fetchUrl, { params: { search: inputValue } });
-      // Defensive: ensure array
-      setOptions(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      setOptions([]); // On error, set to empty array
-    }
-  };
+  try {
+    console.log("Fetching:", fetchUrl, "with input:", inputValue);
+    const res = await api.get(fetchUrl, { params: { search: inputValue } });
+    console.log("Response:", res.data);
+    setOptions(Array.isArray(res.data) ? res.data : []);
+  } catch (err) {
+    console.error("Error fetching options:", err);
+    setOptions([]);
+  }
+};
   fetchOptions();
 }, [inputValue, fetchUrl]);
 

@@ -93,8 +93,10 @@ class Evaluation(models.Model):
                                    related_name='primary_evaluations')
 
     constraints = [
-        models.UniqueConstraint(fields=['schedule', 'evaluation_type', 'instructor'],
-                                name='unique_schedule_observation_date_instructor'),
+        models.UniqueConstraint(
+            fields=['schedule', 'evaluation_type', 'instructor', 'observation_date'],
+            name='unique_schedule_type_instructor_date'
+        ),
     ]
 
     @property
@@ -108,7 +110,7 @@ class Evaluation(models.Model):
         # Set the name before saving
         if self.schedule:
             instructor_name = str(self.professor) if self.professor else "No instructor"
-            self.name = f"{self.schedule.name} - {instructor_name} - {self.observation_date}"
+            self.name = f"{self.schedule.name} - {instructor_name} - {self.observation_date} - {self.evaluation_type}"
 
         # Save only once
         super().save(*args, **kwargs)

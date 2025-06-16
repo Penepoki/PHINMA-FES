@@ -76,8 +76,6 @@ class Section(BaseModel):
     class Meta:
         unique_together = ('name', 'program', 'year_level')
 
-    #def __str__(self):
-        #return f'{self.name} ({self.year_level}) - {self.program.name}'
 
 
 # Schedules
@@ -101,7 +99,7 @@ class Schedule(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['section', 'subject'], name='unique_section_subject'),
+            models.UniqueConstraint(fields=['program','section','subject'], name='unique_section_subject'),
 
 
         ]
@@ -118,9 +116,6 @@ class Schedule(BaseModel):
         self.academic_period = f"{self.year} - {self.semester}"
         super().save(*args, **kwargs)
 
-
-    #class Meta:
-        #unique_together = ('year', 'semester')  # Enforce uniqueness
 
 
 

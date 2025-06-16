@@ -22,8 +22,13 @@ def assign_default_group(sender, instance, created, **kwargs):
         instance.save()
 
 @receiver(post_save, sender=User)
-def token_expiry(sender, instance=None, created=False, **kwargs):
-    """Automatically assigns a new user to the 'Student' group."""
-    if created and not instance.expires_at:
-        instance.expires_at = now() + timedelta(seconds=settings.TOKEN_EXPIRY_DURATION)
-        instance.save()
+def create_token_with_expiry(sender, instance, created, **kwargs):
+    if created:
+        # Create token if it doesn't exist
+        token, _ = Token.objects.get_or_create(user=instance)
+        # Set expires_at if not already set
+        if not token.expires_at:
+            token.expires_at = now() + timedelta(seconds=settings.TOKEN_EXPIRY_DURATION)
+            token.save()
+
+

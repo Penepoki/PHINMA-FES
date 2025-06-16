@@ -101,12 +101,16 @@ class EvaluationSerializer(serializers.ModelSerializer):
             semester = schedule.semester
             year = schedule.year
 
+
             duplicate_qs = Evaluation.objects.filter(
                 schedule__subject=subject,
                 schedule__semester=semester,
                 schedule__year=year,
                 evaluation_type=evaluation_type,
+                observation_date=observation_date,
                 instructor=instructor,
+                is_deleted=False,
+                deleted_at=None
             )
 
             # If updating, exclude the current instance
