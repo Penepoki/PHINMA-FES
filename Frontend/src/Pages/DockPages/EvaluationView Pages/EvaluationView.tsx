@@ -10,7 +10,7 @@ interface Evaluation {
 	id: number;
 	schedule: number;
 	observation_date: string;
-	evaluation_type: string;
+	evaluation_label: string;
 	additional_comments?: string;
 	instructor?: string;
 }

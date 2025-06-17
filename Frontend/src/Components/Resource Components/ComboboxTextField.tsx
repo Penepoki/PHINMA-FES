@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import api from "../../utils/api"; // Adjust the import path as necessary
+import api from "../../utils/api.ts";
 
 type Item = {
   id: number | string;
@@ -9,19 +9,19 @@ type Item = {
 type Props = {
   label: string;
   placeholder?: string;
-  fetchUrl?: string;
-  options?: Item[]; // If preloaded from parent
+  fetchUrl: string;
   value: Item | null;
   onChange: (val: Item | null) => void;
+  options?: Item[]; // Optional preload
 };
 
 const ComboboxTextField: React.FC<Props> = ({
   label,
   placeholder = "Search...",
   fetchUrl,
-  options,
   value,
   onChange,
+  options,
 }) => {
   const [items, setItems] = useState<Item[]>(options || []);
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,25 +30,29 @@ const ComboboxTextField: React.FC<Props> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch data lazily if no options are provided
+  // Fetch items when dropdown opens (lazy or filtered)
   useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const res = await api.get(fetchUrl, {
+          params: searchTerm ? { search: searchTerm } : {},
+        });
+        setItems(Array.isArray(res.data) ? res.data : []);
+        setHasFetched(true);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setItems([]);
+      }
+    };
+
     if (!hasFetched && fetchUrl && isOpen) {
-      fetch(fetchUrl)
-        .then((res) => res.json())
-        .then((data) => {
-          setItems(data);
-          setHasFetched(true);
-        })
-        .catch((err) => console.error("Fetch error:", err));
+      fetchItems();
+    } else if (fetchUrl && isOpen && searchTerm) {
+      fetchItems(); // support live filtering
     }
-  }, [isOpen, fetchUrl, hasFetched]);
+  }, [fetchUrl, isOpen, searchTerm, hasFetched]);
 
-  // Filtered list based on search term
-  const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Handle clicks outside to close dropdown
+  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -64,6 +68,18 @@ const ComboboxTextField: React.FC<Props> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const filteredItems = items.filter(
+  (item) =>
+    typeof item.name === "string" &&
+    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelect = (item: Item) => {
+    setSearchTerm(item.name);
+    onChange(item);
+    setIsOpen(false);
+  };
+
   return (
     <div className="relative w-full mb-4">
       <label className="block mb-1 text-sm font-medium text-gray-700">
@@ -78,35 +94,30 @@ const ComboboxTextField: React.FC<Props> = ({
         value={value?.name || searchTerm}
         onChange={(e) => {
           setSearchTerm(e.target.value);
-          onChange(null); // reset value if user starts typing
+          onChange(null); // Clear selected value when typing
+          setIsOpen(true);
         }}
         onFocus={() => setIsOpen(true)}
       />
 
-      {isOpen && filteredItems.length > 0 && (
+      {isOpen && (
         <div
           ref={dropdownRef}
           className="absolute z-10 w-full bg-white border border-gray-200 rounded mt-1 max-h-60 overflow-y-auto shadow-md"
         >
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-              onClick={() => {
-                onChange(item);
-                setSearchTerm(item.name);
-                setIsOpen(false);
-              }}
-            >
-              {item.name}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {isOpen && filteredItems.length === 0 && (
-        <div className="absolute z-10 w-full bg-white border border-gray-200 rounded mt-1 shadow-md px-3 py-2 text-gray-500">
-          No results found.
+          {filteredItems.length > 0 ? (
+            filteredItems.map((item) => (
+              <div
+                key={item.id}
+                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleSelect(item)}
+              >
+                {item.name}
+              </div>
+            ))
+          ) : (
+            <div className="px-3 py-2 text-gray-500">No results found.</div>
+          )}
         </div>
       )}
     </div>

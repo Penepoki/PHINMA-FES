@@ -4,7 +4,7 @@ import api from "../../../utils/api";
 import DataTable, {
 	Column,
 } from "../../../Components/Evaluation Components/Data Table";
-import {ComboboxTextField} from "../../../Components/Resource Components/ComboTextField.tsx";
+import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
 // Assuming you have your generic DataTable component exported
 
 interface SchedulesProps {
@@ -250,10 +250,10 @@ const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(null);
 					  }}
 					  className="flex flex-col gap-6"
 					>
-					  {/* Course */}
+					  {/* Program */}
 					  <ComboboxTextField
-						label="Course"
-						placeholder="Enter course"
+						label="Program"
+						placeholder="Enter program"
 						fetchUrl="/program/programs/"
 						value={selectedProgram}
 						onChange={setSelectedProgram}
@@ -290,7 +290,7 @@ const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(null);
 					  <ComboboxTextField
 						label="Professor"
 						placeholder="Enter professor name"
-						fetchUrl="/users/professors"
+						fetchUrl="/users/professors/"
 						value={selectedProfessor}
 						onChange={setSelectedProfessor}
 					  />
@@ -347,6 +347,7 @@ const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(null);
 						  className="input input-bordered w-full"
 						  value={form.semester}
 						  onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
+
 						  required
 						>
 						  <option value="">Select semester</option>
