@@ -849,9 +849,6 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 	return (
 		<div className="mb-4 rounded-lg border border-gray-300 p-4">
 			{/* Prevent layout jump with fixed height */}
-			<div style={{ minHeight: "2.5rem" }}>
-				{renderTimeConstraintWarning()}
-			</div>
 
 			{/* Time + Countdown */}
 			<div className="mb-4 text-center text-sm font-semibold text-gray-700">

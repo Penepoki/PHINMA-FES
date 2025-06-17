@@ -362,61 +362,6 @@ function Rooms({ setActiveView }: RoomsProps) {
 					className="input input-bordered w-full max-w-md"
 				/>
 			</div>
-			{/* New Room Modal */}
-			<dialog id="create_new_room" className="modal">
-				<div className="modal-box w-11/12 max-w-3xl">
-					<h3 className="mb-4 text-center text-2xl font-bold">
-						Create New Room
-					</h3>
-					<form
-						onSubmit={(e) => {
-							e.preventDefault();
-							createRoom();
-							(
-								document.getElementById(
-									"create_new_room",
-								) as HTMLDialogElement
-							)?.close();
-						}}
-						className="flex flex-col gap-6"
-					>
-						<div className="flex flex-col gap-2 md:flex-row md:items-center">
-							<label className="text-left text-lg font-bold md:w-1/6">
-								Name:
-							</label>
-							<input
-								type="text"
-								value={newRoomName}
-								onChange={(e) => setNewRoomName(e.target.value)}
-								placeholder="Enter room name"
-								className="input input-bordered w-full"
-								required
-							/>
-						</div>
-						<div className="modal-action">
-							<button
-								type="submit"
-								className="btn btn-success text-white"
-							>
-								Submit
-							</button>
-							<button
-								type="button"
-								className="btn btn-cancel"
-								onClick={() =>
-									(
-										document.getElementById(
-											"create_new_room",
-										) as HTMLDialogElement
-									)?.close()
-								}
-							>
-								Cancel
-							</button>
-						</div>
-					</form>
-				</div>
-			</dialog>
 
 			{/* DataTable */}
 			<DataTable
