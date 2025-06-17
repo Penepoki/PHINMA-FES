@@ -126,26 +126,6 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 
 			<div>
 				<label className="block text-sm font-medium text-gray-700">
-					Schedule
-				</label>
-				<select
-					name="schedule"
-					value={formData.schedule}
-					onChange={handleChange}
-					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-					required
-				>
-					<option value="">Select a schedule</option>
-					{schedules.map((schedule) => (
-						<option key={schedule.id} value={schedule.id}>
-							{schedule.name} - {schedule.subject}
-						</option>
-					))}
-				</select>
-			</div>
-
-			<div>
-				<label className="block text-sm font-medium text-gray-700">
 					Instructor
 				</label>
 				<input
@@ -163,6 +143,25 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 					Instructor is automatically set based on the selected
 					schedule.
 				</p>
+			</div>
+			<div>
+				<label className="block text-sm font-medium text-gray-700">
+					Schedule
+				</label>
+				<select
+					name="schedule"
+					value={formData.schedule}
+					onChange={handleChange}
+					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
+					required
+				>
+					<option value="">Select a schedule</option>
+					{schedules.map((schedule) => (
+						<option key={schedule.id} value={schedule.id}>
+							{schedule.name} - {schedule.subject}
+						</option>
+					))}
+				</select>
 			</div>
 
 			<div>
@@ -194,19 +193,6 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 					<option value="copus_2">COPUS 2</option>
 					<option value="copus_3">COPUS 3</option>
 				</select>
-			</div>
-
-			<div>
-				<label className="block text-sm font-medium text-gray-700">
-					Additional Comments
-				</label>
-				<textarea
-					name="additional_comments"
-					value={formData.additional_comments}
-					onChange={handleChange}
-					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-					rows={4}
-				/>
 			</div>
 
 			<div className="modal-action">

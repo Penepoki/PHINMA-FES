@@ -996,7 +996,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 				<div className="collapse-content">
 					<div className="mb-2 flex flex-col items-center">
 						<label className="mb-1 text-sm font-medium text-gray-700">
-							Teacher Comments
+							Comments for the Professor
 						</label>
 						<textarea
 							className="w-full max-w-md rounded border border-gray-300 p-2"
@@ -1009,7 +1009,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 					</div>
 					<div className="mb-2 flex flex-col items-center">
 						<label className="mb-1 text-sm font-medium text-gray-700">
-							Student Comments
+							Comments for the Students
 						</label>
 						<textarea
 							className="w-full max-w-md rounded border border-gray-300 p-2"

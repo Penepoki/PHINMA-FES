@@ -246,20 +246,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 			</h2>
 
 			{/* Create New Copus Button */}
-			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl md:justify-start">
-				<button
-					onClick={() =>
-						(
-							document.getElementById(
-								"create_new_copus",
-							) as HTMLDialogElement
-						)?.showModal()
-					}
-					className="flex w-auto rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105"
-				>
-					Create New Copus
-				</button>
-			</div>
+			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-12 shadow-xl md:justify-start"></div>
 
 			{/* Search Filters */}
 			<div className="flex w-full flex-row items-center justify-center gap-1 border-b-2 border-gray-600 px-4 pb-2 text-black shadow-xl backdrop-blur-lg md:gap-6">
@@ -276,23 +263,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 						<option
 							key={index}
 							value={`${prof.first_name} ${prof.last_name}`}
-						/>
-					))}
-				</datalist>
-
-				<input
-					type="text"
-					className="input w-full max-w-md border border-gray-300"
-					placeholder="Schedule"
-					value={searchSchedule}
-					onChange={(e) => setSearchSchedule(e.target.value)}
-					list="room-subject-list"
-				/>
-				<datalist id="room-subject-list">
-					{schedules.map((schedule, index) => (
-						<option
-							key={index}
-							value={`${schedule.room} ${schedule.subject}`}
 						/>
 					))}
 				</datalist>
@@ -408,56 +378,13 @@ function Evaluation({ setActiveView }: EvalProps) {
 																	>
 																		<button
 																			type="button"
-																			onClick={async () => {
-																				const profSchedules =
-																					getProfessorSchedules(
-																						prof,
-																					);
-																				if (
-																					profSchedules.length ===
-																					0
-																				) {
-																					alert(
-																						"No schedule found for this professor.",
-																					);
-																					return;
-																				}
-																				const newEvalData =
-																					{
-																						schedule:
-																							profSchedules[0]
-																								.id,
-																						observation_date:
-																							new Date()
-																								.toISOString()
-																								.split(
-																									"T",
-																								)[0],
-																						evaluation_type:
-																							copus.value,
-																						instructor:
-																							prof.id,
-																					};
-																				try {
-																					const created =
-																						await createEvaluation(
-																							newEvalData,
-																						);
-																					setSelectedEvaluation(
-																						created,
-																					);
-																					setSelectedProfessor(
-																						prof,
-																					);
-																					setModalOpen(
-																						"copus-matrix",
-																					);
-																				} catch (err) {
-																					alert(
-																						"Failed to create evaluation.",
-																					);
-																				}
-																			}}
+																			onClick={() =>
+																				(
+																					document.getElementById(
+																						"create_new_copus",
+																					) as HTMLDialogElement
+																				)?.showModal()
+																			}
 																		>
 																			{`New ${copus.label}`}
 																		</button>
@@ -741,7 +668,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 						<div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
 							<input type="checkbox" />
 							<div className="collapse-title text-lg font-semibold">
-								AI Feedback
+								Assisted Summary
 								{aiFeedbackLoading && (
 									<span className="ml-4 text-sm text-gray-500">
 										Loading...
@@ -770,7 +697,8 @@ function Evaluation({ setActiveView }: EvalProps) {
 									)}
 								</div>
 								<textarea
-									className="textarea textarea-bordered min-h-[700px] w-full"
+									id="ai-feedback-textarea"
+									className="textarea min-h-[700px] w-full"
 									placeholder="AI feedback will appear here..."
 									value={aiFeedback || ""}
 									readOnly
@@ -785,17 +713,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 								className="flex flex-wrap gap-3"
 							>
 								<button
-									className="btn btn-success px-6"
-									onClick={() => {
-										setModalOpen(null);
-										setSelectedEvaluation(null);
-										setSelectedProfessor(null);
-										setSelectedSchedule(null);
-									}}
-								>
-									Save
-								</button>
-								<button
 									className="btn btn-primary px-6 text-white"
 									onClick={() => {
 										setModalOpen(null);
@@ -804,7 +721,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 										setSelectedSchedule(null);
 									}}
 								>
-									Save and Continue
+									Save and Exit
 								</button>
 
 								<button
