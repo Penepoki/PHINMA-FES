@@ -246,9 +246,15 @@ function Evaluation({ setActiveView }: EvalProps) {
 			</h2>
 
 			{/* Create New Copus Button */}
-			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl md:justify-end">
+			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl md:justify-start">
 				<button
-					onClick={() => setModalOpen("create-new-copus")}
+					onClick={() =>
+						(
+							document.getElementById(
+								"create_new_copus",
+							) as HTMLDialogElement
+						)?.showModal()
+					}
 					className="flex w-auto rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105"
 				>
 					Create New Copus
@@ -567,31 +573,21 @@ function Evaluation({ setActiveView }: EvalProps) {
 			</div>
 
 			{/* Create New Copus Modal */}
-			{modalOpen === "create-new-copus" && (
-				<dialog open className="modal">
-					<div className="modal-box w-11/12 max-w-5xl">
-						<h3 className="mb-4 text-center text-2xl font-bold">
-							New Copus
-						</h3>
-						<CreateEvaluationForm
-							onSuccess={(newEvaluation) => {
-								setEvaluations([...evaluations, newEvaluation]);
-								setModalOpen(null);
-							}}
-							schedules={schedules}
-						/>
-						<div className="modal-action">
-							<button
-								type="button"
-								className="btn btn-cancel"
-								onClick={() => setModalOpen(null)}
-							>
-								Cancel
-							</button>
-						</div>
-					</div>
-				</dialog>
-			)}
+
+			<dialog id="create_new_copus" className="modal">
+				<div className="modal-box w-11/12 max-w-5xl">
+					<h3 className="mb-4 text-center text-2xl font-bold">
+						New Copus
+					</h3>
+					<CreateEvaluationForm
+						onSuccess={(newEvaluation) => {
+							setEvaluations([...evaluations, newEvaluation]);
+							setModalOpen(null);
+						}}
+						schedules={schedules}
+					/>
+				</div>
+			</dialog>
 
 			{/* View/Edit Copus Modal */}
 			{selectedEvaluation && selectedProfessor && (
@@ -612,79 +608,103 @@ function Evaluation({ setActiveView }: EvalProps) {
 
 							<div className="collapse-content space-y-2">
 								<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-									<input
-										type="text"
-										value={firstName}
-										className="input input-bordered w-full"
-										readOnly
-									/>
-									<input
-										type="date"
-										value={
-											selectedEvaluation.observation_date
-										}
-										className="input input-bordered w-full"
-										readOnly
-									/>
-									<input
-										type="text"
-										value={`${selectedProfessor.first_name} ${selectedProfessor.last_name}`}
-										readOnly
-										className="input input-bordered w-full"
-									/>
-									<input
-										type="text"
-										value={
-											selectedSchedule?.section_name || ""
-										}
-										readOnly
-										className="input input-bordered w-full"
-									/>
-									<input
-										type="text"
-										value={
-											selectedSchedule?.subject_name || ""
-										}
-										readOnly
-										className="input input-bordered w-full"
-									/>
-									<input
-										type="text"
-										value={
-											selectedSchedule?.room_name || ""
-										}
-										readOnly
-										className="input input-bordered w-full"
-									/>
-									<input
-										type="text"
-										value={
-											selectedSchedule?.program_name ||
-											"Null"
-										}
-										readOnly
-										className="input input-bordered w-full"
-									/>
-									<input
-										type="text"
-										value={
-											selectedSchedule?.start_time || ""
-										}
-										readOnly
-										className="input input-bordered w-full"
-									/>
-									<input
-										type="text"
-										value={selectedSchedule?.end_time || ""}
-										readOnly
-										className="input input-bordered w-full"
-									/>
-									<input
-										type="text"
-										value={selectedSchedule?.semester || ""}
-										readOnly
-										className="input input-bordered w-full"
-									/>
+									<div className="input w-full bg-transparent">
+										<span className="text-gray-400">
+											Role:
+										</span>
+										<span className="text-black">
+											{" "}
+											{firstName}
+										</span>
+									</div>
+									<div className="input input-bordered w-full bg-transparent">
+										<span className="text-gray-400">
+											Date:
+										</span>
+										<span className="text-black">
+											{" "}
+											{
+												selectedEvaluation.observation_date
+											}
+										</span>
+									</div>
+
+									<div className="input input-bordered w-full bg-transparent">
+										<span className="text-gray-400">
+											Name of Evaluated:
+										</span>
+										<span className="text-black">
+											{" "}
+											{`${selectedProfessor.first_name} ${selectedProfessor.last_name}`}
+										</span>
+									</div>
+
+									<div className="input input-bordered w-full bg-transparent">
+										<span className="text-gray-400">
+											Section:
+										</span>
+										<span className="text-black">
+											{" "}
+											{selectedSchedule?.section_name ||
+												""}
+										</span>
+									</div>
+									<div className="input input-bordered w-full bg-transparent">
+										<span className="text-gray-400">
+											Subject:
+										</span>
+										<span className="text-black">
+											{" "}
+											{selectedSchedule?.subject_name ||
+												""}
+										</span>
+									</div>
+									<div className="input input-bordered w-full bg-transparent">
+										<span className="text-gray-400">
+											Room:
+										</span>
+										<span className="text-black">
+											{" "}
+											{selectedSchedule?.room_name || ""}
+										</span>
+									</div>
+									<div className="input input-bordered w-full bg-transparent">
+										<span className="text-gray-400">
+											Program:
+										</span>
+										<span className="text-black">
+											{" "}
+											{selectedSchedule?.program_name ||
+												"Null"}
+										</span>
+									</div>
+									<div className="input input-bordered w-full bg-transparent">
+										<span className="text-gray-400">
+											Start Time:
+										</span>
+										<span className="text-black">
+											{" "}
+											{selectedSchedule?.start_time || ""}
+										</span>
+									</div>
+									<div className="input input-bordered w-full bg-transparent">
+										<span className="text-gray-400">
+											End Time:
+										</span>
+										<span className="text-black">
+											{" "}
+											{selectedSchedule?.end_time || ""}
+										</span>
+									</div>
+									<div className="input input-bordered w-full bg-transparent">
+										<span className="text-gray-400">
+											Semester:
+										</span>
+										<span className="text-black">
+											{" "}
+											{selectedSchedule?.semester || ""}
+										</span>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -750,7 +770,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 									)}
 								</div>
 								<textarea
-									className="textarea textarea-bordered min-h-[100px] w-full"
+									className="textarea textarea-bordered min-h-[700px] w-full"
 									placeholder="AI feedback will appear here..."
 									value={aiFeedback || ""}
 									readOnly
@@ -762,7 +782,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 						<div className="modal-action">
 							<form
 								method="dialog"
-								className="flex flex-wrap gap-4"
+								className="flex flex-wrap gap-3"
 							>
 								<button
 									className="btn btn-success px-6"

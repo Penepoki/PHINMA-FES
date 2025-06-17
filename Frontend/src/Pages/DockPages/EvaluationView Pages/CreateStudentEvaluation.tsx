@@ -42,7 +42,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 			</h2>
 			{/* Create New Evaluation Button */}
 
-			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl md:justify-end">
+			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl md:justify-start">
 				<button
 					onClick={() =>
 						(

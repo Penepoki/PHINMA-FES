@@ -4,7 +4,7 @@ import api from "../../../utils/api";
 import DataTable, {
 	Column,
 } from "../../../Components/Evaluation Components/Data Table";
-import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
+import {ComboboxTextField} from "../../../Components/Resource Components/ComboTextField.tsx";
 // Assuming you have your generic DataTable component exported
 
 interface SchedulesProps {
