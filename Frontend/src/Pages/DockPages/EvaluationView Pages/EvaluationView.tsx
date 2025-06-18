@@ -86,7 +86,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 	const [searchSemester, setSearchSemester] = useState("");
 	const [showCreateForm, setShowCreateForm] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-
+	const getToday = () => new Date().toISOString().split('T')[0];
 	// Fetch AI feedback when modal opens and selectedEvaluation changes
 	useEffect(() => {
 		if (selectedEvaluation && selectedEvaluation.id) {
@@ -505,13 +505,24 @@ function Evaluation({ setActiveView }: EvalProps) {
 						New Copus
 					</h3>
 					<CreateEvaluationForm
-					  onSuccess={(newEvaluation) => {
-						setEvaluations([...evaluations, newEvaluation]);
-						setModalOpen(null);
-					  }}
-					  schedules={schedules}
-					  initialInstructor={selectedProfessor}
-					/>
+						  onSuccess={(newEvaluation) => {
+							setEvaluations([...evaluations, newEvaluation]);
+							// Detector: if the new evaluation's date is today, open Copus Matrix modal
+							if (newEvaluation.observation_date === getToday()) {
+							  setSelectedEvaluation(newEvaluation);
+							  setSelectedProfessor(selectedProfessor);
+							  const scheduleObj = schedules.find((s) => s.id === newEvaluation.schedule);
+							  setSelectedSchedule(scheduleObj || null);
+							  setModalOpen("copus-matrix");
+							} else {
+							  setModalOpen(null);
+							}
+							const dialog = document.getElementById("create_new_copus") as HTMLDialogElement;
+  							if (dialog) dialog.close();
+						  }}
+						  schedules={schedules}
+						  initialInstructor={selectedProfessor}
+						/>
 				</div>
 			</dialog>
 

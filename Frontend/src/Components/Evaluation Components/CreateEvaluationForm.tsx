@@ -142,7 +142,7 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 			  schedule: "",
 			  observation_date: getToday(),
 			  evaluation_type: "copus_1",
-			  instructor: initialInstructor ? String(initialInstructor.id) : "",
+  				instructor: selectedInstructor ? String(selectedInstructor.id) : "",
 			  additional_comments: "",
 			});
 			setSelectedInstructor(initialInstructor || null);
