@@ -107,6 +107,8 @@ class ProgramProfessorSerializer(serializers.ModelSerializer):
             "id": obj.professors.id,
             "name": f"{obj.professors.first_name} {obj.professors.last_name}".strip(),
         }
+
+
 # END OF PROGRAM SERIAL
 
 # SUBJECT SERIALIZER

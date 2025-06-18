@@ -5,30 +5,42 @@ import api from "../../utils/api.ts";
 interface CreateEvaluationProps {
 	onSuccess: (evaluation: any) => void;
 	schedules: Schedule[];
+	initialInstructor?: User | null;
 }
 interface User {
 	id: number;
 	first_name: string;
 	last_name: string;
 }
-
+const getToday = () => {
+	  const today = new Date();
+	  return today.toISOString().split('T')[0];
+	};
 const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 	onSuccess,
 	schedules,
+	initialInstructor = null,
 }) => {
 	const [formData, setFormData] = useState({
-		schedule: "",
-		observation_date: "",
-		evaluation_type: "copus_1",
-		instructor: "",
-		additional_comments: "",
+	  schedule: "",
+	  observation_date: getToday(), // <-- set to today
+	  evaluation_type: "copus_1",
+	  instructor: "",
+	  additional_comments: "",
 	});
 	const [loading, setLoading] = useState(false);
 	const [instructors, setInstructors] = useState<User[]>([]);
 	const [selectedInstructor, setSelectedInstructor] = useState<User | null>(
-		null,
+		initialInstructor,
 	);
 	const [error, setError] = useState("");
+
+	// Set selectedInstructor if initialInstructor changes
+	useEffect(() => {
+		if (initialInstructor) {
+			setSelectedInstructor(initialInstructor);
+		}
+	}, [initialInstructor]);
 
 	// Fetch instructors when component mounts
 	useEffect(() => {
@@ -44,6 +56,27 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 
 		fetchInstructors();
 	}, []);
+
+	// When instructor changes, clear schedule and filter schedules
+	const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
+
+
+
+	useEffect(() => {
+		if (selectedInstructor) {
+			const filtered = schedules.filter(
+				(s) => s.instructor === selectedInstructor.id
+			);
+			setFilteredSchedules(filtered);
+			// Clear schedule selection if it doesn't belong to this instructor
+			if (!filtered.some((s) => String(s.id) === formData.schedule)) {
+				setFormData((f) => ({ ...f, schedule: "" }));
+			}
+		} else {
+			setFilteredSchedules([]);
+			setFormData((f) => ({ ...f, schedule: "" }));
+		}
+	}, [selectedInstructor, schedules]);
 
 	// When schedule changes, update instructor to match the schedule's instructor
 	useEffect(() => {
@@ -106,12 +139,14 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 			onSuccess(response.data.data);
 			// Reset form
 			setFormData({
-				schedule: "",
-				observation_date: "",
-				evaluation_type: "copus_1",
-				instructor: "",
-				additional_comments: "",
+			  schedule: "",
+			  observation_date: getToday(),
+			  evaluation_type: "copus_1",
+			  instructor: initialInstructor ? String(initialInstructor.id) : "",
+			  additional_comments: "",
 			});
+			setSelectedInstructor(initialInstructor || null);
+
 		} catch (error) {
 			console.error("Error creating evaluation:", error);
 			setError("Failed to create evaluation. Please try again.");
@@ -125,6 +160,30 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 			{error && <div className="text-red-500">{error}</div>}
 
 			<div>
+			  <label className="block text-sm font-medium text-gray-700">
+				Instructor
+			  </label>
+			  <select
+				name="instructor_select"
+				value={selectedInstructor ? selectedInstructor.id : ""}
+				onChange={e => {
+				  const instructor = instructors.find(i => String(i.id) === e.target.value);
+				  setSelectedInstructor(instructor || null);
+				}}
+				className="mt-1 block w-full rounded-md border border-gray-300 p-2"
+				required
+				disabled={!!initialInstructor} // <-- disables if initialInstructor is set
+			  >
+				<option value="">Select an instructor</option>
+				{instructors.map((instructor) => (
+				  <option key={instructor.id} value={instructor.id}>
+					{instructor.first_name} {instructor.last_name}
+				  </option>
+				))}
+			  </select>
+			</div>
+
+			<div>
 				<label className="block text-sm font-medium text-gray-700">
 					Schedule
 				</label>
@@ -134,9 +193,10 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 					onChange={handleChange}
 					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
 					required
+					disabled={!selectedInstructor}
 				>
-					<option value="">Select a schedule</option>
-					{schedules.map((schedule) => (
+					<option value="">{selectedInstructor ? "Select a schedule" : "Select an instructor first"}</option>
+					{filteredSchedules.map((schedule) => (
 						<option key={schedule.id} value={schedule.id}>
 							{schedule.name} - {schedule.subject}
 						</option>
@@ -144,26 +204,7 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 				</select>
 			</div>
 
-			<div>
-				<label className="block text-sm font-medium text-gray-700">
-					Instructor
-				</label>
-				<input
-					type="text"
-					name="instructor"
-					value={
-						selectedInstructor
-							? `${selectedInstructor.first_name} ${selectedInstructor.last_name}`
-							: ""
-					}
-					readOnly
-					className="mt-1 block w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-100 p-2"
-				/>
-				<p className="mt-1 text-xs text-gray-500">
-					Instructor is automatically set based on the selected
-					schedule.
-				</p>
-			</div>
+
 
 			<div>
 				<label className="block text-sm font-medium text-gray-700">

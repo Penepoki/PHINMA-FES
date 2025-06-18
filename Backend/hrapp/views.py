@@ -620,6 +620,12 @@ class ProgramProfessorViewSet(viewsets.ModelViewSet):
     queryset = ProgramProfessor.objects.all()
     serializer_class = ProgramProfessorSerializer
 
+    def get_queryset(self):
+        queryset = ProgramProfessor.objects.select_related('professor')
+        program_id = self.request.query_params.get('program_id')
+        if program_id:
+            queryset = queryset.filter(program_id=program_id)
+        return queryset
 
 # SCHEDULES CRUD BELOW v------------------------
 class ScheduleViewSet(viewsets.ModelViewSet):

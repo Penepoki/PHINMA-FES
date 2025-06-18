@@ -245,21 +245,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 				Copus Evaluation Forms
 			</h2>
 
-			{/* Create New Copus Button */}
-			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl md:justify-start">
-				<button
-					onClick={() =>
-						(
-							document.getElementById(
-								"create_new_copus",
-							) as HTMLDialogElement
-						)?.showModal()
-					}
-					className="flex w-auto rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105"
-				>
-					Create New Copus
-				</button>
-			</div>
+
 
 			{/* Search Filters */}
 			<div className="flex w-full flex-row items-center justify-center gap-1 border-b-2 border-gray-600 px-4 pb-2 text-black shadow-xl backdrop-blur-lg md:gap-6">
@@ -406,61 +392,17 @@ function Evaluation({ setActiveView }: EvalProps) {
 																		}
 																		className="btn mx-1 cursor-pointer bg-gray-300 text-white hover:bg-gray-500"
 																	>
-																		<button
+																		 <button
 																			type="button"
-																			onClick={async () => {
-																				const profSchedules =
-																					getProfessorSchedules(
-																						prof,
-																					);
-																				if (
-																					profSchedules.length ===
-																					0
-																				) {
-																					alert(
-																						"No schedule found for this professor.",
-																					);
-																					return;
-																				}
-																				const newEvalData =
-																					{
-																						schedule:
-																							profSchedules[0]
-																								.id,
-																						observation_date:
-																							new Date()
-																								.toISOString()
-																								.split(
-																									"T",
-																								)[0],
-																						evaluation_type:
-																							copus.value,
-																						instructor:
-																							prof.id,
-																					};
-																				try {
-																					const created =
-																						await createEvaluation(
-																							newEvalData,
-																						);
-																					setSelectedEvaluation(
-																						created,
-																					);
-																					setSelectedProfessor(
-																						prof,
-																					);
-																					setModalOpen(
-																						"copus-matrix",
-																					);
-																				} catch (err) {
-																					alert(
-																						"Failed to create evaluation.",
-																					);
-																				}
+																			onClick={() => {
+																			  setSelectedProfessor(prof); // <-- use 'prof' from the map, not 'professor'
+																			  (
+																				document.getElementById("create_new_copus") as HTMLDialogElement
+																			  )?.showModal();
 																			}}
-																		>
+																		  >
 																			{`New ${copus.label}`}
-																		</button>
+																		  </button>
 																	</label>
 																);
 															}
@@ -580,11 +522,12 @@ function Evaluation({ setActiveView }: EvalProps) {
 						New Copus
 					</h3>
 					<CreateEvaluationForm
-						onSuccess={(newEvaluation) => {
-							setEvaluations([...evaluations, newEvaluation]);
-							setModalOpen(null);
-						}}
-						schedules={schedules}
+					  onSuccess={(newEvaluation) => {
+						setEvaluations([...evaluations, newEvaluation]);
+						setModalOpen(null);
+					  }}
+					  schedules={schedules}
+					  initialInstructor={selectedProfessor}
 					/>
 				</div>
 			</dialog>
