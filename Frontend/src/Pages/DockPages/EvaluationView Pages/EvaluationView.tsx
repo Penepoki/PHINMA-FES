@@ -269,23 +269,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 				<input
 					type="text"
 					className="input w-full max-w-md border border-gray-300"
-					placeholder="Schedule"
-					value={searchSchedule}
-					onChange={(e) => setSearchSchedule(e.target.value)}
-					list="room-subject-list"
-				/>
-				<datalist id="room-subject-list">
-					{schedules.map((schedule, index) => (
-						<option
-							key={index}
-							value={`${schedule.room} ${schedule.subject}`}
-						/>
-					))}
-				</datalist>
-
-				<input
-					type="text"
-					className="input w-full max-w-md border border-gray-300"
 					placeholder="Year & Semester"
 					value={searchSemester}
 					onChange={(e) => setSearchSemester(e.target.value)}
@@ -392,7 +375,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 																		}
 																		className="btn mx-1 cursor-pointer bg-gray-300 text-white hover:bg-gray-500"
 																	>
-																		 <button
+																		<button
 																			type="button"
 																			onClick={() => {
 																			  setSelectedProfessor(prof); // <-- use 'prof' from the map, not 'professor'
@@ -402,7 +385,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 																			}}
 																		  >
 																			{`New ${copus.label}`}
-																		  </button>
+																		</button>
 																	</label>
 																);
 															}
@@ -684,7 +667,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 						<div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
 							<input type="checkbox" />
 							<div className="collapse-title text-lg font-semibold">
-								AI Feedback
+								Assisted Summary
 								{aiFeedbackLoading && (
 									<span className="ml-4 text-sm text-gray-500">
 										Loading...
@@ -713,7 +696,8 @@ function Evaluation({ setActiveView }: EvalProps) {
 									)}
 								</div>
 								<textarea
-									className="textarea textarea-bordered min-h-[700px] w-full"
+									id="ai-feedback-textarea"
+									className="textarea min-h-[700px] w-full"
 									placeholder="AI feedback will appear here..."
 									value={aiFeedback || ""}
 									readOnly
@@ -728,17 +712,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 								className="flex flex-wrap gap-3"
 							>
 								<button
-									className="btn btn-success px-6"
-									onClick={() => {
-										setModalOpen(null);
-										setSelectedEvaluation(null);
-										setSelectedProfessor(null);
-										setSelectedSchedule(null);
-									}}
-								>
-									Save
-								</button>
-								<button
 									className="btn btn-primary px-6 text-white"
 									onClick={() => {
 										setModalOpen(null);
@@ -747,7 +720,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 										setSelectedSchedule(null);
 									}}
 								>
-									Save and Continue
+									Save and Exit
 								</button>
 
 								<button

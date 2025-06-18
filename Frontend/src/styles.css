@@ -279,3 +279,7 @@ html {
 .stat-value {
 	@apply text-5xl font-semibold;
 }
+
+#ai-feedback-textarea {
+	@apply hover:scale-100;
+}

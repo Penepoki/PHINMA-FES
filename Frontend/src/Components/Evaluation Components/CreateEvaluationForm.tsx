@@ -237,19 +237,6 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 				</select>
 			</div>
 
-			<div>
-				<label className="block text-sm font-medium text-gray-700">
-					Additional Comments
-				</label>
-				<textarea
-					name="additional_comments"
-					value={formData.additional_comments}
-					onChange={handleChange}
-					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-					rows={4}
-				/>
-			</div>
-
 			<div className="modal-action">
 				<button type="submit" className="btn bg-[#1c402a] text-white">
 					{loading ? "Creating..." : "Create Evaluation"}
