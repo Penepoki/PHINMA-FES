@@ -14,6 +14,8 @@ subject_router = DefaultRouter()
 
 subject_router.register(r'subjects', SubjectViewSet, basename='subject')
 
+section_router = DefaultRouter()
+section_router.register(r'sections', SectionViewSet, basename='section')
 #SCHEDULE ROUTER
 schedule_router = DefaultRouter()
 schedule_router.register(r'schedules', ScheduleViewSet, basename='schedule')
@@ -30,7 +32,7 @@ timestamp_router.register(r'timestamps', TimestampViewSet, basename='timestamp')
 room_router = DefaultRouter()
 room_router.register(r'rooms', RoomViewSet, basename='room')
 urlpatterns = [
-
+    path('section/', include(section_router.urls)),
     path('subject/', include(subject_router.urls)),
     path('room/', include(room_router.urls)),
 

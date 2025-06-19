@@ -66,15 +66,27 @@ class Section(BaseModel):
         ('4', '4th Year'),
     ]
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, blank=True, null=True)
+    slug = models.SlugField(unique=True, blank=True, null=True)
     program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name="sections", blank=True, null=True)
     year_level = models.CharField(max_length=1, choices=YEAR_LEVELS, null=True)
     students = models.ManyToManyField("User", related_name="sections")
 
+    constraints = [
+        models.UniqueConstraint(fields=['name', 'program', 'year_level'], name='unique_section_program_year'), ]
 
 
-    class Meta:
-        unique_together = ('name', 'program', 'year_level')
+
+    def save(self, *args, **kwargs):
+        # If name is provided and doesn't start with "Section", prepend it
+        if self.name:
+            if not self.name.startswith("Section"):
+                self.name = f"Section {self.name} {self.program}"
+        # If name is not provided, auto-generate using program and year_level
+        elif self.program and self.year_level:
+            year_display = dict(self.YEAR_LEVELS).get(self.year_level, self.year_level)
+            self.name = f"Section {self.program.name} - {year_display}"
+        super().save(*args, **kwargs)
 
 
 
@@ -103,7 +115,6 @@ class Schedule(BaseModel):
 
 
         ]
-
 
 
     def __str__(self):

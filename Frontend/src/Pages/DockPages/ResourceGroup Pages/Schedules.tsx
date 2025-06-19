@@ -54,7 +54,22 @@ const [selectedSection, setSelectedSection] = useState<Option | null>(null);
 const [selectedSubject, setSelectedSubject] = useState<Option | null>(null);
 const [selectedRoom, setSelectedRoom] = useState<Option | null>(null);
 const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(null);
-
+const [professorOptions, setProfessorOptions] = useState<Option[]>([]);
+useEffect(() => {
+  if (selectedProgram) {
+    api.get(`/program-professor/program-professors/?program_id=${selectedProgram.id}`)
+      .then(res => {
+        setProfessorOptions(
+          res.data.map((item: any) => ({
+            id: item.professor,
+            name: item.professor_details.full_name, // Use full_name for display
+          }))
+        );
+      });
+  } else {
+    setProfessorOptions([]);
+  }
+}, [selectedProgram]);
 
   const fetchSchedules = async () => {
     setLoading(true);
@@ -288,12 +303,18 @@ const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(null);
 
 					  {/* Professor */}
 					  <ComboboxTextField
-						label="Professor"
-						placeholder="Enter professor name"
-						fetchUrl="/users/professors/"
-						value={selectedProfessor}
-						onChange={setSelectedProfessor}
-					  />
+						  label="Professor"
+						  placeholder="Enter professor name"
+						  fetchUrl={`/program-professor/program-professors/?program_id=${selectedProgram?.id || ""}`}
+						  value={selectedProfessor}
+						  onChange={setSelectedProfessor}
+						  mapResponse={data =>
+							data.map((item: any) => ({
+							  id: item.professor,
+							  name: item.professor_details.full_name,
+							}))
+						  }
+						/>
 
 					  {/* Name/Title */}
 					  <div className="flex flex-col gap-2 md:flex-row md:items-center">

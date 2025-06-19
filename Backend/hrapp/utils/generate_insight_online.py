@@ -87,7 +87,6 @@ def build_copus_prompt_from_timestamps(evaluation, timestamps):
             if ts.instructor_comments:
                 prompt += f", Instructor Comments: {ts.instructor_comments}"
             prompt += "\n\n"
-    prompt += "\n\n[End of data. Copus specialist, please provide your expert feedback for the above classroom data:]\n"
     return prompt
 
 def generate_ai_feedback_for_evaluation(evaluation, hf_endpoint=None, max_new_tokens=400, temperature=0.7):

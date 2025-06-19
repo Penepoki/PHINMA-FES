@@ -13,6 +13,7 @@ type Props = {
   value: Item | null;
   onChange: (val: Item | null) => void;
   options?: Item[]; // Optional preload
+  mapResponse?: (data: any[]) => Item[];
 };
 
 const ComboboxTextField: React.FC<Props> = ({
@@ -22,6 +23,7 @@ const ComboboxTextField: React.FC<Props> = ({
   value,
   onChange,
   options,
+    mapResponse,
 }) => {
   const [items, setItems] = useState<Item[]>(options || []);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,18 +34,22 @@ const ComboboxTextField: React.FC<Props> = ({
 
   // Fetch items when dropdown opens (lazy or filtered)
   useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        const res = await api.get(fetchUrl, {
-          params: searchTerm ? { search: searchTerm } : {},
-        });
-        setItems(Array.isArray(res.data) ? res.data : []);
-        setHasFetched(true);
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setItems([]);
-      }
-    };
+          const fetchItems = async () => {
+            try {
+              const res = await api.get(fetchUrl, {
+                params: searchTerm ? { search: searchTerm } : {},
+              });
+              let data = Array.isArray(res.data) ? res.data : [];
+              if (mapResponse) {
+                data = mapResponse(data);
+              }
+              setItems(data);
+              setHasFetched(true);
+            } catch (err) {
+              console.error("Fetch error:", err);
+              setItems([]);
+            }
+          };
 
     if (!hasFetched && fetchUrl && isOpen) {
       fetchItems();

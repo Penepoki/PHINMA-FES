@@ -734,3 +734,44 @@ def get_professors(request):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+class SectionViewSet(viewsets.ModelViewSet):
+    queryset = Section.objects.filter(deleted_at__isnull=True)
+    serializer_class = SectionSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = SectionFilter
+
+    @action(detail=True, methods=['post'])
+    def add_students(self, request, pk=None):
+        section = self.get_object()
+        student_ids = request.data.get('student_ids', [])
+        if not isinstance(student_ids, list):
+            return Response({'error': 'student_ids must be a list.'}, status=status.HTTP_400_BAD_REQUEST)
+        section.students.add(*student_ids)
+        return Response({'message': f'Added {len(student_ids)} students to section {section.name}.'}, status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+
+        if isinstance(data, list):
+            created_sections = []
+            failed_sections = []
+
+            for section_data in data:
+                serializer = self.get_serializer(data=section_data)
+                serializer.is_valid(raise_exception=True)
+                created_section = serializer.save()
+                created_sections.append(created_section)
+
+            if failed_sections:
+                raise ValidationError({
+                    "message": "Failed to create sections.",
+                    "error": failed_sections
+                })
+
+            return Response(
+                {"message": f"Sections created successfully "
+                            f"{len(created_sections)} sections"}, status=status.HTTP_201_CREATED,
+            )
+
+        return super().create(request, *args, **kwargs)
