@@ -94,9 +94,7 @@ function Programs({ setActiveView }: ProgramProps) {
 			await api.patch(`/program/programs/${program.id}/`, {
 				is_active: !program.is_active, // Send the toggled state
 			});
-			alert(
-				`Program status updated to ${!program.is_active ? "Active" : "Inactive"}`,
-			);
+			fetchProgramsandProgramProfessors();
 		} catch (error: any) {
 			console.error(
 				"Error updating program status:",

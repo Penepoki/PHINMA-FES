@@ -86,7 +86,8 @@ def build_copus_prompt_from_timestamps(evaluation, timestamps):
                 prompt += f", Student Comments: {ts.student_comments}"
             if ts.instructor_comments:
                 prompt += f", Instructor Comments: {ts.instructor_comments}"
-            prompt += "\n\n"
+
+    prompt += "\n\n[End of data. Copus specialist, please provide your expert feedback for the above classroom data:]\n"
     return prompt
 
 def generate_ai_feedback_for_evaluation(evaluation, hf_endpoint=None, max_new_tokens=400, temperature=0.7):
@@ -97,8 +98,8 @@ def generate_ai_feedback_for_evaluation(evaluation, hf_endpoint=None, max_new_to
         raise RuntimeError("No HuggingFace API key found in environment or settings")
     if not hf_endpoint:
         hf_endpoint = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
-        feedback = generate_ai_feedback(prompt, api_key, hf_endpoint, max_new_tokens, temperature)
-        feedback = feedback.replace(COPUS_CODE_EXPLANATION.strip(), "").lstrip()
+    feedback = generate_ai_feedback(prompt, api_key, hf_endpoint, max_new_tokens, temperature)
+    feedback = feedback.replace(COPUS_CODE_EXPLANATION.strip(), "").lstrip()
     return {"feedback": feedback}
 
 

@@ -86,41 +86,52 @@ useEffect(() => {
   };
 
   const createSchedule = async () => {
-    // Validate required fields
-    const requiredFields = [
-      'section', 'subject', 'instructor', 'room', 'program', 'start_time', 'end_time', 'semester', 'year'
-    ];
-    for (const field of requiredFields) {
-      if (!form[field as keyof typeof form]) {
-        alert(`Please fill in the ${field} field.`);
-        return;
-      }
-    }
-    const token = localStorage.getItem("token");
-    if (!token) return alert("You are not authenticated. Please login.");
-    try {
-      await api.post(
-        "/schedule/schedules/",
-        {
-          ...form,
-          section: Number(form.section),
-          subject: Number(form.subject),
-          instructor: Number(form.instructor),
-          room: Number(form.room),
-          program: Number(form.program),
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      setForm({
-        section: '', subject: '', instructor: '', room: '', program: '', name: '', start_time: '', end_time: '', semester: '', year: '',
-      });
-      fetchSchedules();
-    } catch (error) {
-      console.error("Error creating schedule:", error);
-    }
-  };
+  // Validate required fields
+	  if (
+		!selectedProgram ||
+		!selectedSection ||
+		!selectedSubject ||
+		!selectedRoom ||
+		!selectedProfessor ||
+		!form.name ||
+		!form.start_time ||
+		!form.end_time ||
+		!form.semester ||
+		!form.year
+	  ) {
+		alert("Please fill in all required fields.");
+		return;
+	  }
+	  const token = localStorage.getItem("token");
+	  if (!token) return alert("You are not authenticated. Please login.");
+	  try {
+		await api.post(
+		  "/schedule/schedules/",
+		  {
+			program: selectedProgram.id,
+			section: selectedSection.id,
+			subject: selectedSubject.id,
+			room: selectedRoom.id,
+			instructor: selectedProfessor.id,
+			name: form.name,
+			start_time: form.start_time,
+			end_time: form.end_time,
+			semester: form.semester,
+			year: form.year,
+		  },
+		  {
+			headers: { Authorization: `Bearer ${token}` },
+		  },
+		);
+		setForm({
+		  section: '', subject: '', instructor: '', room: '', program: '', name: '', start_time: '', end_time: '', semester: '', year: '',
+		});
+		// Also reset selected* states if needed
+		fetchSchedules();
+	  } catch (error) {
+		console.error("Error creating schedule:", error);
+	  }
+	};
 
 	const toggleScheduleStatus = async (schedule: Schedule) => {
 		try {

@@ -635,7 +635,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     filterset_class = ScheduleFilter
 
 #SCHEDULE Create
-    @login_required
+    
     @permission_classes([IsAuthenticated])
     def create(self, request, *args, **kwargs):
         user = request.user
