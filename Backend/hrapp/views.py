@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
-from hrapp.serializers import TimestampSerializer, EvaluationSerializer
+from hrapp.serializers import *
 from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
 from hrapp.utils.decorators import *
@@ -307,6 +307,29 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             )
 #END OF CRUD EVALUATION -----------------------------------------
 
+
+### STUDENTEVALUATION(QUESTION, FORM AND ANSWER CRUD) ###
+
+class StudentEvaluationViewSet(viewsets.ModelViewSet):
+    queryset = Subject.objects.filter(deleted_at__isnull=True)
+    serializer_class = StudentEvaluationSerializer
+
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        data = request.data
+
+class StudentEvaluationQuestionViewSet(viewsets.ModelViewSet):
+    queryset = StudentEvaluationQuestion.objects.all()
+    serializer_class = StudentEvaluationQuestionSerializer
+
+class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
+    queryset = StudentEvaluationResponse.objects.all()
+    serializer_class = StudentEvaluationResponseSerializer
+
+
+### END OF STUDENTEVALUATION VIEW ###
+"""-------------------------------------------------------------"""
 # THE CRUD UTILITY  FOR SCHEDULE(ROOMS, SUBJECTS, PROGRAM)
 
 #START OF CRUD SUBJECT ------------------------------------------

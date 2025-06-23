@@ -81,7 +81,7 @@ class Section(BaseModel):
         # If name is provided and doesn't start with "Section", prepend it
         if self.name:
             if not self.name.startswith("Section"):
-                self.name = f"Section {self.name} {self.program}"
+                self.name = f"Section {self.name} - {self.program} - {self.year_level}"
         # If name is not provided, auto-generate using program and year_level
         elif self.program and self.year_level:
             year_display = dict(self.YEAR_LEVELS).get(self.year_level, self.year_level)

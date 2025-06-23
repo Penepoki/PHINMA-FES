@@ -11,3 +11,5 @@ class EvaluationFilter(filters.FilterSet):
     class Meta:
         model = Evaluation
         fields = ['name', 'observation_date', 'instructors', 'Program']
+
+#class StudentEvaluationFilter(filters.FilterSet):

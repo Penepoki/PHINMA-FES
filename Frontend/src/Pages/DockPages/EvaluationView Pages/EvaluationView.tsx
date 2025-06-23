@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 import CopusMatrix from "../../../Components/Evaluation Components/Copus Matrix";
 import PieChartWithTable from "../../../Components/Evaluation Components/Piechart with Table";
 import api from "../../../utils/api";
@@ -57,6 +59,48 @@ interface EvalProps {
 }
 
 function Evaluation({ setActiveView }: EvalProps) {
+
+	// Function to generate and print a PDF
+/*const handleGenerateAndPrintPDF = () => {
+    if (!selectedEvaluation || !evaluationTallies[selectedEvaluation.id]) {
+        alert("No evaluation matrix data available.");
+        return;
+    }
+    const { studentTallies, teacherTallies } = evaluationTallies[selectedEvaluation.id];
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Evaluation Matrix Report", 10, 10);
+
+    let y = 20;
+    doc.setFontSize(12);
+    doc.text(`Evaluation ID: ${selectedEvaluation.id}`, 10, y);
+    y += 8;
+
+    // Student Tallies Table
+    doc.text("Student Tallies:", 10, y);
+    y += 4;
+    const studentRows = Object.entries(studentTallies).map(([activity, data]) => [activity, JSON.stringify(data)]);
+    doc.autoTable({
+        head: [["Activity", "Data"]],
+        body: studentRows,
+        startY: y + 2,
+        styles: { fontSize: 10 },
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // Teacher Tallies Table
+    doc.text("Teacher Tallies:", 10, y);
+    y += 4;
+    const teacherRows = Object.entries(teacherTallies).map(([activity, data]) => [activity, JSON.stringify(data)]);
+    doc.autoTable({
+        head: [["Activity", "Data"]],
+        body: teacherRows,
+        startY: y + 2,
+        styles: { fontSize: 10 },
+    });
+
+    doc.save(`evaluation_matrix_${selectedEvaluation.id}.pdf`);
+};*/
 	const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
 	const [aiFeedback, setAiFeedback] = useState<string | null>(null);
 	const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
@@ -536,6 +580,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 							{selectedEvaluation.evaluation_type}
 						</h3>
 
+
 						{/* Basic Information */}
 						<div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
 							<input type="checkbox" />
@@ -645,7 +690,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 								</div>
 							</div>
 						</div>
-
 						{/* COPUS Matrix */}
 						<CopusMatrix
 							onTalliesUpdate={(student, teacher) => {

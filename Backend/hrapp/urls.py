@@ -28,6 +28,16 @@ evaluation_router.register(r'evaluations', EvaluationViewSet, basename='evaluati
 timestamp_router = DefaultRouter()
 timestamp_router.register(r'timestamps', TimestampViewSet, basename='timestamp')
 
+#STUDENT EVALUATION ROUTER
+StudentEvaluation_router = DefaultRouter()
+StudentEvaluation_router.register(r'studentevaluation', StudentEvaluationViewSet, basename='studentevaluation')
+
+StudentEvaluationQuestion_router = DefaultRouter()
+StudentEvaluationQuestion_router.register(r'studentevaluationquestion', StudentEvaluationQuestionViewSet, basename='studentevaluationquestion')
+
+StudentEvaluationResponse_router = DefaultRouter()
+StudentEvaluationResponse_router.register(r'studentevaluationresponse', StudentEvaluationResponseViewSet, basename='studentevaluationresponse')
+
 #ROOM ROUTER
 room_router = DefaultRouter()
 room_router.register(r'rooms', RoomViewSet, basename='room')
@@ -43,6 +53,13 @@ urlpatterns = [
     path('evaluation/', include(evaluation_router.urls)),
 
     path('timestamp/', include(timestamp_router.urls)),
+
+    path('studentevaluation/', include(StudentEvaluation_router.urls)),
+
+    path('studentevaluationquestion/', include(StudentEvaluationQuestion_router.urls)),
+
+    path('studentevaluationresponse/', include(StudentEvaluationResponse_router.urls)),
+
     path('login/', login_view),
 
     path('logout/', logout_view, name='logout'),
