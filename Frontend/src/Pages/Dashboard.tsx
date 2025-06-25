@@ -13,7 +13,7 @@ import Evaluation from "./DockPages/EvaluationView Pages/EvaluationView";
 import ResourceGroup from "./DockPages/ResourceGroup Pages/ResourceGroupView";
 
 import CreateStudentEvaluation from "./DockPages/EvaluationView Pages/CreateStudentEvaluation";
-import StudentEvaluation from "./DockPages/EvaluationView Pages/StudentEvaluationView";
+import StudentEvaluation from "./DockPages/EvaluationView Pages/StudentEvaluationView.tsx";
 import EvaluationSummary from "./DockPages/EvaluationView Pages/EvaluationSummaryView";
 
 import Programs from "./DockPages/ResourceGroup Pages/Programs";

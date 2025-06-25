@@ -311,13 +311,13 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 ### STUDENTEVALUATION(QUESTION, FORM AND ANSWER CRUD) ###
 
 class StudentEvaluationViewSet(viewsets.ModelViewSet):
-    queryset = Subject.objects.filter(deleted_at__isnull=True)
+    queryset = StudentEvaluation.objects.filter(deleted_at__isnull=True)
     serializer_class = StudentEvaluationSerializer
 
 
-    @transaction.atomic
+    """@transaction.atomic
     def create(self, request, *args, **kwargs):
-        data = request.data
+        data = request.data"""
 
 class StudentEvaluationQuestionViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationQuestion.objects.all()

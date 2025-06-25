@@ -146,29 +146,42 @@ class EvaluationSerializer(serializers.ModelSerializer):
 
 ### BELOW IS THE SFF SERIALIZERS(EVALUATION , QUESTIONS, AND ANSWERS) ###
 class StudentEvaluationSerializer(serializers.ModelSerializer):
-    #Serial fields
     schedule = serializers.PrimaryKeyRelatedField(queryset=Schedule.objects.all())
     import_questions = serializers.PrimaryKeyRelatedField(
         queryset=StudentEvaluationQuestion.objects.all(), many=True, required=False
     )
     all_questions = serializers.SerializerMethodField(read_only=True)
 
+    # Add these lines
+    instructor_name = serializers.SerializerMethodField()
+    subject_name = serializers.SerializerMethodField()
+
     class Meta:
         model = StudentEvaluation
         fields = [
-            'id', 'title', 'description', 'schedule', 'import_questions',
-            'all_questions'
+            'id', 'title', 'description', 'schedule',
+            'import_questions', 'all_questions',
+            'instructor_name', 'subject_name',
         ]
         read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'all_questions']
 
     def get_all_questions(self, obj):
         unique_qs = StudentEvaluationQuestion.objects.filter(student_evaluation=obj)
-        # Imported questions
         imported_qs = obj.import_questions.all()
-        # Combine and remove duplicates
         all_qs = unique_qs | imported_qs
         all_qs = all_qs.distinct()
         return StudentEvaluationQuestionSerializer(all_qs, many=True).data
+
+    def get_subject_name(self, obj):
+        if obj.schedule and obj.schedule.subject:
+            return str(obj.schedule.subject)  # Or `.name` if defined
+        return None
+
+    def get_instructor_name(self, obj):
+        if obj.schedule and obj.schedule.instructor:
+            return obj.schedule.instructor.full_name  # uses the @property
+        return None
+
 class StudentEvaluationQuestionSerializer(serializers.ModelSerializer):
     # Serial fields
     class Meta:

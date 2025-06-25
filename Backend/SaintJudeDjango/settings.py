@@ -27,7 +27,7 @@ SECRET_KEY = config('SECRET_KEY')
 HF_API_KEY = config('HF_API_KEY')
 print("RAW ENV HF_API_KEY:", os.environ.get("HF_API_KEY"))
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', cast=bool)
 
 ALLOWED_HOSTS = []
 

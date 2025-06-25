@@ -137,7 +137,7 @@ class Evaluation(models.Model):
 
 # Student Evaluations Table
 class StudentEvaluation(models.Model):
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, null=True ,blank=True)
     description = models.TextField(null=True, blank=True)
     schedule = models.ForeignKey(Schedule, on_delete=models.SET_NULL, null=True)
     import_questions = models.ManyToManyField("StudentEvaluationQuestion", blank=True)
@@ -153,19 +153,14 @@ class StudentEvaluation(models.Model):
                 self.title = f"Student Evaluation: {self.schedule.instructor} - {self.schedule.subject}"
 
         elif self.schedule.instructor and self.schedule.subject:
-            self.title = f"Student Evaluation: {self.schedule.instructor} - {self.schedule.subject}"
+            self.title = f"Student Evaluation: {self.schedule.instructor.full_name} - {self.schedule.subject}"
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.title} - {self.description}"
 
-    def restore(self):
-        self.deleted_at = None
-        self.save()
 
-    def delete(self):
-        self.deleted_at = True
-        self.save()
+
 
 #STUDENT EVALUATION QUESTION TABLE
 class StudentEvaluationQuestion(models.Model):
