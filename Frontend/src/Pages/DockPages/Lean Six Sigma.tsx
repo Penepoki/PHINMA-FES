@@ -151,16 +151,18 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 			<h2 className="mt-4 text-3xl font-bold text-white">
 				Lean Six Sigma Statistics
 			</h2>
-			<div className="mt-4 flex w-full flex-row items-center justify-center gap-4 text-white">
+			<div className="mt-4 flex w-full flex-row items-center justify-center gap-4 border-b border-gray-600 pb-4 text-white shadow-2xl">
 				Filter:
-				<button className="btn">College</button>
-				<button className="btn">Semester</button>
-				<button className="btn">School Year</button>
+				<button className="btn btn-primary text-white">College</button>
+				<button className="btn btn-primary text-white">Semester</button>
+				<button className="btn btn-primary text-white">
+					School Year
+				</button>
 			</div>
 			<div className="mt-6 flex h-full w-full flex-col gap-6 px-6">
 				<div className="stats bg-[#1c402a]/20 shadow-2xl">
 					<div className="stat">
-						<div className="stat-figure text-secondary">
+						<div className="stat-figure text-gray-400">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
@@ -175,12 +177,14 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								></path>
 							</svg>
 						</div>
-						<div className="stat-title">Downloads</div>
-						<div className="stat-value">31K</div>
+						<div className="stat-title text-gray-400">
+							Total Observations
+						</div>
+						<div className="stat-value">10</div>
 					</div>
 
 					<div className="stat">
-						<div className="stat-figure text-secondary">
+						<div className="stat-figure text-gray=400">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
@@ -195,12 +199,14 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								></path>
 							</svg>
 						</div>
-						<div className="stat-title">New Users</div>
-						<div className="stat-value">4,200</div>
+						<div className="stat-title text-gray-400">
+							Engagement Level
+						</div>
+						<div className="stat-value">48%</div>
 					</div>
 
 					<div className="stat">
-						<div className="stat-figure text-secondary">
+						<div className="stat-figure text-gray-400">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
@@ -215,46 +221,100 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 								></path>
 							</svg>
 						</div>
-						<div className="stat-title">New Registers</div>
-						<div className="stat-value">1,200</div>
+						<div className="stat-title text-gray-400">
+							Most Common Observations
+						</div>
+						<div className="stat-value">31%</div>
 					</div>
 				</div>
-				<div className="flex flex-row items-center justify-center gap-4 text-white">
-					Observation Summary
-					<button className="btn btn-primary w-auto">
+				<div className="flex flex-row items-center justify-center gap-4 border-t border-gray-600 pt-4 text-white">
+					Observation Summary:
+					<button className="btn btn-primary text-white">
 						Filter All
 					</button>
 				</div>
 				<div className="flex h-1/5 flex-row gap-6">
 					<div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg p-6 shadow-2xl backdrop-blur-lg">
-						<table className="mt-2 w-full text-left text-gray-400">
+						<table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
 							<thead>
-								<tr>
-									<th className="px-4 py-2">Code</th>
-									<th className="px-4 py-2">Count</th>
-									<th className="px-4 py-2">Summary</th>
+								<tr className="border border-gray-600">
+									<th className="border border-gray-600 px-4 py-2">
+										Code
+									</th>
+									<th className="border border-gray-600 px-4 py-2">
+										Count
+									</th>
+									<th className="border border-gray-600 px-4 py-2">
+										Summary
+									</th>
 								</tr>
 							</thead>
 							<tbody>
-								<tr>
-									<td className="px-4 py-2">Ind</td>
-									<td className="px-4 py-2">10</td>
-									<td className="px-4 py-2">
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										Ind
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										10
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
 										Individual Tasks
 									</td>
 								</tr>
-								<tr>
-									<td className="px-4 py-2">Grp</td>
-									<td className="px-4 py-2">42</td>
-									<td className="px-4 py-2">
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										Grp
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										42
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
 										Working with a group
 									</td>
 								</tr>
-								<tr>
-									<td className="px-4 py-2">AnQ</td>
-									<td className="px-4 py-2">20</td>
-									<td className="px-4 py-2">
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										AnQ
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										20
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
 										Student Answering a Question
+									</td>
+								</tr>
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										AsQ
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										20
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										Students asked questions posed by the
+										instructor
+									</td>
+								</tr>
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										WC
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										20
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										Engaged in whole class discussion
+									</td>
+								</tr>
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										SP
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										20
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										Presentation by the student(s)
 									</td>
 								</tr>
 							</tbody>
@@ -262,34 +322,88 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 					</div>
 
 					<div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg p-6 shadow-2xl backdrop-blur-lg">
-						<table className="mt-2 w-full text-left text-gray-400">
+						<table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
 							<thead>
-								<tr>
-									<th className="px-4 py-2">Code</th>
-									<th className="px-4 py-2">Count</th>
-									<th className="px-4 py-2">Summary</th>
+								<tr className="border border-gray-600">
+									<th className="border border-gray-600 px-4 py-2">
+										Code
+									</th>
+									<th className="border border-gray-600 px-4 py-2">
+										Count
+									</th>
+									<th className="border border-gray-600 px-4 py-2">
+										Summary
+									</th>
 								</tr>
 							</thead>
 							<tbody>
-								<tr>
-									<td className="px-4 py-2">Ind</td>
-									<td className="px-4 py-2">10</td>
-									<td className="px-4 py-2">
-										Individual Tasks
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										TQ
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										10
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										Test or Quiz
 									</td>
 								</tr>
-								<tr>
-									<td className="px-4 py-2">Grp</td>
-									<td className="px-4 py-2">42</td>
-									<td className="px-4 py-2">
-										Working with a group
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										MG
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										42
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										Moving through class guiding ongoing
+										student work
 									</td>
 								</tr>
-								<tr>
-									<td className="px-4 py-2">AnQ</td>
-									<td className="px-4 py-2">20</td>
-									<td className="px-4 py-2">
-										Student Answering a Question
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										PQ
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										20
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										Asking students questions to students
+										(Non rethorical)
+									</td>
+								</tr>
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										FUp
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										20
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										Follow-up feedback
+									</td>
+								</tr>
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										1o1
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										20
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										One on one extended discussion with one
+										or a few individuals
+									</td>
+								</tr>
+								<tr className="border border-gray-600">
+									<td className="border border-gray-600 px-4 py-2">
+										D/v
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										20
+									</td>
+									<td className="border border-gray-600 px-4 py-2">
+										Show or conduct a demo, experiment, etc.
 									</td>
 								</tr>
 							</tbody>
