@@ -50,14 +50,9 @@ class StudentEvaluationAdmin(admin.ModelAdmin):
 
 @admin.register(StudentEvaluationQuestion)
 class StudentEvaluationQuestionsAdmin(admin.ModelAdmin):
-    list_display = ('student_evaluation', 'question', 'type', 'options')
+    list_display = ( 'question', 'type', 'options')
 
-"""class EvaluationEvaluatorInLine(admin.TabularInline):
-    model = EvaluationEvaluator
-    extra = 0
-class EvaluationInstructorInLine(admin.TabularInline):
-    model = EvaluationInstructor
-    extra = 0"""
+
 
 @admin.register(Evaluation)
 class EvaluationAdmin(admin.ModelAdmin):

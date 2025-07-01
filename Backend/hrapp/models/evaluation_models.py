@@ -170,7 +170,7 @@ class StudentEvaluationQuestion(models.Model):
         ("RATING", "Rating Scale"),
     ]
 
-    student_evaluation = models.ForeignKey(StudentEvaluation, on_delete=models.SET_NULL, null=True, blank=True)
+    #student_evaluation = models.ForeignKey(StudentEvaluation, on_delete=models.SET_NULL, null=True, blank=True)
     question = models.TextField()
     type = models.CharField(max_length=15, choices=TYPE_CHOICES)  # Limited choices
     options = models.JSONField(null=True, blank=True)

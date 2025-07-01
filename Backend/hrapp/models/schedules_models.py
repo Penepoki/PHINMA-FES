@@ -66,7 +66,7 @@ class Section(BaseModel):
         ('4', '4th Year'),
     ]
 
-    name = models.CharField(max_length=100, blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
     slug = models.SlugField(unique=True, blank=True, null=True)
     program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name="sections", blank=True, null=True)
     year_level = models.CharField(max_length=1, choices=YEAR_LEVELS, null=True)
@@ -101,7 +101,7 @@ class Schedule(BaseModel):
     section = models.ForeignKey("Section", on_delete=models.CASCADE, null=True, blank=True)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100, null=True, blank=True)
+    name = models.CharField(max_length=255, null=True, blank=True)
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
     semester = models.CharField(max_length=10, choices=SEMESTER_CHOICES)
@@ -118,12 +118,12 @@ class Schedule(BaseModel):
 
 
     def __str__(self):
-        return f"{self.year.year}" if self.year else "No year"
+        return f"{self.name}" if self.year else "No year"
 
 
     def save(self, *args, **kwargs):
         # Automatically combine year and semester to create academic_period
-        self.name = f"{self.section.name} - {self.subject.name}"
+        self.name = f"{self.section.name} - {self.subject.name} - {self.section.year_level}"
         self.academic_period = f"{self.year} - {self.semester}"
         super().save(*args, **kwargs)
 

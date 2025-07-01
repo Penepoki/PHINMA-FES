@@ -166,9 +166,9 @@ class StudentEvaluationSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'all_questions']
 
     def get_all_questions(self, obj):
-        unique_qs = StudentEvaluationQuestion.objects.filter(student_evaluation=obj)
+        #unique_qs = StudentEvaluationQuestion.objects.filter(student_evaluation=obj)
         imported_qs = obj.import_questions.all()
-        all_qs = unique_qs | imported_qs
+        all_qs = imported_qs
         all_qs = all_qs.distinct()
         return StudentEvaluationQuestionSerializer(all_qs, many=True).data
 
@@ -186,7 +186,7 @@ class StudentEvaluationQuestionSerializer(serializers.ModelSerializer):
     # Serial fields
     class Meta:
         model = StudentEvaluationQuestion
-        fields = ['id', 'student_evaluation', 'question','type','options']
+        fields = ['id', 'question','type','options']
         read_only_fields = ['created_at', 'updated_at','deleted_at']
 
 class StudentEvaluationResponseSerializer(serializers.ModelSerializer):
@@ -201,11 +201,10 @@ class StudentEvaluationResponseSerializer(serializers.ModelSerializer):
         fields = ['id', 'student_evaluation', 'student_eval_question','answer', 'user']
         read_only_fields = ['created_at', 'updated_at','deleted_at']
 
-
     def validate(self, data):
         question = data.get('student_eval_question')
         evaluation = data.get('student_evaluation')
-        if question and evaluation and question.student_evaluation != evaluation:
+        if question and evaluation and not evaluation.import_questions.filter(id=question.id).exists():
             raise serializers.ValidationError("Question does not belong to the specified evaluation.")
         return data
 
