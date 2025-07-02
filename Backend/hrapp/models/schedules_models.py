@@ -88,7 +88,8 @@ class Section(BaseModel):
             self.name = f"Section {self.program.name} - {year_display}"
         super().save(*args, **kwargs)
 
-
+    def __str__(self):
+        return self.name
 
 # Schedules
 class Schedule(BaseModel):

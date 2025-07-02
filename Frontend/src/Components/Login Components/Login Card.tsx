@@ -63,6 +63,17 @@ function LoginCard() {
 		}
 	};
 
+	const handleLogout = async () => {
+		try {
+			await api.post("/logout/");
+		} catch (e) {
+			localStorage.clear();
+		}
+		localStorage.removeItem("token");
+		localStorage.removeItem("userRole");
+		navigate("/");
+	};
+
 	const handleSignUp = async () => {
 		setIsLoading(true); // Start loading
 		try {
@@ -210,6 +221,7 @@ function LoginCard() {
 				setError("");
 			} else {
 				setError("Wrong OTP");
+				setIsOtpVerified(true);
 			}
 		} catch (err) {
 			const error = err as AxiosError;

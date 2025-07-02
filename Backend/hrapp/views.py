@@ -74,12 +74,12 @@ def verify_otp_view(request):
 @api_view(['POST'])
 def set_new_password_view(request):
     email = request.data.get('email')
-    new_password = request.data.get('password')
+    new_password = request.data.get('new_password')
     try:
         user = User.objects.get(email=email)
         user.set_password(new_password)
         user.save()
-        return Response({'message': 'OTP sent successfully'}, status=200)
+        return Response({'message': 'password reset successful'}, status=200)
     except User.DoesNotExist:
         return Response({'message': 'User does not exist'}, status=404)
 
@@ -314,6 +314,21 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluation.objects.filter(deleted_at__isnull=True)
     serializer_class = StudentEvaluationSerializer
 
+    @action(detail=False, methods=['GET'], url_path='by-schedule/(?P<schedule_id>[^/.]+)')
+    def by_schedule(self, request, schedule_id=None):
+        """Get student evaluation for a specific schedule"""
+        try:
+            evaluation = StudentEvaluation.objects.get(
+                schedule_id=schedule_id,
+                deleted_at__isnull=True
+            )
+            serializer = self.get_serializer(evaluation)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except StudentEvaluation.DoesNotExist:
+            return Response(
+                {'error': 'No evaluation found for this schedule'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
     """@transaction.atomic
     def create(self, request, *args, **kwargs):
@@ -323,10 +338,68 @@ class StudentEvaluationQuestionViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationQuestion.objects.all()
     serializer_class = StudentEvaluationQuestionSerializer
 
+
+
 class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationResponse.objects.all()
     serializer_class = StudentEvaluationResponseSerializer
 
+
+    # Add this to StudentEvaluationResponseViewSet class in views.py
+
+    @action(detail=False, methods=['POST'], url_path='submit-responses')
+    def submit_responses(self, request):
+        """Submit multiple responses for a student evaluation"""
+        user = request.user
+        if not user.is_authenticated:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        student_evaluation_id = request.data.get('student_evaluation_id')
+        responses = request.data.get('responses', [])
+
+        if not student_evaluation_id or not responses:
+            return Response(
+                {'error': 'student_evaluation_id and responses are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Check if student already submitted responses for this evaluation
+            existing_responses = StudentEvaluationResponse.objects.filter(
+                student_evaluation_id=student_evaluation_id,
+                user=user
+            )
+
+            if existing_responses.exists():
+                return Response(
+                    {'error': 'You have already submitted responses for this evaluation'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Create responses
+            response_objects = []
+            for response_data in responses:
+                response_obj = StudentEvaluationResponse(
+                    student_evaluation_id=student_evaluation_id,
+                    student_eval_question_id=response_data.get('question_id'),
+                    user=user,
+                    answer=response_data.get('answer')
+                )
+                response_objects.append(response_obj)
+
+            # Bulk create responses
+            StudentEvaluationResponse.objects.bulk_create(response_objects)
+
+            return Response(
+                {'message': 'Responses submitted successfully'},
+                status=status.HTTP_201_CREATED
+            )
+
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 ### END OF STUDENTEVALUATION VIEW ###
 """-------------------------------------------------------------"""
@@ -657,6 +730,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = ScheduleFilter
 
+
+
 #SCHEDULE Create
     
     @permission_classes([IsAuthenticated])
@@ -739,7 +814,28 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
+
+
         serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['GET'], url_path='my-schedules')
+    def my_schedules(self, request):
+        """Get schedules for the logged-in student based on their section"""
+        user = request.user
+        if not user.is_authenticated:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Get student's sections
+        student_sections = user.sections.all()
+
+        # Get schedules for those sections
+        schedules = Schedule.objects.filter(
+            section__in=student_sections,
+            is_active=True
+        ).select_related('subject', 'instructor', 'section', 'room')
+
+        serializer = self.get_serializer(schedules, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # USER VIEWS.
@@ -757,6 +853,7 @@ def get_professors(request):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.filter(deleted_at__isnull=True)
@@ -796,5 +893,7 @@ class SectionViewSet(viewsets.ModelViewSet):
                 {"message": f"Sections created successfully "
                             f"{len(created_sections)} sections"}, status=status.HTTP_201_CREATED,
             )
+
+
 
         return super().create(request, *args, **kwargs)
