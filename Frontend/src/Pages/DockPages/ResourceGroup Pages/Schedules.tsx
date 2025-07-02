@@ -13,124 +13,136 @@ interface SchedulesProps {
 
 // Define the Schedule Type
 interface Schedule {
-  id: number;
-  section: number;
-  section_name?: string;
-  subject: number;
-  subject_name?: string;
-  instructor: number;
-  instructor_name?: string;
-  room: number;
-  room_name?: string;
-  program: number;
-  program_name?: string;
-  name: string;
-  start_time: string;
-  end_time: string;
-  semester: string;
-  year: string;
-  is_active: boolean;
+	id: number;
+	section: number;
+	section_name?: string;
+	subject: number;
+	subject_name?: string;
+	instructor: number;
+	instructor_name?: string;
+	room: number;
+	room_name?: string;
+	program: number;
+	program_name?: string;
+	name: string;
+	start_time: string;
+	end_time: string;
+	semester: string;
+	year: string;
+	is_active: boolean;
 }
 
 function Schedules({ setActiveView }: SchedulesProps) {
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  // Form state for all required fields
-  const [form, setForm] = useState({
-    section: '',
-    subject: '',
-    instructor: '',
-    room: '',
-    program: '',
-    name: '',
-    start_time: '',
-    end_time: '',
-    semester: '',
-    year: '',
-  });
-  const [selectedProgram, setSelectedProgram] = useState<Option | null>(null);
-const [selectedSection, setSelectedSection] = useState<Option | null>(null);
-const [selectedSubject, setSelectedSubject] = useState<Option | null>(null);
-const [selectedRoom, setSelectedRoom] = useState<Option | null>(null);
-const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(null);
-const [professorOptions, setProfessorOptions] = useState<Option[]>([]);
-useEffect(() => {
-  if (selectedProgram) {
-    api.get(`/program-professor/program-professors/?program_id=${selectedProgram.id}`)
-      .then(res => {
-        setProfessorOptions(
-          res.data.map((item: any) => ({
-            id: item.professor,
-            name: item.professor_details.full_name, // Use full_name for display
-          }))
-        );
-      });
-  } else {
-    setProfessorOptions([]);
-  }
-}, [selectedProgram]);
+	const [schedules, setSchedules] = useState<Schedule[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [searchTerm, setSearchTerm] = useState("");
+	// Form state for all required fields
+	const [form, setForm] = useState({
+		section: "",
+		subject: "",
+		instructor: "",
+		room: "",
+		program: "",
+		name: "",
+		start_time: "",
+		end_time: "",
+		semester: "",
+		year: "",
+	});
+	const [selectedProgram, setSelectedProgram] = useState<Option | null>(null);
+	const [selectedSection, setSelectedSection] = useState<Option | null>(null);
+	const [selectedSubject, setSelectedSubject] = useState<Option | null>(null);
+	const [selectedRoom, setSelectedRoom] = useState<Option | null>(null);
+	const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(
+		null,
+	);
+	const [professorOptions, setProfessorOptions] = useState<Option[]>([]);
+	useEffect(() => {
+		if (selectedProgram) {
+			api.get(
+				`/program-professor/program-professors/?program_id=${selectedProgram.id}`,
+			).then((res) => {
+				setProfessorOptions(
+					res.data.map((item: any) => ({
+						id: item.professor,
+						name: item.professor_details.full_name, // Use full_name for display
+					})),
+				);
+			});
+		} else {
+			setProfessorOptions([]);
+		}
+	}, [selectedProgram]);
 
-  const fetchSchedules = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get("/schedule/schedules", {
-        params: { name: searchTerm || undefined },
-      });
-      setSchedules(response.data);
-    } catch (error) {
-      console.error("Error fetching schedules:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+	const fetchSchedules = async () => {
+		setLoading(true);
+		try {
+			const response = await api.get("/schedule/schedules", {
+				params: { name: searchTerm || undefined },
+			});
+			setSchedules(response.data);
+		} catch (error) {
+			console.error("Error fetching schedules:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
 
-  const createSchedule = async () => {
-  // Validate required fields
-	  if (
-		!selectedProgram ||
-		!selectedSection ||
-		!selectedSubject ||
-		!selectedRoom ||
-		!selectedProfessor ||
-		!form.name ||
-		!form.start_time ||
-		!form.end_time ||
-		!form.semester ||
-		!form.year
-	  ) {
-		alert("Please fill in all required fields.");
-		return;
-	  }
-	  const token = localStorage.getItem("token");
-	  if (!token) return alert("You are not authenticated. Please login.");
-	  try {
-		await api.post(
-		  "/schedule/schedules/",
-		  {
-			program: selectedProgram.id,
-			section: selectedSection.id,
-			subject: selectedSubject.id,
-			room: selectedRoom.id,
-			instructor: selectedProfessor.id,
-			name: form.name,
-			start_time: form.start_time,
-			end_time: form.end_time,
-			semester: form.semester,
-			year: form.year,
-		  },
-		  {
-			headers: { Authorization: `Bearer ${token}` },
-		  },
-		);
-		setForm({
-		  section: '', subject: '', instructor: '', room: '', program: '', name: '', start_time: '', end_time: '', semester: '', year: '',
-		});
-		// Also reset selected* states if needed
-		fetchSchedules();
-	  } catch (error) {
-		console.error("Error creating schedule:", error);
-	  }
+	const createSchedule = async () => {
+		// Validate required fields
+		if (
+			!selectedProgram ||
+			!selectedSection ||
+			!selectedSubject ||
+			!selectedRoom ||
+			!selectedProfessor ||
+			!form.name ||
+			!form.start_time ||
+			!form.end_time ||
+			!form.semester ||
+			!form.year
+		) {
+			alert("Please fill in all required fields.");
+			return;
+		}
+		const token = localStorage.getItem("token");
+		if (!token) return alert("You are not authenticated. Please login.");
+		try {
+			await api.post(
+				"/schedule/schedules/",
+				{
+					program: selectedProgram.id,
+					section: selectedSection.id,
+					subject: selectedSubject.id,
+					room: selectedRoom.id,
+					instructor: selectedProfessor.id,
+					name: form.name,
+					start_time: form.start_time,
+					end_time: form.end_time,
+					semester: form.semester,
+					year: form.year,
+				},
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
+			setForm({
+				section: "",
+				subject: "",
+				instructor: "",
+				room: "",
+				program: "",
+				name: "",
+				start_time: "",
+				end_time: "",
+				semester: "",
+				year: "",
+			});
+			// Also reset selected* states if needed
+			fetchSchedules();
+		} catch (error) {
+			console.error("Error creating schedule:", error);
+		}
 	};
 
 	const toggleScheduleStatus = async (schedule: Schedule) => {
@@ -202,7 +214,6 @@ useEffect(() => {
 		},
 	];
 
-
 	return (
 		<div className="custom-container gap-y-6">
 			<div className="breadcrumbs">
@@ -237,192 +248,231 @@ useEffect(() => {
 				</button>
 
 				<dialog id="create_new_schedule" className="modal">
-				  <div className="modal-box w-11/12 max-w-5xl">
-					<h3 className="mb-4 text-center text-2xl font-bold">
-					  Create New Schedule
-					</h3>
-					<form
-					  onSubmit={e => {
-						e.preventDefault();
-						// Validate all required fields
-						if (
-						  !selectedProgram ||
-						  !selectedSection ||
-						  !selectedSubject ||
-						  !selectedRoom ||
-						  !selectedProfessor ||
-						  !form.name ||
-						  !form.start_time ||
-						  !form.end_time ||
-						  !form.semester ||
-						  !form.year
-						) {
-						  alert("Please fill in all required fields.");
-						  return;
-						}
-						createSchedule({
-						  program: selectedProgram.id,
-						  section: selectedSection.id,
-						  subject: selectedSubject.id,
-						  room: selectedRoom.id,
-						  instructor: selectedProfessor.id,
-						  name: form.name,
-						  start_time: form.start_time,
-						  end_time: form.end_time,
-						  semester: form.semester,
-						  year: form.year,
-						});
-						(document.getElementById("create_new_schedule") as HTMLDialogElement)?.close();
-					  }}
-					  className="flex flex-col gap-6"
-					>
-					  {/* Program */}
-					  <ComboboxTextField
-						label="Program"
-						placeholder="Enter program"
-						fetchUrl="/program/programs/"
-						value={selectedProgram}
-						onChange={setSelectedProgram}
-					  />
-
-					  {/* Section */}
-					  <ComboboxTextField
-						label="Section"
-						placeholder="Enter section"
-						fetchUrl="/section/sections"
-						value={selectedSection}
-						onChange={setSelectedSection}
-					  />
-
-					  {/* Subject */}
-					  <ComboboxTextField
-						label="Subject"
-						placeholder="Enter subject"
-						fetchUrl="/subject/subjects/"
-						value={selectedSubject}
-						onChange={setSelectedSubject}
-					  />
-
-					  {/* Room */}
-					  <ComboboxTextField
-						label="Room"
-						placeholder="Enter room"
-						fetchUrl="/room/rooms/"
-						value={selectedRoom}
-						onChange={setSelectedRoom}
-					  />
-
-					  {/* Professor */}
-					  <ComboboxTextField
-						  label="Professor"
-						  placeholder="Enter professor name"
-						  fetchUrl={`/program-professor/program-professors/?program_id=${selectedProgram?.id || ""}`}
-						  value={selectedProfessor}
-						  onChange={setSelectedProfessor}
-						  mapResponse={data =>
-							data.map((item: any) => ({
-							  id: item.professor,
-							  name: item.professor_details.full_name,
-							}))
-						  }
-						/>
-
-					  {/* Name/Title */}
-					  <div className="flex flex-col gap-2 md:flex-row md:items-center">
-						<label className="text-left text-lg font-bold md:w-1/4">
-						  Title:
-						</label>
-						<input
-						  type="text"
-						  placeholder="Enter title"
-						  className="input input-bordered w-full"
-						  value={form.name}
-						  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-						  required
-						/>
-					  </div>
-
-					  {/* Start Time */}
-					  <div className="flex flex-col gap-2 md:flex-row md:items-center">
-						<label className="text-left text-lg font-bold md:w-1/4">
-						  Start Time:
-						</label>
-						<input
-						  type="time"
-						  className="input input-bordered w-full"
-						  value={form.start_time}
-						  onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-						  required
-						/>
-					  </div>
-
-					  {/* End Time */}
-					  <div className="flex flex-col gap-2 md:flex-row md:items-center">
-						<label className="text-left text-lg font-bold md:w-1/4">
-						  End Time:
-						</label>
-						<input
-						  type="time"
-						  className="input input-bordered w-full"
-						  value={form.end_time}
-						  onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-						  required
-						/>
-					  </div>
-
-					  {/* Semester */}
-					  <div className="flex flex-col gap-2 md:flex-row md:items-center">
-						<label className="text-left text-lg font-bold md:w-1/4">
-						  Semester:
-						</label>
-						<select
-						  className="input input-bordered w-full"
-						  value={form.semester}
-						  onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
-
-						  required
+					<div className="modal-box w-11/12 max-w-5xl">
+						<h3 className="mb-4 text-center text-2xl font-bold">
+							Create New Schedule
+						</h3>
+						<form
+							onSubmit={(e) => {
+								e.preventDefault();
+								if (
+									!selectedProgram ||
+									!selectedSection ||
+									!selectedSubject ||
+									!selectedRoom ||
+									!selectedProfessor ||
+									!form.name ||
+									!form.start_time ||
+									!form.end_time ||
+									!form.semester ||
+									!form.year
+								) {
+									alert(
+										"Please fill in all required fields.",
+									);
+									return;
+								}
+								createSchedule({
+									program: selectedProgram.id,
+									section: selectedSection.id,
+									subject: selectedSubject.id,
+									room: selectedRoom.id,
+									instructor: selectedProfessor.id,
+									name: form.name,
+									start_time: form.start_time,
+									end_time: form.end_time,
+									semester: form.semester,
+									year: form.year,
+								});
+								(
+									document.getElementById(
+										"create_new_schedule",
+									) as HTMLDialogElement
+								)?.close();
+							}}
+							className="flex flex-col gap-6"
 						>
-						  <option value="">Select semester</option>
-						  <option value="First">First Semester</option>
-						  <option value="Second">Second Semester</option>
-						  <option value="Summer">Summer Semester</option>
-						</select>
-					  </div>
+							{/* Program */}
+							<ComboboxTextField
+								label="Program"
+								placeholder="Enter program"
+								fetchUrl="/program/programs/"
+								value={selectedProgram}
+								onChange={setSelectedProgram}
+							/>
 
-					  {/* Year */}
-					  <div className="flex flex-col gap-2 md:flex-row md:items-center">
-						<label className="text-left text-lg font-bold md:w-1/4">
-						  Year:
-						</label>
-						<input
-						  type="date"
-						  className="input input-bordered w-full"
-						  value={form.year}
-						  onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
-						  required
-						/>
-					  </div>
+							{/* Section */}
+							<ComboboxTextField
+								label="Section"
+								placeholder="Enter section"
+								fetchUrl="/section/sections"
+								value={selectedSection}
+								onChange={setSelectedSection}
+							/>
 
-					  {/* Action Buttons */}
-					  <div className="modal-action">
-						<button
-						  type="submit"
-						  className="btn btn-success text-white"
-						>
-						  Submit
-						</button>
-						<button
-						  type="button"
-						  className="btn btn-cancel"
-						  onClick={() =>
-							(document.getElementById("create_new_schedule") as HTMLDialogElement)?.close()
-						  }
-						>
-						  Cancel
-						</button>
-					  </div>
-					</form>
-				  </div>
+							{/* Subject */}
+							<ComboboxTextField
+								label="Subject"
+								placeholder="Enter subject"
+								fetchUrl="/subject/subjects/"
+								value={selectedSubject}
+								onChange={setSelectedSubject}
+							/>
+
+							{/* Room */}
+							<ComboboxTextField
+								label="Room"
+								placeholder="Enter room"
+								fetchUrl="/room/rooms/"
+								value={selectedRoom}
+								onChange={setSelectedRoom}
+							/>
+
+							{/* Professor */}
+							<ComboboxTextField
+								label="Professor"
+								placeholder="Enter professor name"
+								fetchUrl={`/program-professor/program-professors/?program_id=${selectedProgram?.id || ""}`}
+								value={selectedProfessor}
+								onChange={setSelectedProfessor}
+								mapResponse={(data) =>
+									data.map((item: any) => ({
+										id: item.professor,
+										name: item.professor_details.full_name,
+									}))
+								}
+							/>
+
+							{/* Title */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Title:
+								</label>
+								<input
+									type="text"
+									placeholder="Enter title"
+									className="input input-bordered w-full"
+									value={form.name}
+									onChange={(e) =>
+										setForm((f) => ({
+											...f,
+											name: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
+
+							{/* Start Time */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Start Time:
+								</label>
+								<input
+									type="time"
+									className="input input-bordered w-full"
+									value={form.start_time}
+									onChange={(e) =>
+										setForm((f) => ({
+											...f,
+											start_time: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
+
+							{/* End Time */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									End Time:
+								</label>
+								<input
+									type="time"
+									className="input input-bordered w-full"
+									value={form.end_time}
+									onChange={(e) =>
+										setForm((f) => ({
+											...f,
+											end_time: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
+
+							{/* Semester */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Semester:
+								</label>
+								<select
+									className="input input-bordered w-full"
+									value={form.semester}
+									onChange={(e) =>
+										setForm((f) => ({
+											...f,
+											semester: e.target.value,
+										}))
+									}
+									required
+								>
+									<option value="">Select semester</option>
+									<option value="First">
+										First Semester
+									</option>
+									<option value="Second">
+										Second Semester
+									</option>
+									<option value="Summer">
+										Summer Semester
+									</option>
+								</select>
+							</div>
+
+							{/* Year */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Year:
+								</label>
+								<input
+									type="date"
+									className="input input-bordered w-full"
+									value={form.year}
+									onChange={(e) =>
+										setForm((f) => ({
+											...f,
+											year: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
+
+							{/* Action Buttons */}
+							<div className="modal-action">
+								<button
+									type="submit"
+									className="btn btn-success text-white"
+								>
+									Submit
+								</button>
+								<button
+									type="button"
+									className="btn btn-cancel"
+									onClick={() =>
+										(
+											document.getElementById(
+												"create_new_schedule",
+											) as HTMLDialogElement
+										)?.close()
+									}
+								>
+									Cancel
+								</button>
+							</div>
+						</form>
+					</div>
 				</dialog>
 
 				<div className="flex flex-row justify-center">
@@ -590,7 +640,6 @@ useEffect(() => {
 							<label className="text-left text-lg font-bold md:w-1/6">
 								Name:
 							</label>
-
 						</div>
 						<div className="modal-action">
 							<button
