@@ -159,8 +159,8 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 					School Year
 				</button>
 			</div>
-			<div className="mt-6 flex h-full w-full flex-col gap-6 px-6">
-				<div className="stats bg-[#1c402a]/20 shadow-2xl">
+			<div className="mt-6 flex h-full w-full flex-col gap-6 overflow-y-auto px-6">
+				<div className="stats shrink-0 bg-[#1c402a]/20 p-0 shadow-2xl">
 					<div className="stat">
 						<div className="stat-figure text-gray-400">
 							<svg
@@ -233,7 +233,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 						Filter All
 					</button>
 				</div>
-				<div className="flex h-1/5 flex-row gap-6">
+				<div className="flex h-full flex-row gap-6">
 					<div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg p-6 shadow-2xl backdrop-blur-lg">
 						<table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
 							<thead>
@@ -421,11 +421,11 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 						<Bar data={barData} options={barOptions} />
 					</div>
 				</div>
-				{/* <div className="mt-6 flex w-full items-center justify-center rounded-lg p-4 shadow-2xl backdrop-blur-lg">
+				<div className="mt-6 flex w-full items-center justify-center rounded-lg p-4 shadow-2xl backdrop-blur-lg">
 					<div className="w-full">
 						<Line data={lineData} options={lineOptions} />
 					</div>
-				</div> */}
+				</div>
 			</div>
 		</div>
 	);

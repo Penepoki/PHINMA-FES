@@ -20,6 +20,7 @@ import Programs from "./DockPages/ResourceGroup Pages/Programs";
 import Rooms from "./DockPages/ResourceGroup Pages/Rooms";
 import Schedules from "./DockPages/ResourceGroup Pages/Schedules";
 import Subject from "./DockPages/ResourceGroup Pages/Subjects";
+import Sections from "./DockPages/ResourceGroup Pages/Sections";
 import LeanSixSigma from "./DockPages/Lean Six Sigma";
 
 function Dashboard({ role }: { role: string }) {
@@ -54,6 +55,7 @@ function Dashboard({ role }: { role: string }) {
 		rooms: <Rooms setActiveView={setActiveView} />,
 		schedules: <Schedules setActiveView={setActiveView} />,
 		subjects: <Subject setActiveView={setActiveView} />,
+		sections: <Sections setActiveView={setActiveView} />,
 		//Lean Six Sigma
 		leansixsigma: <LeanSixSigma setActiveView={setActiveView} />,
 	};
