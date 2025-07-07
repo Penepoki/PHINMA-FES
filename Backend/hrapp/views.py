@@ -330,10 +330,6 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-    """@transaction.atomic
-    def create(self, request, *args, **kwargs):
-        data = request.data"""
-
 class StudentEvaluationQuestionViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationQuestion.objects.all()
     serializer_class = StudentEvaluationQuestionSerializer

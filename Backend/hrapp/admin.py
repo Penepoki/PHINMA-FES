@@ -52,7 +52,9 @@ class StudentEvaluationAdmin(admin.ModelAdmin):
 class StudentEvaluationQuestionsAdmin(admin.ModelAdmin):
     list_display = ( 'question', 'type', 'options')
 
-
+@admin.register(StudentEvaluationResponse)
+class StudentEvaluationResponseAdmin(admin.ModelAdmin):
+    list_display = ("user", "student_evaluation", "student_eval_question" ,"answer")
 
 @admin.register(Evaluation)
 class EvaluationAdmin(admin.ModelAdmin):

@@ -199,7 +199,8 @@ class StudentEvaluationResponse(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
-
+    class Meta:
+        unique_together = ("user", "student_evaluation", "student_eval_question")
 
     def __str__(self):
         return f"{self.student_evaluation} - {self.user} - {self.answer} "
