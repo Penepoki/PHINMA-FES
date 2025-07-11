@@ -1,6 +1,6 @@
 from django.db import models
-from .user_models import User
-from .custom_manager import *
+from .user_models import *
+
 # Programs
 class BaseModel(models.Model):
     is_active = models.BooleanField(default=True)
@@ -23,6 +23,7 @@ class Program(BaseModel):
     slug = models.SlugField(blank=True, null=True)
     code = models.CharField(max_length=50, blank=True, null=True)
     professors = models.ManyToManyField("User", through="ProgramProfessor", blank=True)
+    faculty = models.ForeignKey("Faculty", on_delete=models.CASCADE, related_name="programs", null=True, blank=True)
 
     def __str__(self):
         return f'{self.name} - {self.code}'
@@ -149,8 +150,37 @@ class FacultySchedule(models.Model):
     def __str__(self):
         return f"Faculty: {self.faculty_assignment.user}, Schedule: {self.schedule.name} at {self.assigned_at}"
 
-"""class Faculty(models.Model):
-    course = models.ForeignKey(Program, on_delete=models.CASCADE)
-    professor = models.ManyToManyField(
-        settings.AUTH
-    )"""
+class Faculty(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    dean = models.ForeignKey(
+        "User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="faculties_as_dean"
+        # REMOVE limit_choices_to
+    )
+    professors = models.ManyToManyField(
+        "User",
+        related_name="faculties_as_professor",
+        blank=True
+        # REMOVE limit_choices_to
+    )
+    evaluations = models.ManyToManyField(
+        "Evaluation",
+        related_name="faculties",
+        blank=True
+    )
+    student_evaluations = models.ManyToManyField(
+        "StudentEvaluation",
+        related_name="faculties",
+        blank=True
+    )
+
+    def clean(self):
+        # Extra validation if needed
+        if self.dean and self.dean.role != 'Dean':
+            raise ValidationError("Selected user is not a Dean.")
+        # You can add more validation for professors if needed
+
+    def __str__(self):
+        return self.name

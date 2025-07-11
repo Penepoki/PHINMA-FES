@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
+from hrapp.models.schedules_models import *
 from hrapp.serializers import *
 from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
@@ -192,6 +193,15 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     serializer_class = EvaluationSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
+        base_qs = super().get_queryset()
+        if hasattr(user, "Dean") and user.Dean:
+            return base_qs
+        if hasattr(user, 'faculty') and user.faculty:
+            return base_qs.filter(schedule__program__faculty=user.faculty)
+        return base_qs
+
     #AI SUMMARY GENERATOR
 
     @action(detail=True, methods=["post"], url_path="generate_feedback")
@@ -228,6 +238,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         print("DEBUG: Received Evaluation Creation Request")
         print("DEBUG: Request Data:", request.data)  # Print the incoming request data
@@ -407,6 +418,18 @@ class SubjectViewSet(viewsets.ModelViewSet):
     serializer_class = SubjectSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = SubjectFilter
+
+    def get_queryset(self):
+        user = self.request.user
+        base_qs = super().get_queryset()
+        if user.is_superuser:
+            return base_qs
+        if hasattr(user, 'faculty') and user.faculty:
+            schedule_subject_ids = Schedule.objects.filter(
+                program__faculty=user.faculty
+            ).values_list('subject_id', flat=True)
+            return base_qs.filter(id__in=schedule_subject_ids)
+        return base_qs.none()
 #SUBJECT CREATE
     @transaction.atomic
     def create(self, request, *args, **kwargs):
@@ -451,7 +474,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
     #READ/RETRIEVE BY NAME
-    def retrieve(self, request, *args, **kwargs):
+    """def retrieve(self, request, *args, **kwargs):
         name = kwargs.get('name')
 
         try:
@@ -460,7 +483,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
             raise NotFound({"Message": f"No subject found with name {name}"})
 
         serializer = self.get_serializer(subject)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)"""
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
@@ -574,6 +597,21 @@ class ProgramViewSet(viewsets.ModelViewSet):
     parser_classes = [JSONParser]
     filter_backends = [DjangoFilterBackend]
     filter_class = ProgramFilter
+
+
+
+    def get_queryset(self):
+        user = self.request.user
+        base_qs = super().get_queryset()
+        if user.is_superuser:
+            return base_qs
+        if hasattr(user, 'faculty') and user.faculty:
+            qs = base_qs.filter(faculty=user.faculty)
+            print("DEBUG: Programs for user", user, ":", list(qs))
+            return qs  # <-- THIS LINE WAS MISSIN
+        return base_qs.none()
+
+
 
     def get_parser_classes(self):
         if self.action == 'import_program_from_csv':
@@ -690,7 +728,7 @@ class ProgramViewSet(viewsets.ModelViewSet):
 
 # Program Retrieve list (All)
     # RETRIEVE OR READ data fetching for all Program including the deleted ones
-    @action(detail=False, methods=['get'])
+    """"@action(detail=False, methods=['get'])
     def program_all(self, request, *args, **kwargs):
         include_deleted = request.query_params.get('include_deleted', 'false').lower() == 'true'
         if include_deleted:
@@ -698,7 +736,7 @@ class ProgramViewSet(viewsets.ModelViewSet):
         else:
             queryset = Program.objects.filter(deleted_at__isnull=True)
         serializer = ProgramSerializer(queryset, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data)"""
 
 #program RESTORE
     @action(detail=True, methods=['post'])
@@ -726,6 +764,16 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = ScheduleFilter
 
+    def get_queryset(self):
+        user = self.request.user
+        base_qs = super().get_queryset()
+        if user.is_superuser:
+            return base_qs
+        if hasattr(user, 'faculty') and user.faculty:
+            qs = base_qs.filter(program__faculty=user.faculty)
+            print("DEBUG: Schedule for user", user, ":", list(qs))
+            return qs
+        return base_qs.none()
 
 
 #SCHEDULE Create
@@ -755,11 +803,11 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
         return super().create(request, *args, **kwargs)
 #SCHEDULE RETRIEVE (ID OR NAME)
-    def retrieve(self, request, *args, **kwargs):
-        """RETRIVE A SPECIFIC DATA BASED ON NAME or ID"""
+    """def retrieve(self, request, *args, **kwargs):
+        
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)"""
 
 #SCHEDULE Update
     @transaction.atomic
@@ -838,24 +886,28 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_professors(request):
-    """Get all users with professor role"""
-    try:
-        # Filter users who belong to a group named 'professor'
-        professors = User.objects.filter(groups__name='professor')
-        serializer = UserProgramProfessorSerializer(professors, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    user = request.user
+    professors = User.objects.filter(groups__name='professor')
+    if not user.is_superuser and hasattr(user, 'faculty'):
+        professors = professors.filter(faculties_as_professor=user.faculty)
+    serializer = UserProgramProfessorSerializer(professors, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.filter(deleted_at__isnull=True)
     serializer_class = SectionSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = SectionFilter
+
+
+    def get_queryset(self):
+        user = self.request.user
+        base_qs = super().get_queryset()
+        if user.is_superuser:
+            return base_qs
+        if hasattr(user, 'faculty') and user.faculty:
+            return base_qs.filter(schedule__program__faculty=user.faculty)
+        return base_qs.none()
 
     @action(detail=True, methods=['post'])
     def add_students(self, request, pk=None):

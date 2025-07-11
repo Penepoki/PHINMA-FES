@@ -1,5 +1,6 @@
 from django.contrib import admin
-from django.contrib import admin
+from django import forms
+from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from hrapp.models.evaluation_models import *
@@ -121,3 +122,35 @@ class SectionAdmin(admin.ModelAdmin):
     def get_students(self, obj):
         return ", ".join([str(student) for student in obj.students.all()])
     get_students.short_description = 'Students'
+
+
+User = get_user_model()
+
+class FacultyAdminForm(forms.ModelForm):
+    class Meta:
+        model = Faculty
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # For DEAN Role
+        self.fields['dean'].queryset = User.objects.filter(groups__name="Dean")
+        # For Professor Role
+        self.fields['professors'].queryset = User.objects.filter(groups__name="Professor")
+
+@admin.register(Faculty)
+class FacultyAdmin(admin.ModelAdmin):
+    form = FacultyAdminForm
+    list_display = ("name", "dean", "get_professors", "get_evaluations", "get_student_evaluations")
+
+    def get_professors(self, obj):
+        return ", ".join([str(prof) for prof in obj.professors.all()])
+    get_professors.short_description = 'Professors'
+
+    def get_evaluations(self, obj):
+        return ", ".join([str(eval) for eval in obj.evaluations.all()])
+    get_evaluations.short_description = 'Evaluations'
+
+    def get_student_evaluations(self, obj):
+        return ", ".join([str(eval) for eval in obj.evaluations.all()])
+    get_student_evaluations.short_description = 'Student Evaluations'
