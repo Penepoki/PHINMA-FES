@@ -59,8 +59,8 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 	evaluationId,
 	onTalliesUpdate,
 }) => {
-	const MIN_MINUTE = 2;
-	const MAX_MINUTE = 60;
+	const MIN_MINUTE = 0;
+	const MAX_MINUTE = 58;
 	const INCREMENT = 2;
 
 	// Your existing state variables
@@ -890,7 +890,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 						>
 							&larr;
 						</button>
-						<h2 className="text-xl font-bold">{`Minutes ${minute - 2} - ${minute}`}</h2>
+						<h2 className="text-xl font-bold">{`Minutes ${minute}-${minute + INCREMENT}`}</h2>
 						<button
 							className="tooltip hidden text-xl font-bold disabled:opacity-30"
 							onClick={handleNext}

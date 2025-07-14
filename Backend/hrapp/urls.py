@@ -78,4 +78,6 @@ urlpatterns = [
 
     path('users/professors/', get_professors, name='get-professors'),
 
+    path('copus/bulk-tallies/', copus_bulk_tallies, name='copus-bulk-tallies'),
+
 ]

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
@@ -316,9 +317,63 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             return Response(
                 {"error": "No evaluation found"}, status=status.HTTP_404_NOT_FOUND,
             )
+
+
+
+
 #END OF CRUD EVALUATION -----------------------------------------
+# Define your activity options (should match frontend)
+@api_view(["GET"])
+def copus_bulk_tallies(request):
+    eval_ids = request.GET.get('evaluation_ids')
+    if not eval_ids:
+        return Response({"Error": "evaluation_ids required"}, status=status.HTTP_400_BAD_REQUEST)
+    ids = [int(i) for i in eval_ids.split(',') if i.strip().isdigit()]
+    result = {}
 
+    # Use choices from the model
+    STUDENT_CHOICES = Timestamp.STUDENT_ACTIVITY_CHOICES
+    INSTRUCTOR_CHOICES = Timestamp.INSTRUCTOR_ACTIVITY_CHOICES
 
+    # Build Mappings
+    STUDENT_ACTIVITY_MAP_REVERSE = dict((key, display) for key, display in STUDENT_CHOICES)
+    INSTRUCTOR_ACTIVITY_MAP_REVERSE = dict((key, display) for key, display in INSTRUCTOR_CHOICES)
+    STUDENT_OPTIONS = [display for key, display in STUDENT_CHOICES]
+    INSTRUCTOR_OPTIONS = [display for key, display in INSTRUCTOR_CHOICES]
+
+    for eval_id in ids:
+        timestamps = Timestamp.objects.filter(evaluation_id=eval_id)
+        student_tallies = {opt: {"count": 0, "percentage": 0.0} for opt in STUDENT_OPTIONS}
+        instructor_tallies = {opt: {"count": 0, "percentage": 0.0} for opt in INSTRUCTOR_OPTIONS}
+        total_students = 0
+        total_instructors = 0
+
+        for ts in timestamps:
+            for key, display in STUDENT_ACTIVITY_MAP_REVERSE.items():
+                if getattr(ts, 'student_activities', {}).get(key, False):
+                    student_tallies[display]["count"] += 1
+                    total_students += 1
+            for key, display in INSTRUCTOR_ACTIVITY_MAP_REVERSE.items():
+                if getattr(ts, 'instructor_activities', {}).get(key, False):
+                    instructor_tallies[display]["count"] += 1
+                    total_instructors += 1
+
+        for display in STUDENT_OPTIONS:
+            if total_students > 0:
+                student_tallies[display]["percentage"] = (
+                    student_tallies[display]["count"] / total_students * 100
+                )
+        for display in INSTRUCTOR_OPTIONS:
+            if total_instructors > 0:
+                instructor_tallies[display]["percentage"] = (
+                    instructor_tallies[display]["count"] / total_instructors * 100
+                )
+
+        result[eval_id] = {
+            "studentTallies": student_tallies,
+            "teacherTallies": instructor_tallies,
+        }
+    return Response(result)
 ### STUDENTEVALUATION(QUESTION, FORM AND ANSWER CRUD) ###
 
 class StudentEvaluationViewSet(viewsets.ModelViewSet):

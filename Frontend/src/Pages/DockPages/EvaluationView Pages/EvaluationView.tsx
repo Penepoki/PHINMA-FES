@@ -6,6 +6,7 @@ import PieChartWithTable from "../../../Components/Evaluation Components/Piechar
 import api from "../../../utils/api";
 import { ActivityData } from "../../../Components/Evaluation Components/Copus Matrix";
 import CreateEvaluationForm from "../../../Components/Evaluation Components/CreateEvaluationForm";
+import CopusSummaryTable from "../../../Components/Evaluation Components/CopusSummaryTable.tsx"
 import { generateAIFeedback } from "../../../utils/api";
 
 interface Evaluation {
@@ -261,10 +262,39 @@ function Evaluation({ setActiveView }: EvalProps) {
 		{ value: "copus_3", label: "COPUS 3" },
 	];
 
+
+
 	const getEvaluationByType = (prof: Professor, copusType: string) => {
 		const profEvals = getProfessorEvaluations(prof);
 		return profEvals.find((e) => e.evaluation_type === copusType);
 	};
+
+	const studentOptions = [
+		"Listening",
+		"Individual Thinking",
+		"Group",
+		"Answer Question",
+		"Ask Question",
+		"Whole Class Discussion",
+		"Student Presentations",
+		"Test/Quiz",
+		"Waiting",
+		"Other",
+	];
+
+	const teacherOptions = [
+		"Lecture",
+		"Realtime Writing",
+		"Moving/Guiding",
+		"Answer Questions",
+		"Pose Question",
+		"Follow-up Question",
+		"1-on-1 discussion",
+		"Demonstrative",
+		"Administrative",
+		"Waiting",
+		"Other",
+	];
 
 	const filteredProfessors = professors.filter((prof) =>
 		`${prof.first_name} ${prof.last_name}`
@@ -273,6 +303,23 @@ function Evaluation({ setActiveView }: EvalProps) {
 	);
 
 	const firstName = localStorage.getItem("firstName") || "User";
+
+
+	useEffect(() => {
+		  if (modalOpen === "copus-summary" && selectedProfessor) {
+			const copusEvals = getProfessorEvaluations(selectedProfessor).filter(e =>
+			  ["copus_1", "copus_2", "copus_3"].includes(e.evaluation_type)
+			);
+			if (copusEvals.length > 0) {
+			  const evalIds = copusEvals.map(e => e.id).join(",");
+			  // Use an async IIFE inside useEffect
+			  (async () => {
+				const res = await api.get(`/copus/bulk-tallies/?evaluation_ids=${evalIds}`);
+				setEvaluationTallies(res.data);
+			  })();
+			}
+		  }
+		}, [modalOpen, selectedProfessor]);
 
 	if (loading) return <div className="text-white">Loading...</div>;
 	return (
@@ -359,6 +406,30 @@ function Evaluation({ setActiveView }: EvalProps) {
 													e.stopPropagation()
 												}
 											>
+												{(() => {
+												  const profEvals = getProfessorEvaluations(prof);
+												  const hasAllCopus = COPUS_TYPE_CHOICES.every(copus =>
+													profEvals.some(e => e.evaluation_type === copus.value)
+												  );
+												  if (hasAllCopus) {
+													return (
+													  <label
+														className="btn mx-1 cursor-pointer bg-blue-500 text-white hover:bg-blue-700"
+													  >
+														<button
+														  type="button"
+														  onClick={() => {
+															setSelectedProfessor(prof);
+															setModalOpen("copus-summary");
+														  }}
+														>
+														  Copus Summary
+														</button>
+													  </label>
+													);
+												  }
+												  return null;
+												})()}
 												{/* COPUS Type Buttons */}
 												{(() => {
 													// Find the first missing COPUS type for this professor
@@ -542,16 +613,23 @@ function Evaluation({ setActiveView }: EvalProps) {
 			</div>
 
 			{/* Create New Copus Modal */}
-
 			<dialog id="create_new_copus" className="modal">
 				<div className="modal-box w-11/12 max-w-5xl">
 					<h3 className="mb-4 text-center text-2xl font-bold">
 						New Copus
 					</h3>
-					<CreateEvaluationForm
+					{(() => {
+					  let initialCopusType = "copus_1";
+					  if (selectedProfessor) {
+						const profEvals = getProfessorEvaluations(selectedProfessor);
+						const usedTypes = profEvals.map(e => e.evaluation_type);
+						const missing = COPUS_TYPE_CHOICES.find(copus => !usedTypes.includes(copus.value));
+						if (missing) initialCopusType = missing.value;
+					  }
+					  return (
+						<CreateEvaluationForm
 						  onSuccess={(newEvaluation) => {
 							setEvaluations([...evaluations, newEvaluation]);
-							// Detector: if the new evaluation's date is today, open Copus Matrix modal
 							if (newEvaluation.observation_date === getToday()) {
 							  setSelectedEvaluation(newEvaluation);
 							  setSelectedProfessor(selectedProfessor);
@@ -562,11 +640,14 @@ function Evaluation({ setActiveView }: EvalProps) {
 							  setModalOpen(null);
 							}
 							const dialog = document.getElementById("create_new_copus") as HTMLDialogElement;
-  							if (dialog) dialog.close();
+							if (dialog) dialog.close();
 						  }}
 						  schedules={schedules}
 						  initialInstructor={selectedProfessor}
+						  initialCopusType={initialCopusType}
 						/>
+					  );
+					})()}
 				</div>
 			</dialog>
 
@@ -794,6 +875,31 @@ function Evaluation({ setActiveView }: EvalProps) {
 						</div>
 					</div>
 				</dialog>
+			)}
+			{modalOpen === "copus-summary" && selectedProfessor && (
+			  <dialog open className="modal">
+				<div className="modal-box max-h-full w-full max-w-5xl text-black">
+				  <h3 className="mt-2 mb-6 text-xl font-bold">
+					{selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Summary
+				  </h3>
+				  <CopusSummaryTable
+					evaluations={getProfessorEvaluations(selectedProfessor).filter(e =>
+					  ["copus_1", "copus_2", "copus_3"].includes(e.evaluation_type)
+					)}
+					evaluationTallies={evaluationTallies}
+					studentOptions={studentOptions}
+					teacherOptions={teacherOptions}
+				  />
+				  <div className="modal-action">
+					<button
+					  className="btn btn-cancel text-white"
+					  onClick={() => setModalOpen(null)}
+					>
+					  Close
+					</button>
+				  </div>
+				</div>
+			  </dialog>
 			)}
 		</div>
 	);

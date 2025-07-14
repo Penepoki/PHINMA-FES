@@ -6,6 +6,7 @@ interface CreateEvaluationProps {
 	onSuccess: (evaluation: any) => void;
 	schedules: Schedule[];
 	initialInstructor?: User | null;
+	initialCopusType?: string;
 }
 interface User {
 	id: number;
@@ -20,11 +21,12 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 	onSuccess,
 	schedules,
 	initialInstructor = null,
+	initialCopusType = "copus_1",
 }) => {
 	const [formData, setFormData] = useState({
 	  schedule: "",
 	  observation_date: getToday(), // <-- set to today
-	  evaluation_type: "copus_1",
+	  evaluation_type: initialCopusType || "copus_1",
 	  instructor: "",
 	  additional_comments: "",
 	});
@@ -41,6 +43,13 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 			setSelectedInstructor(initialInstructor);
 		}
 	}, [initialInstructor]);
+
+	// Set evaluation_type if initialCopusType changes
+	useEffect(() => {
+		if (initialCopusType) {
+			setFormData((f) => ({ ...f, evaluation_type: initialCopusType }));
+		}
+	}, [initialCopusType]);
 
 	// Fetch instructors when component mounts
 	useEffect(() => {
