@@ -644,31 +644,50 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 		}
 	};
 
-	// Keep your existing toggle handlers
+	// Restriction function to limit selections to maximum 2 activities per category
+	const restrictSelections = (
+    currentSelections: string[],
+    label: string,
+    maxSelections: number = 1
+	): string[] => {
+		if (currentSelections.includes(label)) {
+			// Deselect if already selected
+			return [];
+		} else {
+			// Always replace with the new selection
+			return [label];
+		}
+	};
+
+	// Updated toggle handlers with restriction
 	const handleStudentToggle = (label: string) => {
 		startTimer();
-		const newSelections = currentStudentSelections.includes(label)
-			? currentStudentSelections.filter((item) => item !== label)
-			: [...currentStudentSelections, label];
-		updateSelections(
-			"student",
-			newSelections,
-			currentStudentComments,
-			currentTeacherComments,
-		);
+		const newSelections = restrictSelections(currentStudentSelections, label, 1);
+		
+		// Only update if selections actually changed
+		if (newSelections !== currentStudentSelections) {
+			updateSelections(
+				"student",
+				newSelections,
+				currentStudentComments,
+				currentTeacherComments,
+			);
+		}
 	};
 
 	const handleTeacherToggle = (label: string) => {
 		startTimer();
-		const newSelections = currentTeacherSelections.includes(label)
-			? currentTeacherSelections.filter((item) => item !== label)
-			: [...currentTeacherSelections, label];
-		updateSelections(
-			"teacher",
-			newSelections,
-			currentStudentComments,
-			currentTeacherComments,
-		);
+		const newSelections = restrictSelections(currentTeacherSelections, label, 1);
+		
+		// Only update if selections actually changed
+		if (newSelections !== currentTeacherSelections) {
+			updateSelections(
+				"teacher",
+				newSelections,
+				currentStudentComments,
+				currentTeacherComments,
+			);
+		}
 	};
 
 	const handleStudentCommentChange = (
@@ -873,6 +892,8 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 					<div className="text-center text-sm text-gray-400">
 						The Observer must select at least one option for both
 						student and teacher.
+						<br />
+						Maximum of 2 activities can be selected per category for each timestamp.
 						<br />
 						Timer will start after selecting an option.
 					</div>
