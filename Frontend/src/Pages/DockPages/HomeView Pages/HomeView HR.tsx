@@ -1,7 +1,9 @@
+
 import { useState } from "react";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import SchoolCards from "../../../Components/Dashboard Components/HR Components/School Cards";
 import CollegeCards from "../../../Components/Dashboard Components/HR Components/College Cards";
+
 
 function Home() {
 	const colleges = [
@@ -67,6 +69,7 @@ function Home() {
 		<div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
 			<DashboardHeader />
 
+
 			<div className="mt-34 flex h-full w-full flex-col items-center justify-start overflow-auto bg-black/20">
 				{selectedSchool ? (
 					<>
@@ -90,6 +93,7 @@ function Home() {
 			</div>
 		</div>
 	);
+
 }
 
 export default Home;
