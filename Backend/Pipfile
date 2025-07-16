@@ -16,6 +16,7 @@ pandas = "*"
 django-filter = "*"
 pillow = "*"
 requests = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
