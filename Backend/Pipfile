@@ -17,6 +17,7 @@ django-filter = "*"
 pillow = "*"
 requests = "*"
 python-dotenv = "*"
+gunicorn = "*"
 
 [dev-packages]
 
