@@ -88,6 +88,7 @@ const NavbarStudent: React.FC<NavbarProps> = ({
 						<span className="dock-label">Home</span>
 					</button>
 
+
 					<button
 						className={buttonClasses("profile")}
 						onClick={() => handleClick("profile")}
@@ -97,7 +98,6 @@ const NavbarStudent: React.FC<NavbarProps> = ({
 				</div>
 			</nav>
 		</>
-	);
 };
 
 export default NavbarStudent;

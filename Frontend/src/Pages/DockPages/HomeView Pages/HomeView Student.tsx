@@ -42,6 +42,7 @@ function Home() {
   const [completedSubjects, setCompletedSubjects] = useState<Set<string>>(new Set());
   const [viewAnswers, setViewAnswers] = useState<Record<number, string>>({});
 
+
   // Fetch student's schedules and all previous responses to set progress and answers
   useEffect(() => {
     const fetchStudentSchedulesAndProgress = async () => {
@@ -180,6 +181,7 @@ function Home() {
     }
   };
 
+
   const totalSubjects = subjects.length;
   const ratio = `${completedSubjects.size}/${totalSubjects}`;
 
@@ -206,10 +208,12 @@ function Home() {
   return (
     <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
       {/* Header */}
+
       <DashboardHeader />
 
       {/* Content */}
       <div className="mt-35 ml-3 flex h-auto w-auto flex-col-reverse items-start justify-center gap-4 overflow-y-auto md:mr-103 md:flex-row">
+
         {/* Subject List */}
         <SubjectCards
           subjects={subjects}
@@ -218,6 +222,7 @@ function Home() {
         />
 
         {/* Progress Bar */}
+
         <div className="flex w-full flex-row items-center justify-center gap-6 md:absolute md:right-20 md:mt-26 md:w-auto md:flex-col">
           {semesterData.map(({ semester, ratio }) => (
             <SemesterCard
@@ -325,6 +330,7 @@ function Home() {
                         defaultValue=""
                       />
                     )}
+
                   </div>
                 ))}
               </div>
