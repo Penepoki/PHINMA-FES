@@ -15,3 +15,9 @@ TODO Renzo:
 - [ ] Dock hiding logic.
 - [ ] Dashboard default page.
 - [ ] Dashboard pages.
+
+Scroll Bug
+Name BUg
+Scroll indication
+
+Work on student modal after copus presentation

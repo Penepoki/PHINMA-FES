@@ -1,467 +1,681 @@
-import { FunnelIcon } from "@heroicons/react/24/solid";
+import { useEffect, useState } from "react";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
+import api from "../../../utils/api";
+import DataTable, {
+	Column,
+} from "../../../Components/Evaluation Components/Data Table";
+import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
+// Assuming you have your generic DataTable component exported
 
 interface SchedulesProps {
-  setActiveView: (view: string) => void;
+	setActiveView: (view: string) => void;
+}
+
+// Define the Schedule Type
+interface Schedule {
+	id: number;
+	section: number;
+	section_name?: string;
+	subject: number;
+	subject_name?: string;
+	instructor: number;
+	instructor_name?: string;
+	room: number;
+	room_name?: string;
+	program: number;
+	program_name?: string;
+	name: string;
+	start_time: string;
+	end_time: string;
+	semester: string;
+	year: string;
+	is_active: boolean;
 }
 
 function Schedules({ setActiveView }: SchedulesProps) {
-  return (
-    <div className="custom-container gap-y-6">
-      <div className="breadcrumbs">
-        <ul>
-          <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
-          </li>
-          <li>
-            <a onClick={() => setActiveView("resourceGroup")}>Resource Group</a>
-          </li>
-          <li>Schedules</li>
-        </ul>
-      </div>
-      <h2 className="text-3xl font-bold mt-4 text-white ">Schedules</h2>
+	const [schedules, setSchedules] = useState<Schedule[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [searchTerm, setSearchTerm] = useState("");
+	// Form state for all required fields
+	const [form, setForm] = useState({
+		section: "",
+		subject: "",
+		instructor: "",
+		room: "",
+		program: "",
+		name: "",
+		start_time: "",
+		end_time: "",
+		semester: "",
+		year: "",
+	});
+	const [selectedProgram, setSelectedProgram] = useState<Option | null>(null);
+	const [selectedSection, setSelectedSection] = useState<Option | null>(null);
+	const [selectedSubject, setSelectedSubject] = useState<Option | null>(null);
+	const [selectedRoom, setSelectedRoom] = useState<Option | null>(null);
+	const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(
+		null,
+	);
+	const [professorOptions, setProfessorOptions] = useState<Option[]>([]);
+	useEffect(() => {
+		if (selectedProgram) {
+			api.get(
+				`/program-professor/program-professors/?program_id=${selectedProgram.id}`,
+			).then((res) => {
+				setProfessorOptions(
+					res.data.map((item: any) => ({
+						id: item.professor,
+						name: item.professor_details.full_name, // Use full_name for display
+					})),
+				);
+			});
+		} else {
+			setProfessorOptions([]);
+		}
+	}, [selectedProgram]);
 
-      <div className="flex flex-col sm:flex-row w-full justify-center sm:justify-between gap-3 sm:gap-5 items-stretch pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
-        {/* New Room Button */}
-        <button
-          onClick={() =>
-            (
-              document.getElementById("modal_new_schedule") as HTMLDialogElement
-            )?.showModal()
-          }
-          className="bg-[#1c402a] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
-        >
-          New Schedule
-        </button>
+	const fetchSchedules = async () => {
+		setLoading(true);
+		try {
+			const response = await api.get("/schedule/schedules", {
+				params: { name: searchTerm || undefined },
+			});
+			setSchedules(response.data);
+		} catch (error) {
+			console.error("Error fetching schedules:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
 
-        <dialog id="modal_new_schedule" className="modal">
-          <div className="modal-box w-11/12 max-w-5xl">
-            <h3 className="font-bold text-2xl mb-4 text-center">
-              Create New Schedule
-            </h3>
+	const createSchedule = async () => {
+		// Validate required fields
+		if (
+			!selectedProgram ||
+			!selectedSection ||
+			!selectedSubject ||
+			!selectedRoom ||
+			!selectedProfessor ||
+			!form.name ||
+			!form.start_time ||
+			!form.end_time ||
+			!form.semester ||
+			!form.year
+		) {
+			alert("Please fill in all required fields.");
+			return;
+		}
+		const token = localStorage.getItem("token");
+		if (!token) return alert("You are not authenticated. Please login.");
+		try {
+			await api.post(
+				"/schedule/schedules/",
+				{
+					program: selectedProgram.id,
+					section: selectedSection.id,
+					subject: selectedSubject.id,
+					room: selectedRoom.id,
+					instructor: selectedProfessor.id,
+					name: form.name,
+					start_time: form.start_time,
+					end_time: form.end_time,
+					semester: form.semester,
+					year: form.year,
+				},
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
+			setForm({
+				section: "",
+				subject: "",
+				instructor: "",
+				room: "",
+				program: "",
+				name: "",
+				start_time: "",
+				end_time: "",
+				semester: "",
+				year: "",
+			});
+			// Also reset selected* states if needed
+			fetchSchedules();
+		} catch (error) {
+			console.error("Error creating schedule:", error);
+		}
+	};
 
-            <form method="dialog" className="flex flex-col gap-6">
-              {/* Course */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Course:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter course"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+	const toggleScheduleStatus = async (schedule: Schedule) => {
+		try {
+			await api.patch(`/schedule/schedules/${schedule.id}/`, {
+				is_active: !schedule.is_active,
+			});
+			fetchSchedules();
+		} catch (error) {
+			console.error("Error updating schedule:", error);
+		}
+	};
 
-              {/* Professor */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Professor:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter professor name"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+	const deleteSchedule = async (scheduleId: number) => {
+		try {
+			await api.delete(`/schedule/schedules/${scheduleId}/`);
+			fetchSchedules();
+		} catch (error) {
+			console.error("Error deleting schedule:", error);
+		}
+	};
 
-              {/* Subject */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Subject:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter subject"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+	// Actions column render function
+	const scheduleActions = (schedule: Schedule) => (
+		<div className="flex flex-col items-start gap-2">
+			<button
+				title="Edit"
+				onClick={() => alert("Edit feature not implemented yet")}
+				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
+			>
+				<PencilSquareIcon className="h-4 w-4" />
+				Edit
+			</button>
+			<button
+				title="Delete"
+				onClick={() => {
+					if (window.confirm(`Delete schedule "${schedule.name}"?`))
+						deleteSchedule(schedule.id);
+				}}
+				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline"
+			>
+				<TrashIcon className="h-4 w-4" />
+				Delete
+			</button>
+		</div>
+	);
 
-              {/* Room */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Room:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter room"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+	useEffect(() => {
+		fetchSchedules();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [searchTerm]);
 
-              {/* Title */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Title:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter title"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+	// Define columns with proper accessors
+	const scheduleColumns: Column<Schedule>[] = [
+		{
+			header: "Name",
+			accessor: (schedule: Schedule) => schedule.name,
+		},
+		{
+			header: "Status",
+			accessor: (schedule: Schedule) => (
+				<input
+					onClick={() => toggleScheduleStatus(schedule)}
+					className="toggle"
+					type="checkbox"
+					checked={schedule.is_active}
+				/>
+			),
+		},
+	];
 
-              {/* Time */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Time:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter time (e.g., 9:00 AM - 10:30 AM)"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+	return (
+		<div className="custom-container gap-y-6">
+			<div className="breadcrumbs">
+				<ul>
+					<li>
+						<a onClick={() => setActiveView("home")}>Home</a>
+					</li>
+					<li>
+						<a onClick={() => setActiveView("resourceGroup")}>
+							Resource Group
+						</a>
+					</li>
+					<li>Schedules</li>
+				</ul>
+			</div>
 
-              {/* Semester */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Semester:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter semester (e.g., 1st)"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+			<h2 className="mt-4 text-3xl font-bold text-white">Schedules</h2>
 
-              {/* Year */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/4 text-lg font-bold text-left">
-                  Year:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter year (e.g., 2024)"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+			<div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
+				{/* New Schedule Button */}
+				<button
+					onClick={() =>
+						(
+							document.getElementById(
+								"create_new_schedule",
+							) as HTMLDialogElement
+						)?.showModal()
+					}
+					className="w-full rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
+				>
+					New Schedule
+				</button>
 
-              {/* Action Buttons */}
-              <div className="modal-action">
-                <button type="submit" className="btn btn-success text-white">
-                  Submit
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-cancel"
-                  onClick={() =>
-                    (
-                      document.getElementById(
-                        "modal_new_schedule"
-                      ) as HTMLDialogElement
-                    )?.close()
-                  }
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </dialog>
+				<dialog id="create_new_schedule" className="modal">
+					<div className="modal-box w-11/12 max-w-5xl">
+						<h3 className="mb-4 text-center text-2xl font-bold">
+							Create New Schedule
+						</h3>
+						<form
+							onSubmit={(e) => {
+								e.preventDefault();
+								if (
+									!selectedProgram ||
+									!selectedSection ||
+									!selectedSubject ||
+									!selectedRoom ||
+									!selectedProfessor ||
+									!form.name ||
+									!form.start_time ||
+									!form.end_time ||
+									!form.semester ||
+									!form.year
+								) {
+									alert(
+										"Please fill in all required fields.",
+									);
+									return;
+								}
+								createSchedule({
+									program: selectedProgram.id,
+									section: selectedSection.id,
+									subject: selectedSubject.id,
+									room: selectedRoom.id,
+									instructor: selectedProfessor.id,
+									name: form.name,
+									start_time: form.start_time,
+									end_time: form.end_time,
+									semester: form.semester,
+									year: form.year,
+								});
+								(
+									document.getElementById(
+										"create_new_schedule",
+									) as HTMLDialogElement
+								)?.close();
+							}}
+							className="flex flex-col gap-6"
+						>
+							{/* Program */}
+							<ComboboxTextField
+								label="Program"
+								placeholder="Enter program"
+								fetchUrl="/program/programs/"
+								value={selectedProgram}
+								onChange={setSelectedProgram}
+							/>
 
-        <div className="flex flex-row justify-center">
-          {/* Import Rooms Button */}
-          <button
-            onClick={() =>
-              (
-                document.getElementById(
-                  "modal_import_schedule"
-                ) as HTMLDialogElement
-              )?.showModal()
-            }
-            className="bg-[#1b2e3e] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
-          >
-            Import Schedule
-          </button>
+							{/* Section */}
+							<ComboboxTextField
+								label="Section"
+								placeholder="Enter section"
+								fetchUrl="/section/sections"
+								value={selectedSection}
+								onChange={setSelectedSection}
+							/>
 
-          <dialog id="modal_import_schedule" className="modal">
-            <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="font-bold text-2xl mb-4 text-center">
-                Import Schedule
-              </h3>
+							{/* Subject */}
+							<ComboboxTextField
+								label="Subject"
+								placeholder="Enter subject"
+								fetchUrl="/subject/subjects/"
+								value={selectedSubject}
+								onChange={setSelectedSubject}
+							/>
 
-              <form method="dialog" className="flex flex-col gap-6">
-                {/* CSV Upload */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/6 text-lg font-bold text-left">
-                    File:
-                  </label>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    className="file-input file-input-bordered w-full"
-                    required
-                  />
-                </div>
+							{/* Room */}
+							<ComboboxTextField
+								label="Room"
+								placeholder="Enter room"
+								fetchUrl="/room/rooms/"
+								value={selectedRoom}
+								onChange={setSelectedRoom}
+							/>
 
-                {/* Action Buttons */}
-                <div className="modal-action">
-                  <button type="submit" className="btn btn-success text-white">
-                    Upload
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-cancel"
-                    onClick={() =>
-                      (
-                        document.getElementById(
-                          "modal_import_schedule"
-                        ) as HTMLDialogElement
-                      )?.close()
-                    }
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </dialog>
+							{/* Professor */}
+							<ComboboxTextField
+								label="Professor"
+								placeholder="Enter professor name"
+								fetchUrl={`/program-professor/program-professors/?program_id=${selectedProgram?.id || ""}`}
+								value={selectedProfessor}
+								onChange={setSelectedProfessor}
+								mapResponse={(data) =>
+									data.map((item: any) => ({
+										id: item.professor,
+										name: item.professor_details.full_name,
+									}))
+								}
+							/>
 
-          {/* Export Rooms Button */}
-          <button
-            onClick={() =>
-              (
-                document.getElementById(
-                  "modal_export_schedule"
-                ) as HTMLDialogElement
-              )?.showModal()
-            }
-            className="bg-[#d4c351] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
-          >
-            Export Schedule
-          </button>
+							{/* Title */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Title:
+								</label>
+								<input
+									type="text"
+									placeholder="Enter title"
+									className="input input-bordered w-full"
+									value={form.name}
+									onChange={(e) =>
+										setForm((f) => ({
+											...f,
+											name: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
 
-          <dialog id="modal_export_schedule" className="modal">
-            <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="font-bold text-2xl mb-4 text-center">
-                Export Schedule
-              </h3>
+							{/* Start Time */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Start Time:
+								</label>
+								<input
+									type="time"
+									className="input input-bordered w-full"
+									value={form.start_time}
+									onChange={(e) =>
+										setForm((f) => ({
+											...f,
+											start_time: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
 
-              <form method="dialog" className="flex flex-col gap-6">
-                {/* Title */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/4 text-lg font-bold text-left">
-                    Title:
-                  </label>
-                  <input
-                    type="text"
-                    value="Intro to Programming"
-                    readOnly
-                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
+							{/* End Time */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									End Time:
+								</label>
+								<input
+									type="time"
+									className="input input-bordered w-full"
+									value={form.end_time}
+									onChange={(e) =>
+										setForm((f) => ({
+											...f,
+											end_time: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
 
-                {/* Course */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/4 text-lg font-bold text-left">
-                    Course:
-                  </label>
-                  <input
-                    type="text"
-                    value="BSCS 101"
-                    readOnly
-                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
+							{/* Semester */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Semester:
+								</label>
+								<select
+									className="input input-bordered w-full"
+									value={form.semester}
+									onChange={(e) =>
+										setForm((f) => ({
+											...f,
+											semester: e.target.value,
+										}))
+									}
+									required
+								>
+									<option value="">Select semester</option>
+									<option value="First">
+										First Semester
+									</option>
+									<option value="Second">
+										Second Semester
+									</option>
+									<option value="Summer">
+										Summer Semester
+									</option>
+								</select>
+							</div>
 
-                {/* Instructor */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/4 text-lg font-bold text-left">
-                    Instructor:
-                  </label>
-                  <input
-                    type="text"
-                    value="Prof. Jane Doe"
-                    readOnly
-                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
+							{/* Year */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Year:
+								</label>
+								<input
+									type="date"
+									className="input input-bordered w-full"
+									value={form.year}
+									onChange={(e) =>
+										setForm((f) => ({
+											...f,
+											year: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
 
-                {/* Room */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/4 text-lg font-bold text-left">
-                    Room:
-                  </label>
-                  <input
-                    type="text"
-                    value="Room 204"
-                    readOnly
-                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
+							{/* Action Buttons */}
+							<div className="modal-action">
+								<button
+									type="submit"
+									className="btn btn-success text-white"
+								>
+									Submit
+								</button>
+								<button
+									type="button"
+									className="btn btn-cancel"
+									onClick={() =>
+										(
+											document.getElementById(
+												"create_new_schedule",
+											) as HTMLDialogElement
+										)?.close()
+									}
+								>
+									Cancel
+								</button>
+							</div>
+						</form>
+					</div>
+				</dialog>
 
-                {/* Start Time */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/4 text-lg font-bold text-left">
-                    Start Time:
-                  </label>
-                  <input
-                    type="text"
-                    value="09:00 AM"
-                    readOnly
-                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
+				<div className="flex flex-row justify-center">
+					{/* Import Schedules Button */}
+					<button
+						onClick={() =>
+							(
+								document.getElementById(
+									"modal_import_schedule",
+								) as HTMLDialogElement
+							)?.showModal()
+						}
+						className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
+					>
+						Import Schedule
+					</button>
 
-                {/* End Time */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/4 text-lg font-bold text-left">
-                    End Time:
-                  </label>
-                  <input
-                    type="text"
-                    value="10:30 AM"
-                    readOnly
-                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
+					<dialog id="modal_import_schedule" className="modal">
+						<div className="modal-box w-11/12 max-w-3xl">
+							<h3 className="mb-4 text-center text-2xl font-bold">
+								Import Schedule
+							</h3>
 
-                {/* Day of the Week */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/4 text-lg font-bold text-left">
-                    Day:
-                  </label>
-                  <input
-                    type="text"
-                    value="Monday"
-                    readOnly
-                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
+							<form
+								method="dialog"
+								className="flex flex-col gap-6"
+							>
+								{/* CSV Upload */}
+								<div className="flex flex-col gap-2 md:flex-row md:items-center">
+									<label className="text-left text-lg font-bold md:w-1/6">
+										File:
+									</label>
+									<input
+										type="file"
+										accept=".csv"
+										className="file-input file-input-bordered w-full"
+										required
+									/>
+								</div>
 
-                {/* Status */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/4 text-lg font-bold text-left">
-                    Status:
-                  </label>
-                  <input
-                    type="text"
-                    value="Active"
-                    readOnly
-                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
+								{/* Action Buttons */}
+								<div className="modal-action">
+									<button
+										type="submit"
+										className="btn btn-success text-white"
+									>
+										Upload
+									</button>
+									<button
+										type="button"
+										className="btn btn-cancel"
+										onClick={() =>
+											(
+												document.getElementById(
+													"modal_import_schedule",
+												) as HTMLDialogElement
+											)?.close()
+										}
+									>
+										Cancel
+									</button>
+								</div>
+							</form>
+						</div>
+					</dialog>
 
-                {/* Action Buttons */}
-                <div className="modal-action">
-                  <button type="submit" className="btn btn-success text-white">
-                    Export
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-cancel"
-                    onClick={() =>
-                      (
-                        document.getElementById(
-                          "modal_export_schedule"
-                        ) as HTMLDialogElement
-                      )?.close()
-                    }
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </dialog>
-        </div>
-      </div>
-      <div className="flex w-full justify-center items-start pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
-        <input
-          type="text"
-          className="input w-full max-w-md border border-gray-300 rounded-lg"
-          placeholder="Search"
-        />
-        <div className="dropdown dropdown-end ml-2">
-          <div
-            tabIndex={0}
-            role="button"
-            className="btn shadow-xl bg-[#1c402a] border-0 text-white"
-          >
-            <FunnelIcon className="h-5 w-5" />
-          </div>
-          <ul
-            tabIndex={0}
-            className="dropdown-content menu bg-base-100 rounded-box z-10 w-52 p-2 shadow-sm"
-          >
-            <li>
-              <a href="#">Item 1</a>
-            </li>
-            <li>
-              <a href="#">Item 2</a>
-            </li>
-          </ul>
-        </div>
-      </div>
+					{/* Export Schedules Button */}
+					<button
+						onClick={() =>
+							(
+								document.getElementById(
+									"modal_export_schedules",
+								) as HTMLDialogElement
+							)?.showModal()
+						}
+						className="w-full rounded-lg bg-[#d4c351] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
+					>
+						Export Schedule
+					</button>
 
-      <div className="overflow-x-auto w-full text-white backdrop-blur-lg shadow-xl">
-        <table className="table">
-          {/* head */}
-          <thead className="text-white text-xl font-bold bg-[#1c402a]/50 shadow-xl">
-            <tr>
-              <th>
-                <input type="checkbox" defaultChecked className="checkbox" />
-              </th>
-              <th>Title</th>
-              <th></th>
-              <th></th>
-              <th>Publish</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody className="text-gray-300 text-lg">
-            {/* row 1 */}
-            <tr className="hover:bg-[#1b2e3e]/50">
-              <td>
-                <input type="checkbox" defaultChecked className="checkbox" />
-              </td>
-              <td>Renzo Cua</td>
-              <td></td>
-              <td></td>
-              <td>
-                <input type="checkbox" defaultChecked className="toggle" />
-              </td>
-              <td>Edit</td>
-            </tr>
-            {/* row 2 */}
-            <tr className="hover:bg-[#1b2e3e]/50">
-              <td>
-                <input type="checkbox" defaultChecked className="checkbox" />
-              </td>
-              <td>Martin Espineda</td>
-              <td></td>
-              <td></td>
-              <td>
-                <input type="checkbox" defaultChecked className="toggle" />
-              </td>
-              <td>Edit</td>
-            </tr>
-            {/* row 3 */}
-            <tr className="hover:bg-[#1b2e3e]/50">
-              <td>
-                <input type="checkbox" defaultChecked className="checkbox" />
-              </td>
-              <td>Chester Espineda</td>
-              <td></td>
-              <td></td>
-              <td>
-                <input type="checkbox" defaultChecked className="toggle" />
-              </td>
-              <td>Edit</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+					<dialog id="modal_export_schedules" className="modal">
+						<div className="modal-box w-11/12 max-w-3xl">
+							<h3 className="mb-4 text-center text-2xl font-bold">
+								Export Schedule
+							</h3>
+
+							<form
+								method="dialog"
+								className="flex flex-col gap-6"
+							>
+								{/* Name Field */}
+								<div className="flex flex-col gap-2 md:flex-row md:items-center">
+									<label className="text-left text-lg font-bold md:w-1/6">
+										Name:
+									</label>
+									<input
+										type="text"
+										value="Schedule A"
+										readOnly
+										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
+									/>
+								</div>
+
+								{/* Action Buttons */}
+								<div className="modal-action">
+									<button
+										type="submit"
+										className="btn btn-success text-white"
+									>
+										Export
+									</button>
+									<button
+										type="button"
+										className="btn btn-cancel"
+										onClick={() =>
+											(
+												document.getElementById(
+													"modal_export_schedules",
+												) as HTMLDialogElement
+											)?.close()
+										}
+									>
+										Cancel
+									</button>
+								</div>
+							</form>
+						</div>
+					</dialog>
+				</div>
+			</div>
+			{/* Search and New Schedule button */}
+			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
+				<label
+					htmlFor="search"
+					className="text-lg font-bold text-white"
+				></label>
+				<input
+					id="search"
+					type="text"
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
+					placeholder="Search by schedule name"
+					className="input input-bordered w-full max-w-md"
+				/>
+			</div>
+			{/* New Schedule Modal */}
+			<dialog id="create_new_schedule" className="modal">
+				<div className="modal-box w-11/12 max-w-3xl">
+					<h3 className="mb-4 text-center text-2xl font-bold">
+						Create New Schedule
+					</h3>
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							createSchedule();
+							(
+								document.getElementById(
+									"create_new_schedule",
+								) as HTMLDialogElement
+							)?.close();
+						}}
+						className="flex flex-col gap-6"
+					>
+						<div className="flex flex-col gap-2 md:flex-row md:items-center">
+							<label className="text-left text-lg font-bold md:w-1/6">
+								Name:
+							</label>
+						</div>
+						<div className="modal-action">
+							<button
+								type="submit"
+								className="btn btn-success text-white"
+							>
+								Submit
+							</button>
+							<button
+								type="button"
+								className="btn btn-cancel"
+								onClick={() =>
+									(
+										document.getElementById(
+											"create_new_schedule",
+										) as HTMLDialogElement
+									)?.close()
+								}
+							>
+								Cancel
+							</button>
+						</div>
+					</form>
+				</div>
+			</dialog>
+
+			{/* DataTable */}
+			<DataTable
+				data={schedules}
+				columns={scheduleColumns}
+				getRowKey={(schedule) => schedule.id}
+				actions={scheduleActions}
+				selectable
+			/>
+		</div>
+	);
 }
 
 export default Schedules;

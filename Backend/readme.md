@@ -6,7 +6,7 @@ Nigga. This branch is for testing and determining what to add and to test the AP
 
 ---
 
-## Setting Up Your Local Development Environment
+## Setting Up Your Local Development Environment / 
 
 To get started with the project, you'll need to set up your local environment, including the necessary configuration files.
 
@@ -22,18 +22,20 @@ Start by cloning the project to your local machine:
 cd project-name
 ```
 ---
-## 3.Install Dependencies Using Pipenv
+## 3.Install Dependencies Using Pipenv With .venv if choosed to do.
 This project uses Pipenv for dependency management. Pipenv simplifies virtual environment creation and management, and it automatically handles dependencies from the Pipfile.
+
 
 Install Pipenv if you don't have it installed yet:
 
 ```bash
-  pip install pipenv
+  pip install pipenv 
 ```
 Install the dependencies listed in the Pipfile and Pipfile.lock:
 
 ```bash
-  pipenv install
+  pipenv install --deploy --ignore-pipfile # for deployment
+  pipenv install # use for development
 ```
 This will create a virtual environment and install the necessary dependencies for the project. If you're using Pipenv for the first time, it will also create a new virtual environment specific to the project.
 
@@ -55,6 +57,7 @@ Open the .env file and replace the placeholder values with your own keys and cre
 Look at .env.example or Copy this below:
 ### Django settings
 SECRET_KEY=django-insecure-<your-secret-key-here>
+HF_API_KEY=<your-hugging-face-key-here>
 
 DEBUG=True
 ### Database settings

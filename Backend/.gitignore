@@ -22,9 +22,9 @@ db.sqlite3
 staticfiles/
 media/
 
-# Migrations (optional)
-**/migrations/*.py
-!**/migrations/__init__.py
+# Don't ignore migrations
+# Only ignore Python bytecode
+**/migrations/__pycache__/
 
 # OS-specific
 .DS_Store

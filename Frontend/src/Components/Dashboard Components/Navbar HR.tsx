@@ -1,628 +1,191 @@
-import React, {
-  useEffect,
-  useState,
-} from "react";
+import React, { useEffect } from "react";
+import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
 interface NavbarProps {
-  activeView: string;
-  setActiveView: (view: string) => void;
+	activeView: string;
+	setActiveView: (view: string) => void;
+	isDockVisible: boolean;
+	setIsDockVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const NavbarHR: React.FC<
-  NavbarProps
-> = ({ activeView, setActiveView }) => {
-  const [
-    isDockVisible,
-    setIsDockVisible,
-  ] = useState<boolean>(true);
+const NavbarHR: React.FC<NavbarProps> = ({
+	activeView,
+	setActiveView,
+	isDockVisible,
+	setIsDockVisible,
+}) => {
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			const target = e.target as HTMLElement;
+			const tagName = target.tagName.toLowerCase();
 
-  useEffect(() => {
-    const handleKeyDown = (
-      e: KeyboardEvent
-    ) => {
-      const target =
-        e.target as HTMLElement;
-      const tagName =
-        target.tagName.toLowerCase();
+			const isTyping =
+				tagName === "input" ||
+				tagName === "textarea" ||
+				target.isContentEditable;
 
-      const isTyping =
-        tagName === "input" ||
-        tagName === "textarea" ||
-        target.isContentEditable;
+			if (isTyping) return;
 
-      if (isTyping) return;
+			if (e.code === "Space" || e.key === " ") {
+				e.preventDefault();
+				setIsDockVisible((prev) => !prev);
+			}
+		};
 
-      if (
-        e.code === "Space" ||
-        e.key === " "
-      ) {
-        e.preventDefault();
-        setIsDockVisible(
-          (prev) => !prev
-        );
-      }
-    };
+		window.addEventListener("keydown", handleKeyDown);
+		return () => {
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, []);
 
-    window.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
-    return () => {
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
-    };
-  }, []);
+	const handleClick = (page: string) => {
+		setActiveView(page);
+	};
 
-  const handleClick = (
-    page: string
-  ) => {
-    setActiveView(page);
-  };
+	const buttonClasses = (btn: string) =>
+		`dock ${activeView === btn ? "dock-active" : ""}`;
 
-  const buttonClasses = (btn: string) =>
-    `dock ${activeView === btn ? "dock-active" : ""}`;
+	const secondaryDockMap: Record<string, string[]> = {
+		evaluation: ["createStudentEval", "studentEval", "evalSummary"],
+		createStudentEval: ["createStudentEval", "studentEval", "evalSummary"],
+		studentEval: ["createStudentEval", "studentEval", "evalSummary"],
+		evalSummary: ["createStudentEval", "studentEval", "evalSummary"],
+		resourceGroup: [
+			"programs",
+			"subjects",
+			"rooms",
+			"schedules",
+			"sections",
+		],
+		programs: ["programs", "subjects", "rooms", "schedules", "sections"],
+		subjects: ["programs", "subjects", "rooms", "schedules", "sections"],
+		rooms: ["programs", "subjects", "rooms", "schedules", "sections"],
+		schedules: ["programs", "subjects", "rooms", "schedules", "sections"],
+		sections: ["programs", "subjects", "rooms", "schedules", "sections"],
+	};
 
-  const secondaryDockVisible =
-    activeView === "evaluation" ||
-    activeView === "resourceGroup" ||
-    activeView ===
-      "createStudentEval" ||
-    activeView === "studentEval" ||
-    activeView === "evalSummary" ||
-    activeView === "courses" ||
-    activeView === "rooms" ||
-    activeView === "schedules" ||
-    activeView === "subject";
+	const secondaryDockVisible = Boolean(secondaryDockMap[activeView]);
 
-  return (
-    <>
-      {/* Toggle Button - Now Outside Navbar */}
-      <div
-        className={`fixed z-[501] transition-all duration-300 transform -translate-y-1/2
-    ${isDockVisible ? "left-4" : "left-2"}
-    ${
-      isDockVisible &&
-      secondaryDockVisible
-        ? "bottom-38 md:bottom-20"
-        : isDockVisible
-          ? "bottom-20"
-          : "bottom-0"
-    }
-  `}
-      >
-        <div className="tooltip tooltip-right">
-          <button
-            className="px-4 bg-primary text-white text-xl border-1 border-gray-300 rounded-xl shadow-2xl h-12 hover:scale-110"
-            onClick={() =>
-              setIsDockVisible(
-                !isDockVisible
-              )
-            }
-          >
-            {isDockVisible
-              ? "◀"
-              : "▶"}
-          </button>
-          <div className="tooltip-content text-sm whitespace-pre-line hidden sm:block">
-            Open/Close Dock
-            <br />
-            (Shortcut: Space)
-          </div>
-        </div>
-      </div>
+	return (
+		<>
+			{/* Toggle Button - Now Outside Navbar */}
+			<div
+				className={`fixed -translate-y-1/2 transform transition-all duration-300 ${isDockVisible ? "right-2" : "right-2"} ${
+					isDockVisible && secondaryDockVisible
+						? "bottom-25 md:bottom-25"
+						: isDockVisible
+							? "bottom-10"
+							: "bottom-0"
+				} `}
+			>
+				<div className="tooltip tooltip-left">
+					<button
+						className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-400 bg-[#102418] text-white shadow-2xl hover:scale-110"
+						onClick={() => setIsDockVisible(!isDockVisible)}
+					>
+						{isDockVisible ? (
+							<ChevronDownIcon className="h-6 w-6" />
+						) : (
+							<ChevronUpIcon className="h-6 w-6" />
+						)}
+					</button>
 
-      <nav
-        data-theme="SJC"
-        className="relative"
-      >
-        {/* Primary Dock */}
-        <div
-          className={`dock dock-xl w-[95%] mx-auto bottom-2 rounded-xl shadow-2xl transition-transform duration-300 ease-in-out z-[500] ${
-            isDockVisible
-              ? "translate-x-0"
-              : "-translate-x-full"
-          }`}
-        >
-          <button
-            className={buttonClasses(
-              "home"
-            )}
-            onClick={() =>
-              handleClick("home")
-            }
-          >
-            <span className="dock-label">
-              Home
-            </span>
-          </button>
+					<div className="tooltip-content hidden text-sm whitespace-pre-line sm:block">
+						Open/Close Dock
+						<br />
+						(Shortcut: Space)
+					</div>
+				</div>
+			</div>
 
-          <button
-            className={buttonClasses(
-              "profile"
-            )}
-            onClick={() =>
-              handleClick("profile")
-            }
-          >
-            <span className="dock-label">
-              Profile
-            </span>
-          </button>
+			<nav data-theme="SJC" className="flex">
+				{/* Primary Dock */}
+				<div
+					className={`dock dock-xs bottom-0 w-full transition-transform duration-300 ease-in-out ${
+						isDockVisible ? "translate-y-0" : "translate-y-[100%]"
+					}`}
+				>
+					<button
+						className={buttonClasses("home")}
+						onClick={() => handleClick("home")}
+					>
+						<span className="dock-label">Home</span>
+					</button>
 
-          <button
-            className={buttonClasses(
-              "evaluation"
-            )}
-            onClick={() =>
-              handleClick("evaluation")
-            }
-          >
-            <span className="dock-label">
-              Evaluation
-            </span>
-          </button>
+					<button
+						className={buttonClasses("profile")}
+						onClick={() => handleClick("profile")}
+					>
+						<span className="dock-label">Profile</span>
+					</button>
 
-          <button
-            className={buttonClasses(
-              "resourceGroup"
-            )}
-            onClick={() =>
-              handleClick(
-                "resourceGroup"
-              )
-            }
-          >
-            <span className="dock-label">
-              Resource Group
-            </span>
-          </button>
-        </div>
+					<button
+						className={buttonClasses("evaluation")}
+						onClick={() => handleClick("evaluation")}
+					>
+						<span className="dock-label">Evaluation</span>
+					</button>
 
-        {/* Secondary Dock */}
-        {secondaryDockVisible && (
-          <div
-            className={`dock dock-lg w-[90%] mx-auto bottom-23 rounded-xl shadow-xl transition-all duration-500 ease-in-out z-[499] 
-          ${
-            isDockVisible
-              ? "translate-x-0 translate-y-0 opacity-100"
-              : "-translate-x-[110%] translate-y-10 opacity-0"
-          }`}
-          >
-            {/* Buttons for Evaluation */}
-            {activeView ===
-              "evaluation" && (
-              <>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "createStudentEval"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Create Student
-                    Evaluations
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "studentEval"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Student Evaluations
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "evalSummary"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Evaluation Summary
-                  </span>
-                </button>
-              </>
-            )}
+					<button
+						className={buttonClasses("resourceGroup")}
+						onClick={() => handleClick("resourceGroup")}
+					>
+						<span className="dock-label">Resource Group</span>
+					</button>
+					<button
+						className={buttonClasses("leansixsigma")}
+						onClick={() => handleClick("leansixsigma")}
+					>
+						<span className="dock-label">Lean Six Sigma</span>
+					</button>
+				</div>
 
-            {activeView ===
-              "createStudentEval" && (
-              <>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "createStudentEval"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Create Student
-                    Evaluations
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "studentEval"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Student Evaluations
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "evalSummary"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Evaluation Summary
-                  </span>
-                </button>
-              </>
-            )}
-
-            {activeView ===
-              "studentEval" && (
-              <>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "createStudentEval"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Create Student
-                    Evaluations
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "studentEval"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Student Evaluations
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "evalSummary"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Evaluation Summary
-                  </span>
-                </button>
-              </>
-            )}
-
-            {activeView ===
-              "evalSummary" && (
-              <>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "createStudentEval"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Create Student
-                    Evaluations
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "studentEval"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Student Evaluations
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "evalSummary"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Evaluation Summary
-                  </span>
-                </button>
-              </>
-            )}
-
-            {/* Buttons for Resource Group */}
-            {activeView ===
-              "resourceGroup" && (
-              <>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "courses"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Courses
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "subject"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Subjects
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick("rooms")
-                  }
-                >
-                  <span className="dock-label">
-                    Rooms
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "schedules"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Schedules
-                  </span>
-                </button>
-              </>
-            )}
-            {activeView ===
-              "courses" && (
-              <>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "courses"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Courses
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "subject"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Subjects
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick("rooms")
-                  }
-                >
-                  <span className="dock-label">
-                    Rooms
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "schedules"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Schedules
-                  </span>
-                </button>
-              </>
-            )}
-            {activeView ===
-              "schedules" && (
-              <>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "courses"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Courses
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "subject"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Subjects
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick("rooms")
-                  }
-                >
-                  <span className="dock-label">
-                    Rooms
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "schedules"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Schedules
-                  </span>
-                </button>
-              </>
-            )}
-            {activeView === "rooms" && (
-              <>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "courses"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Courses
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "subject"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Subjects
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick("rooms")
-                  }
-                >
-                  <span className="dock-label">
-                    Rooms
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "schedules"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Schedules
-                  </span>
-                </button>
-              </>
-            )}
-            {activeView ===
-              "subject" && (
-              <>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "courses"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Courses
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "subject"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Subjects
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick("rooms")
-                  }
-                >
-                  <span className="dock-label">
-                    Rooms
-                  </span>
-                </button>
-                <button
-                  className="dock"
-                  onClick={() =>
-                    handleClick(
-                      "schedules"
-                    )
-                  }
-                >
-                  <span className="dock-label">
-                    Schedules
-                  </span>
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </nav>
-    </>
-  );
+				{/* Secondary Dock */}
+				{secondaryDockVisible && (
+					<div
+						className={`dock dock-xs bottom-12 z-2 w-full border-b border-b-[#0e4925] transition-all duration-300 ease-in-out ${
+							isDockVisible
+								? "translate-y-0"
+								: "translate-y-[200%]"
+						}`}
+					>
+						{secondaryDockMap[activeView]?.map((view) => (
+							<button
+								key={view}
+								className="dock"
+								onClick={() => handleClick(view)}
+							>
+								<span className="dock-label">
+									{(() => {
+										switch (view) {
+											case "createStudentEval":
+												return "Create Student Evaluations";
+											case "studentEval":
+												return "Student Evaluations";
+											case "evalSummary":
+												return "Evaluation Summary";
+											case "programs":
+												return "Programs";
+											case "subjects":
+												return "Subjects";
+											case "rooms":
+												return "Rooms";
+											case "schedules":
+												return "Schedules";
+											case "sections":
+												return "Sections";
+											default:
+												return view;
+										}
+									})()}
+								</span>
+							</button>
+						))}
+					</div>
+				)}
+			</nav>
+		</>
+	);
 };
 
 export default NavbarHR;

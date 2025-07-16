@@ -1,60 +1,99 @@
+
+import { useState } from "react";
+import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
+import SchoolCards from "../../../Components/Dashboard Components/HR Components/School Cards";
 import CollegeCards from "../../../Components/Dashboard Components/HR Components/College Cards";
 
-const subjects = [
-  { name: "CITE", image: null },
-  { name: "CAHS", image: null },
-  { name: "CMA", image: null },
-  { name: "CCJE", image: null },
-  { name: "COED", image: null },
-  { name: "SHS", image: null },
-  { name: "etc", image: null },
-  { name: "etc", image: null },
-  { name: "etc", image: null },
-  { name: "etc", image: null },
-  // ...more subjects
-];
 
 function Home() {
-  return (
-    <div className="home-page flex flex-col justify-center items-center w-full h-full gap-y-6 z-10">
-      <header
-        className="
-          flex z-1
-          w-full h-[15%]
-          pl-12
-          border-gray-600 border-b-2
-          shadow-2xl
-          absolute top-0 justify-start items-end backdrop-blur-lg gap-6
-        "
-      >
-        <h1
-          className="
-            text-5xl font-bold text-white
-            sm:text-6xl
-          "
-        >
-          Hi, Renzo
-        </h1>
-        <p
-          className="
-            text-lg text-gray-300
-            sm:text-xl
-          "
-        >
-          Welcome to the Home Page
-        </p>
-      </header>
+	const colleges = [
+		{
+			name: "CITE",
+			fullname: "College of Information Technology Education",
+			image: null,
+		},
+		{
+			name: "CAHS",
+			fullname: "College of Allied Health Sciences",
+			image: null,
+		},
+		{
+			name: "CMA",
+			fullname: "College of Management and Accountancy",
+			image: null,
+		},
+		{
+			name: "CCJE",
+			fullname: "College of Criminal Justice Education",
+			image: null,
+		},
+		{ name: "COED", fullname: "College of Education", image: null },
+		{ name: "SHS", fullname: "Senior High School", image: null },
+		{ name: "etc", fullname: "Other", image: null },
+	];
 
-      <div className="flex flex-col items-center justify-start w-auto h-auto overflow-x-auto mt-35 mb-20">
-        <p className="text-gray-300 text-lg mt-0">
-          Subject List:
-        </p>
-        <CollegeCards
-          subjects={subjects}
-        />
-      </div>
-    </div>
-  );
+	const schools = [
+		{
+			name: "CITE",
+			fullname: "College of Information Technology Education",
+			image: null,
+		},
+		{
+			name: "CAHS",
+			fullname: "College of Allied Health Sciences",
+			image: null,
+		},
+		{
+			name: "CMA",
+			fullname: "College of Management and Accountancy",
+			image: null,
+		},
+		{
+			name: "CCJE",
+			fullname: "College of Criminal Justice Education",
+			image: null,
+		},
+		{ name: "COED", fullname: "College of Education", image: null },
+		{ name: "SHS", fullname: "Senior High School", image: null },
+		{ name: "etc", fullname: "Other", image: null },
+	];
+
+	const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
+
+	const handleSchoolClick = (schoolName: string) => {
+		// You can store the school name or just a boolean
+		setSelectedSchool(schoolName);
+	};
+
+	return (
+		<div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
+			<DashboardHeader />
+
+
+			<div className="mt-34 flex h-full w-full flex-col items-center justify-start overflow-auto bg-black/20">
+				{selectedSchool ? (
+					<>
+						<h2 className="mt-6 mb-4 text-4xl font-bold text-white">
+							Colleges of {selectedSchool}
+						</h2>
+						<button
+							className="btn absolute left-20 mt-6 mb-4 bg-[#1c402a] text-xs text-gray-400 hover:scale-105"
+							onClick={() => setSelectedSchool(null)}
+						>
+							← Back to Schools
+						</button>
+						<CollegeCards college={colleges} />
+					</>
+				) : (
+					<SchoolCards
+						school={schools}
+						onSchoolClick={handleSchoolClick}
+					/>
+				)}
+			</div>
+		</div>
+	);
+
 }
 
 export default Home;

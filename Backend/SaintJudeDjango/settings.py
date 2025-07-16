@@ -24,9 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
-
+HF_API_KEY = config('HF_API_KEY')
+print("RAW ENV HF_API_KEY:", os.environ.get("HF_API_KEY"))
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -62,6 +63,15 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'hrapp',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+
+    )
+}
+AUTH_TOKEN_MODEL = 'hrapp.Token'
+TOKEN_EXPIRY_DURATION = 6 * 60 * 60
 AUTH_USER_MODEL = "hrapp.user"
 JAZZMIN_SETTINGS = {
     "site_title": "Admin Dashboard",
@@ -114,9 +124,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': config('DB_NAME'),
         'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='3306'),      # MySQL default port
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),      # MySQL default port
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",  # Ensure strict mode
         },
@@ -162,6 +172,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Media Settings (Where to store Files, such as (IMAGE))
+MEDIA_URL = '/media/'
+
+MEDIA_ROOT = BASE_DIR / 'media'
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

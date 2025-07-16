@@ -1,123 +1,188 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SubjectCards from "../../../Components/Dashboard Components/Student Components/Subject Cards";
 import SemesterCard from "../../../Components/Dashboard Components/HR Components/Semester Cards";
+import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
+import api from "../../../utils/api";
+import { mapTypeToFrontend } from "../../../Components/Evaluation Components/CreateStudentQuestion";
+
+interface Schedule {
+  id: number;
+  subject_name: string;
+  instructor_name: string;
+  section_name: string;
+  semester: string;
+  year: string;
+  room_name: string;
+}
+
+interface StudentEvaluation {
+  id: number;
+  title: string;
+  description: string;
+  import_questions: any[];
+}
+
+interface Subject {
+  id: number;
+  name: string;
+  teacher: string;
+  section: string;
+  scheduleId: number;
+  questions: any[];
+  image?: string | null;
+}
 
 function Home() {
-  const [openModal, setOpenModal] =
-    useState<string | null>(null);
+  const [openAnswerDialog, setOpenAnswerDialog] = useState(false);
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [currentEvaluation, setCurrentEvaluation] = useState<StudentEvaluation | null>(null);
+  const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [completedSubjects, setCompletedSubjects] = useState<Set<string>>(new Set());
+  const [viewAnswers, setViewAnswers] = useState<Record<number, string>>({});
 
-  const subjects = [
-    {
-      name: "Mathematics",
-      teacher: "Mr. Smith",
-      questions: [
-        "I understand the lessons with the help of activities provided by my teacher.",
-        "I receive guidance from my teacher on how to complete the activities/tasks/modules.",
-        "I feel comfortable asking questions and sharing ideas in our class.",
-        "I participate in class because my teacher asks interesting and challenging questions.",
-        "I receive feedback from my teacher on how to improve my work, both in class and during consultation hours.",
-        "I have been able to apply the lessons from this class to real-life situations",
-      ],
-      image: null,
-    },
-    {
-      name: "Biology",
-      teacher: "Ms. Johnson",
-      questions: Array.from(
-        { length: 10 },
-        (_, i) =>
-          `Biology Question ${i + 1}`
-      ),
-      image: null,
-    },
-    {
-      name: "Chemistry",
-      teacher: "Dr. Allen",
-      questions: Array.from(
-        { length: 10 },
-        (_, i) =>
-          `Chemistry Question ${i + 1}`
-      ),
-      image: null,
-    },
-    {
-      name: "Chemistry",
-      teacher: "Dr. Allen",
-      questions: Array.from(
-        { length: 10 },
-        (_, i) =>
-          `Chemistry Question ${i + 1}`
-      ),
-      image: null,
-    },
-    {
-      name: "Chemistry",
-      teacher: "Dr. Allen",
-      questions: Array.from(
-        { length: 10 },
-        (_, i) =>
-          `Chemistry Question ${i + 1}`
-      ),
-      image: null,
-    },
-    {
-      name: "Chemistry",
-      teacher: "Dr. Allen",
-      questions: Array.from(
-        { length: 10 },
-        (_, i) =>
-          `Chemistry Question ${i + 1}`
-      ),
-      image: null,
-    },
-    {
-      name: "Chemistry",
-      teacher: "Dr. Allen",
-      questions: Array.from(
-        { length: 10 },
-        (_, i) =>
-          `Chemistry Question ${i + 1}`
-      ),
-      image: null,
-    },
-    {
-      name: "Chemistry",
-      teacher: "Dr. Allen",
-      questions: Array.from(
-        { length: 10 },
-        (_, i) =>
-          `Chemistry Question ${i + 1}`
-      ),
-      image: null,
-    },
-    {
-      name: "Chemistry",
-      teacher: "Dr. Allen",
-      questions: Array.from(
-        { length: 10 },
-        (_, i) =>
-          `Chemistry Question ${i + 1}`
-      ),
-      image: null,
-    },
-    {
-      name: "Chemistry",
-      teacher: "Dr. Allen",
-      questions: Array.from(
-        { length: 10 },
-        (_, i) =>
-          `Chemistry Question ${i + 1}`
-      ),
-      image: null,
-    },
-    // Add more subjects as needed...
-  ];
+
+  // Fetch student's schedules and all previous responses to set progress and answers
+  useEffect(() => {
+    const fetchStudentSchedulesAndProgress = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get('/schedule/schedules/my-schedules/');
+        const subjectCards: Subject[] = response.data.map((schedule: Schedule) => ({
+          id: schedule.id,
+          name: schedule.subject_name,
+          teacher: schedule.instructor_name,
+          section: schedule.section_name,
+          scheduleId: schedule.id,
+          questions: [],
+          image: null,
+        }));
+        setSubjects(subjectCards);
+
+        // Fetch all previous responses for the user
+        const allResponses = await api.get('/studentevaluationresponse/studentevaluationresponse/');
+        const answersByEval: Record<number, Record<number, string>> = {};
+        const completed = new Set<string>();
+        allResponses.data.forEach((resp: any) => {
+          const evalId = resp.student_evaluation;
+          const questionId = resp.student_eval_question;
+          if (!answersByEval[evalId]) answersByEval[evalId] = {};
+          answersByEval[evalId][questionId] = resp.answer;
+        });
+        // Mark as completed only if all questions for an evaluation have answers
+        await Promise.all(subjectCards.map(async (subject) => {
+          try {
+            const evalRes = await api.get(`/studentevaluation/studentevaluation/by-schedule/${subject.scheduleId}/`);
+            const evalId = evalRes.data.id;
+            const questionIds = (evalRes.data.import_questions || []).map((q: any) => typeof q === 'number' ? q : q.id);
+            const answers = answersByEval[evalId] || {};
+            const allAnswered = questionIds.length > 0 && questionIds.every((qid: number) => answers[qid] !== undefined && answers[qid] !== null && answers[qid] !== '');
+            if (allAnswered) {
+              completed.add(subject.name);
+            }
+          } catch (e) {}
+        }));
+        setCompletedSubjects(completed);
+      } catch (error) {
+        console.error('Error fetching schedules or progress:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStudentSchedulesAndProgress();
+  }, []);
+
+  // Handle subject card click
+  const handleSubjectClick = async (subjectName: string) => {
+    const selectedSubject = subjects.find(s => s.name === subjectName);
+    if (!selectedSubject) return;
+
+    try {
+      const evalResponse = await api.get(`/studentevaluation/studentevaluation/by-schedule/${selectedSubject.scheduleId}/`);
+      const importQuestions = evalResponse.data.import_questions || [];
+      let mappedQuestions: any[] = [];
+
+      if (importQuestions.length > 0) {
+        if (typeof importQuestions[0] === 'number') {
+          const allQuestionsResponse = await api.get('/studentevaluationquestion/studentevaluationquestion/');
+          mappedQuestions = allQuestionsResponse.data
+            .filter((q: any) => importQuestions.includes(q.id))
+            .map((q: any) => ({
+              id: q.id,
+              question: q.question,
+              type: mapTypeToFrontend(q.type),
+              choices: q.options || [],
+            }));
+        } else {
+          mappedQuestions = importQuestions.map((q: any) => ({
+            id: q.id,
+            question: q.question,
+            type: mapTypeToFrontend(q.type),
+            choices: q.options || [],
+          }));
+        }
+      }
+
+      setCurrentEvaluation({
+        ...evalResponse.data,
+        import_questions: mappedQuestions
+      });
+      setCurrentSubject(selectedSubject);
+
+      // Check if completed
+      if (completedSubjects.has(selectedSubject.name)) {
+        // Fetch only answers for this evaluation
+        let answers: Record<number, string> = {};
+        try {
+          const prevResponse = await api.get(`/studentevaluationresponse/studentevaluationresponse/?student_evaluation_id=${evalResponse.data.id}`);
+          if (prevResponse.data && prevResponse.data.length > 0) {
+            prevResponse.data.forEach((resp: any) => {
+              answers[resp.student_eval_question] = resp.answer;
+            });
+          }
+        } catch (err) {}
+        setViewAnswers(answers);
+        setOpenViewDialog(true);
+      } else {
+        setOpenAnswerDialog(true);
+      }
+    } catch (error) {
+      console.error('Error fetching evaluation:', error);
+      alert('No evaluation found for this subject');
+    }
+  };
+
+  // Handle evaluation submission
+  const handleSubmitEvaluation = async (formData: FormData) => {
+    if (!currentEvaluation || !currentSubject) return;
+
+    try {
+      const responses = currentEvaluation.import_questions.map((question, index) => ({
+        question_id: question.id,
+        answer: formData.get(`question-${index}`) as string
+      }));
+
+      await api.post('/studentevaluationresponse/studentevaluationresponse/submit-responses/', {
+        student_evaluation_id: currentEvaluation.id,
+        responses: responses
+      });
+
+      setCompletedSubjects(prev => new Set([...prev, currentSubject.name]));
+      setOpenAnswerDialog(false);
+      alert(`${currentSubject.name} evaluation submitted successfully!`);
+    } catch (error: any) {
+      console.error('Error submitting evaluation:', error);
+      if (error.response?.data?.error) {
+        alert(error.response.data.error);
+      } else {
+        alert('Error submitting evaluation. Please try again.');
+      }
+    }
+  };
+
 
   const totalSubjects = subjects.length;
-  const [
-    completedSubjects,
-    setCompletedSubjects,
-  ] = useState<Set<string>>(new Set());
   const ratio = `${completedSubjects.size}/${totalSubjects}`;
 
   const semesterData = [
@@ -131,191 +196,258 @@ function Home() {
     },
   ];
 
+  if (loading) {
+    return (
+      <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center">
+        <div className="loading loading-spinner loading-lg"></div>
+        <p className="mt-4 text-white">Loading your subjects...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="home-page flex flex-col justify-center items-center w-full h-full gap-y-6 z-10">
+    <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
       {/* Header */}
-      <header className="flex z-1 w-full h-[15%] px-6 border-gray-600 border-b-2 shadow-2xl absolute top-0 justify-between items-end backdrop-blur-lg">
-        {/* Left Section - Greeting */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-2 sm:gap-6">
-          <h1 className="text-5xl w-auto md:w-auto md:text-6xl font-bold text-white">
-            Hi, Renzo
-          </h1>
-          <p className="text-md text-gray-300">
-            Welcome to the Home Page
-          </p>
-        </div>
 
-        {/* Right Section - Logout Button */}
-
-        <button
-          className="underline text-gray-300 text-md"
-          onClick={() => {
-            // Your logout logic here
-            alert("Logged out!");
-          }}
-        >
-          Logout
-        </button>
-      </header>
+      <DashboardHeader />
 
       {/* Content */}
-      <div className="flex flex-col-reverse md:flex-row items-start justify-center w-auto h-auto overflow-y-auto mt-35 mb-20 md:mr-100 gap-4">
+      <div className="mt-35 ml-3 flex h-auto w-auto flex-col-reverse items-start justify-center gap-4 overflow-y-auto md:mr-103 md:flex-row">
+
         {/* Subject List */}
-        <div className="flex flex-col items-center">
-          <p className="text-gray-300 text-lg">
-            Subject List:
-          </p>
-          <SubjectCards
-            subjects={subjects}
-            onClick={(subjectName) =>
-              setOpenModal(subjectName)
-            }
-            completedSubjects={
-              completedSubjects
-            }
-          />
-        </div>
+        <SubjectCards
+          subjects={subjects}
+          onClick={handleSubjectClick}
+          completedSubjects={completedSubjects}
+        />
 
         {/* Progress Bar */}
-        <div className="flex md:absolute flex-row md:flex-col justify-center items-center gap-6 w-full md:w-auto md:mt-16 md:right-25">
-          {semesterData.map(
-            ({ semester, ratio }) => (
-              <SemesterCard
-                key={semester}
-                semester={semester}
-                ratio={ratio}
-              />
-            )
-          )}
+
+        <div className="flex w-full flex-row items-center justify-center gap-6 md:absolute md:right-20 md:mt-26 md:w-auto md:flex-col">
+          {semesterData.map(({ semester, ratio }) => (
+            <SemesterCard
+              key={semester}
+              semester={semester}
+              ratio={ratio}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Modals for Each Subject */}
-      {openModal && (
-        <div
-          className="modal modal-open"
-          id="subject_modal"
-        >
-          {subjects.map((subject) =>
-            openModal ===
-            subject.name ? (
-              <div
-                key={subject.name}
-                className="modal-box w-[90%] md:w-[45%] max-w-5xl h-[80%] text-black flex flex-col"
-              >
-                {/* Sticky Header */}
-                <div className="bg-[#1c402a] z-10 sticky top-0 px-6 py-3 border-6 border-[#173523] flex items-start justify-between rounded-tl-xl rounded-tr-xl text-white">
-                  <div className="text-left">
-                    <h3 className="font-bold text-2xl">
-                      {subject.name}
-                    </h3>
-                    <p className="text-md text-gray-400">
-                      Teacher:{" "}
-                      <strong>
-                        {
-                          subject.teacher
-                        }
-                      </strong>
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-error text-white h-9 mt-2"
-                    onClick={() =>
-                      setOpenModal(null)
-                    }
-                  >
-                    Cancel
-                  </button>
-                </div>
-
-                {/* Scrollable Questions */}
-                <form
-                  method="dialog"
-                  className="flex-1 overflow-y-auto px-6 mb-6 shadow-[inset_0_30px_20px_-20px_rgba(0,0,0,0.35)]"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    setCompletedSubjects(
-                      (prev) => {
-                        const updated =
-                          new Set(prev);
-                        updated.add(
-                          subject.name
-                        );
-                        return updated;
-                      }
-                    );
-
-                    setOpenModal(null);
-                    alert(
-                      `${subject.name} submitted successfully!`
-                    );
-                  }}
-                >
-                  <div className="flex flex-col gap-12">
-                    {subject.questions.map(
-                      (
-                        question,
-                        index
-                      ) => (
-                        <div
-                          key={index}
-                          className="flex flex-col md:items-start gap-2"
-                        >
-                          <label className="w-full text-lg font-semibold pt-2">
-                            {question}
-                          </label>
-                          {[
-                            "Strongly Agree",
-                            "Agree",
-                            "Neutral",
-                            "Disagree",
-                          ].map(
-                            (
-                              val,
-                              i
-                            ) => (
-                              <label
-                                key={i}
-                                className="flex items-center gap-2"
-                              >
-                                <input
-                                  type="radio"
-                                  name={`question-${index}`}
-                                  value={
-                                    val
-                                  }
-                                  className="radio"
-                                />
-                                {
-                                  [
-                                    "Almost Always (Halos Palagi)",
-                                    "Often (Madalas)",
-                                    "Sometimes (Paminsan-minsan)",
-                                    "Rarely (Madalang)",
-                                  ][i]
-                                }
-                              </label>
-                            )
-                          )}
-                        </div>
-                      )
-                    )}
-                  </div>
-
-                  {/* Sticky Footer */}
-                  <div className="modal-action bottom-0 border-t-6 border-[#1c402a] bg-white pt-3">
-                    <button
-                      type="submit"
-                      className="btn btn-success text-white"
-                    >
-                      Submit
-                    </button>
-                  </div>
-                </form>
+      {/* Answer Dialog */}
+      {openAnswerDialog && currentEvaluation && currentSubject && (
+        <div className="modal modal-open" id="answer_modal">
+          <div className="modal-box flex h-[80%] w-[90%] max-w-5xl flex-col text-black md:w-11/12">
+            {/* Sticky Header */}
+            <div className="sticky top-0 z-10 flex items-start justify-between px-6 py-3">
+              <div className="text-left">
+                <h3 className="text-2xl font-bold">{currentSubject.name}</h3>
+                <p className="text-md text-gray-400">
+                  Teacher: <strong>{currentSubject.teacher}</strong>
+                </p>
+                <p className="text-md text-gray-400">
+                  Section: <strong>{currentSubject.section}</strong>
+                </p>
+                <p className="text-md text-gray-600 mt-2">
+                  {currentEvaluation.title}
+                </p>
+                {currentEvaluation.description && (
+                  <p className="text-sm text-gray-500">
+                    {currentEvaluation.description}
+                  </p>
+                )}
               </div>
-            ) : null
-          )}
+              <button
+                type="button"
+                className="btn btn-sm btn-error mt-2 h-9 text-white"
+                onClick={() => setOpenAnswerDialog(false)}
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Scrollable Questions */}
+            <form
+              method="dialog"
+              className="mb-6 flex-1 overflow-y-scroll border-t-3 px-6 shadow-[inset_0_30px_20px_-20px_rgba(0,0,0,0.35)]"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                handleSubmitEvaluation(formData);
+              }}
+            >
+              <div className="flex flex-col gap-12">
+                {currentEvaluation.import_questions.map((question, index) => (
+                  <div key={question.id} className="flex flex-col gap-2 md:items-start">
+                    <label className="w-full pt-2 text-lg font-semibold">
+                      {index + 1}. {question.question}
+                    </label>
+                    {question.type === "mcq" && question.choices && question.choices.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        {question.choices.map((choice: string, choiceIndex: number) => (
+                          <label key={choiceIndex} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`question-${index}`}
+                              value={choice}
+                              className="radio"
+                              required
+                            />
+                            {choice}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {question.type === "rating" && (
+                      <div className="flex flex-col gap-2">
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <label key={rating} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`question-${index}`}
+                              value={rating.toString()}
+                              className="radio"
+                              required
+                            />
+                            {rating} - {
+                              rating === 1 ? "Poor/Strongly Disagree" :
+                              rating === 2 ? "Below Average/Disagree" :
+                              rating === 3 ? "Average/Neutral" :
+                              rating === 4 ? "Good/Agree" :
+                              "Excellent/Strongly Agree"
+                            }
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {question.type === "comment" && (
+                      <textarea
+                        name={`question-${index}`}
+                        className="textarea textarea-bordered w-full"
+                        placeholder="Enter your response..."
+                        rows={3}
+                        required
+                        defaultValue=""
+                      />
+                    )}
+
+                  </div>
+                ))}
+              </div>
+              <div className="modal-action bottom-0 pt-3">
+                <button
+                  type="submit"
+                  className="btn btn-success text-white"
+                >
+                  Submit Evaluation
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View-Only Dialog */}
+      {openViewDialog && currentEvaluation && currentSubject && (
+        <div className="modal modal-open" id="view_modal">
+          <div className="modal-box flex h-[80%] w-[90%] max-w-5xl flex-col text-black md:w-11/12">
+            <div className="sticky top-0 z-10 flex items-start justify-between px-6 py-3">
+              <div className="text-left">
+                <h3 className="text-2xl font-bold">{currentSubject.name}</h3>
+                <p className="text-md text-gray-400">
+                  Teacher: <strong>{currentSubject.teacher}</strong>
+                </p>
+                <p className="text-md text-gray-400">
+                  Section: <strong>{currentSubject.section}</strong>
+                </p>
+                <p className="text-md text-gray-600 mt-2">
+                  {currentEvaluation.title}
+                </p>
+                {currentEvaluation.description && (
+                  <p className="text-sm text-gray-500">
+                    {currentEvaluation.description}
+                  </p>
+                )}
+                <p className="text-green-600 font-semibold mt-2">
+                  You have already submitted this evaluation. Answers are view-only.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-error mt-2 h-9 text-white"
+                onClick={() => setOpenViewDialog(false)}
+              >
+                Close
+              </button>
+            </div>
+            <div className="mb-6 flex-1 overflow-y-scroll border-t-3 px-6 shadow-[inset_0_30px_20px_-20px_rgba(0,0,0,0.35)]">
+              <div className="flex flex-col gap-12">
+                {currentEvaluation.import_questions.map((question, index) => {
+                  const prevAnswer = viewAnswers[question.id] || "";
+                  return (
+                    <div key={question.id} className="flex flex-col gap-2 md:items-start">
+                      <label className="w-full pt-2 text-lg font-semibold">
+                        {index + 1}. {question.question}
+                      </label>
+                      {question.type === "mcq" && question.choices && question.choices.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                          {question.choices.map((choice: string, choiceIndex: number) => (
+                            <label key={choiceIndex} className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name={`question-${index}`}
+                                value={choice}
+                                className="radio"
+                                disabled
+                                checked={prevAnswer === choice}
+                                readOnly
+                              />
+                              {choice}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {question.type === "rating" && (
+                        <div className="flex flex-col gap-2">
+                          {[1, 2, 3, 4, 5].map((rating) => (
+                            <label key={rating} className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name={`question-${index}`}
+                                value={rating.toString()}
+                                className="radio"
+                                disabled
+                                checked={prevAnswer === rating.toString()}
+                                readOnly
+                              />
+                              {rating} - {
+                                rating === 1 ? "Poor/Strongly Disagree" :
+                                rating === 2 ? "Below Average/Disagree" :
+                                rating === 3 ? "Average/Neutral" :
+                                rating === 4 ? "Good/Agree" :
+                                "Excellent/Strongly Agree"
+                              }
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {question.type === "comment" && (
+                        <textarea
+                          name={`question-${index}`}
+                          className="textarea textarea-bordered w-full"
+                          placeholder="Enter your response..."
+                          rows={3}
+                          value={prevAnswer}
+                          disabled
+                          readOnly
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

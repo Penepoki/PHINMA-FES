@@ -35,7 +35,8 @@ def user_signup(data):
         "token" : token.key
     }
 
-
+def get_full_name(user):
+    return f"{user.first_name} {user.last_name}".strip()
 
 def reset_password(data):
     email = data.get('email')
@@ -87,36 +88,36 @@ def user_profile(request):
         user = request.user
         role = user.groups.first().name if user.groups.exists() else None
 
-        sections = user.sections.select_related('course').all()
+        sections = user.sections.select_related('program').all()
 
         section_data = [
             {
                 'section_name': section.name,
                 'year_level': section.get_year_level_display(),
-                'course': section.course.name,
-                'course_code': section.course.code,
+                'program': section.program.name,
+                'program_code': section.program.code,
 
 
             }
             for section in sections
         ]
 
-        #Get all related data courses connected to professor
-        courses = Course.objects.filter(courseprofessor__professor=user)
+        #Get all related data programs connected to professor
+        programs = Program.objects.filter(programprofessor__professor=user)
 
-        course_data = [
+        program_data = [
                 {
-                    'course_name': course.name,
-                    'course_code': course.code,
+                    'program_name': program.name,
+                    'program_code': program.code,
                 }
-                for course in courses
+                for program in programs
             ]
 
         return {
             'name': f"{user.last_name} {user.first_name}",
             'username': user.username,
             'email': user.email,
-            'courses': course_data if role.lower() == 'student' else [],
+            'programs': program_data if role.lower() == 'student' else [],
             'section': section_data if role.lower() == 'student' else [],
         }
     except User.DoesNotExist:

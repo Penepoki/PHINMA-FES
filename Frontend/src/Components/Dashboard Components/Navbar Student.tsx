@@ -1,146 +1,103 @@
-import React, {
-  useEffect,
-  useState,
-} from "react";
+import React, { useEffect } from "react";
+import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
 interface NavbarProps {
-  activeView: string;
-  setActiveView: (view: string) => void;
+	activeView: string;
+	setActiveView: (view: string) => void;
+	isDockVisible: boolean;
+	setIsDockVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const NavbarStudent: React.FC<
-  NavbarProps
-> = ({ activeView, setActiveView }) => {
-  const [
-    isDockVisible,
-    setIsDockVisible,
-  ] = useState<boolean>(true);
+const NavbarStudent: React.FC<NavbarProps> = ({
+	activeView,
+	setActiveView,
+	isDockVisible,
+	setIsDockVisible,
+}) => {
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			const target = e.target as HTMLElement;
+			const tagName = target.tagName.toLowerCase();
 
-  useEffect(() => {
-    const handleKeyDown = (
-      e: KeyboardEvent
-    ) => {
-      const target =
-        e.target as HTMLElement;
-      const tagName =
-        target.tagName.toLowerCase();
+			if (
+				tagName === "input" ||
+				tagName === "textarea" ||
+				target.isContentEditable
+			)
+				return;
 
-      const isTyping =
-        tagName === "input" ||
-        tagName === "textarea" ||
-        target.isContentEditable;
+			if (e.code === "Space" || e.key === " ") {
+				e.preventDefault();
+				setIsDockVisible((prev) => !prev);
+			}
+		};
 
-      if (isTyping) return;
+		window.addEventListener("keydown", handleKeyDown);
+		return () => {
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [setIsDockVisible]);
 
-      if (
-        e.code === "Space" ||
-        e.key === " "
-      ) {
-        e.preventDefault();
-        setIsDockVisible(
-          (prev) => !prev
-        );
-      }
-    };
+	const handleClick = (page: string) => {
+		setActiveView(page);
+	};
 
-    window.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
-    return () => {
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
-    };
-  }, []);
+	const buttonClasses = (btn: string) =>
+		`dock ${activeView === btn ? "dock-active" : ""}`;
 
-  const handleClick = (
-    page: string
-  ) => {
-    setActiveView(page);
-  };
+	return (
+		<>
+			{/* Toggle Button - Now Outside Navbar */}
+			<div
+				className={`fixed z-[501] -translate-y-1/2 transform transition-all duration-300 ${isDockVisible ? "right-2" : "right-2"} ${
+					isDockVisible
+						? "bottom-10 md:bottom-10"
+						: "bottom-0 md:bottom-0"
+				} `}
+			>
+				<div className="tooltip tooltip-left">
+					<button
+						className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-300 bg-[#102418] text-white shadow-2xl hover:scale-110"
+						onClick={() => setIsDockVisible(!isDockVisible)}
+					>
+						{isDockVisible ? (
+							<ChevronDownIcon className="h-6 w-6" />
+						) : (
+							<ChevronUpIcon className="h-6 w-6" />
+						)}
+					</button>
+					<div className="tooltip-content hidden text-sm whitespace-pre-line sm:block">
+						Open/Close Dock
+						<br />
+						(Shortcut: Space)
+					</div>
+				</div>
+			</div>
 
-  const buttonClasses = (btn: string) =>
-    `dock ${activeView === btn ? "dock-active" : ""}`;
+			<nav data-theme="SJC" className="flex">
+				{/* Primary Dock */}
+				<div
+					className={`dock dock-xs bottom-0 w-full transition-transform duration-300 ease-in-out ${
+						isDockVisible ? "translate-y-0" : "translate-y-full"
+					}`}
+				>
+					<button
+						className={buttonClasses("home")}
+						onClick={() => handleClick("home")}
+					>
+						<span className="dock-label">Home</span>
+					</button>
 
-  return (
-    <>
-      {/* Toggle Button - Now Outside Navbar */}
-      <div
-        className={`fixed z-[501] transition-all duration-300 transform -translate-y-1/2
-    ${isDockVisible ? "left-4" : "left-2"}
-    ${
-      isDockVisible
-        ? "bottom-20 md:bottom-20"
-        : isDockVisible
-          ? "bottom-20"
-          : "bottom-0"
-    }
-  `}
-      >
-        <div className="tooltip tooltip-right">
-          <button
-            className="px-4 bg-primary text-white text-xl border-1 border-gray-300 rounded-xl shadow-2xl h-12 hover:scale-110"
-            onClick={() =>
-              setIsDockVisible(
-                !isDockVisible
-              )
-            }
-          >
-            {isDockVisible
-              ? "◀"
-              : "▶"}
-          </button>
-          <div className="tooltip-content text-sm whitespace-pre-line hidden sm:block">
-            Open/Close Dock
-            <br />
-            (Shortcut: Space)
-          </div>
-        </div>
-      </div>
 
-      <nav
-        data-theme="SJC"
-        className="relative"
-      >
-        {/* Primary Dock */}
-        <div
-          className={`dock dock-xl w-[95%] mx-auto bottom-2 rounded-xl shadow-2xl transition-transform duration-300 ease-in-out z-[500] ${
-            isDockVisible
-              ? "translate-x-0"
-              : "-translate-x-full"
-          }`}
-        >
-          <button
-            className={buttonClasses(
-              "home"
-            )}
-            onClick={() =>
-              handleClick("home")
-            }
-          >
-            <span className="dock-label">
-              Home
-            </span>
-          </button>
-
-          <button
-            className={buttonClasses(
-              "profile"
-            )}
-            onClick={() =>
-              handleClick("profile")
-            }
-          >
-            <span className="dock-label">
-              Profile
-            </span>
-          </button>
-        </div>
-      </nav>
-    </>
-  );
+					<button
+						className={buttonClasses("profile")}
+						onClick={() => handleClick("profile")}
+					>
+						<span className="dock-label">Profile</span>
+					</button>
+				</div>
+			</nav>
+		</>
 };
 
 export default NavbarStudent;

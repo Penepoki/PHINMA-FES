@@ -1,285 +1,378 @@
-import { FunnelIcon } from "@heroicons/react/24/solid";
+import { useEffect, useState } from "react";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
+import api from "../../../utils/api";
+import DataTable, {
+	Column,
+} from "../../../Components/Evaluation Components/Data Table";
+// Assuming you have your generic DataTable component exported
 
 interface RoomsProps {
-  setActiveView: (view: string) => void;
+	setActiveView: (view: string) => void;
+}
+
+// Define the Room Type
+interface Room {
+	id: number;
+	name: string;
+	is_active: boolean;
 }
 
 function Rooms({ setActiveView }: RoomsProps) {
-  return (
-    <div className="custom-container gap-y-6">
-      <div className="breadcrumbs">
-        <ul>
-          <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
-          </li>
-          <li>
-            <a onClick={() => setActiveView("resourceGroup")}>Resource Group</a>
-          </li>
-          <li>Rooms</li>
-        </ul>
-      </div>
-      <h2 className="text-3xl font-bold mt-4 text-white ">Rooms</h2>
+	const [rooms, setRooms] = useState<Room[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [newRoomName, setNewRoomName] = useState("");
 
-      <div className="flex flex-col sm:flex-row w-full justify-center sm:justify-between gap-3 sm:gap-5 items-stretch pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
-        {/* New Room Button */}
-        <button
-          onClick={() =>
-            (
-              document.getElementById("create_new_room") as HTMLDialogElement
-            )?.showModal()
-          }
-          className="bg-[#1c402a] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
-        >
-          New Room
-        </button>
+	const fetchRooms = async () => {
+		setLoading(true);
+		try {
+			const response = await api.get("/room/rooms", {
+				params: { name: searchTerm || undefined },
+			});
+			setRooms(response.data);
+		} catch (error) {
+			console.error("Error fetching rooms:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
 
-        <dialog id="create_new_room" className="modal">
-          <div className="modal-box w-11/12 max-w-3xl">
-            <h3 className="font-bold text-2xl mb-4 text-center">
-              Create New Room
-            </h3>
+	const createRoom = async () => {
+		if (!newRoomName.trim()) return alert("Please enter a room name");
+		const token = localStorage.getItem("token");
+		if (!token) return alert("You are not authenticated. Please login.");
+		try {
+			await api.post(
+				"/room/rooms/",
+				{ name: newRoomName },
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
+			setNewRoomName("");
+			fetchRooms();
+		} catch (error) {
+			console.error("Error creating room:", error);
+		}
+	};
 
-            <form method="dialog" className="flex flex-col gap-6">
-              {/* Course Name */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="md:w-1/6 text-lg font-bold text-left">
-                  Name:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter course name"
-                  className="input input-bordered w-full"
-                  required
-                />
-              </div>
+	const toggleRoomStatus = async (room: Room) => {
+		try {
+			await api.patch(`/room/rooms/${room.id}/`, {
+				is_active: !room.is_active,
+			});
+			fetchRooms();
+		} catch (error) {
+			console.error("Error updating room:", error);
+		}
+	};
 
-              {/* Action Buttons */}
-              <div className="modal-action">
-                <button type="submit" className="btn btn-success text-white">
-                  Submit
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-cancel"
-                  onClick={() =>
-                    (
-                      document.getElementById(
-                        "create_new_room"
-                      ) as HTMLDialogElement
-                    )?.close()
-                  }
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </dialog>
+	const deleteRoom = async (roomId: number) => {
+		try {
+			await api.delete(`/room/rooms/${roomId}/`);
+			fetchRooms();
+		} catch (error) {
+			console.error("Error deleting room:", error);
+		}
+	};
 
-        <div className="flex flex-row justify-center">
-          {/* Import Rooms Button */}
-          <button
-            onClick={() =>
-              (
-                document.getElementById(
-                  "modal_import_room"
-                ) as HTMLDialogElement
-              )?.showModal()
-            }
-            className="bg-[#1b2e3e] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
-          >
-            Import Room
-          </button>
+	// Actions column render function
+	const roomActions = (room: Room) => (
+		<div className="flex flex-col items-start gap-2">
+			<button
+				title="Edit"
+				onClick={() => alert("Edit feature not implemented yet")}
+				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
+			>
+				<PencilSquareIcon className="h-4 w-4" />
+				Edit
+			</button>
+			<button
+				title="Delete"
+				onClick={() => {
+					if (window.confirm(`Delete room "${room.name}"?`))
+						deleteRoom(room.id);
+				}}
+				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline"
+			>
+				<TrashIcon className="h-4 w-4" />
+				Delete
+			</button>
+		</div>
+	);
 
-          <dialog id="modal_import_room" className="modal">
-            <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="font-bold text-2xl mb-4 text-center">
-                Import Room
-              </h3>
+	useEffect(() => {
+		fetchRooms();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [searchTerm]);
 
-              <form method="dialog" className="flex flex-col gap-6">
-                {/* CSV Upload */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/6 text-lg font-bold text-left">
-                    File:
-                  </label>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    className="file-input file-input-bordered w-full"
-                    required
-                  />
-                </div>
+	// Define columns with proper accessors
+	const roomColumns: Column<Room>[] = [
+		{
+			header: "Name",
+			accessor: (room: Room) => room.name,
+		},
+		{
+			header: "Status",
+			accessor: (room: Room) => (
+				<input
+					onClick={() => toggleRoomStatus(room)}
+					className="toggle"
+					type="checkbox"
+					checked={room.is_active}
+				/>
+			),
+		},
+	];
 
-                {/* Action Buttons */}
-                <div className="modal-action">
-                  <button type="submit" className="btn btn-success text-white">
-                    Upload
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-cancel"
-                    onClick={() =>
-                      (
-                        document.getElementById(
-                          "modal_import_room"
-                        ) as HTMLDialogElement
-                      )?.close()
-                    }
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </dialog>
+	return (
+		<div className="custom-container gap-y-6">
+			<div className="breadcrumbs">
+				<ul>
+					<li>
+						<a onClick={() => setActiveView("home")}>Home</a>
+					</li>
+					<li>
+						<a onClick={() => setActiveView("resourceGroup")}>
+							Resource Group
+						</a>
+					</li>
+					<li>Rooms</li>
+				</ul>
+			</div>
 
-          {/* Export Rooms Button */}
-          <button
-            onClick={() =>
-              (
-                document.getElementById(
-                  "modal_export_rooms"
-                ) as HTMLDialogElement
-              )?.showModal()
-            }
-            className="bg-[#d4c351] shadow-xl text-white w-full sm:w-auto rounded-lg py-2 px-5 hover:scale-105 transition-transform whitespace-nowrap"
-          >
-            Export Room
-          </button>
+			<h2 className="mt-4 text-3xl font-bold text-white">Rooms</h2>
 
-          <dialog id="modal_export_rooms" className="modal">
-            <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="font-bold text-2xl mb-4 text-center">
-                Export Room
-              </h3>
+			<div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
+				{/* New Room Button */}
+				<button
+					onClick={() =>
+						(
+							document.getElementById(
+								"create_new_room",
+							) as HTMLDialogElement
+						)?.showModal()
+					}
+					className="w-full rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
+				>
+					New Room
+				</button>
 
-              <form method="dialog" className="flex flex-col gap-6">
-                {/* Name Field */}
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <label className="md:w-1/6 text-lg font-bold text-left">
-                    Name:
-                  </label>
-                  <input
-                    type="text"
-                    value="Room A"
-                    readOnly
-                    className="input input-bordered w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
+				<dialog id="create_new_room" className="modal">
+					<div className="modal-box w-11/12 max-w-3xl">
+						<h3 className="mb-4 text-center text-2xl font-bold">
+							Create New Room
+						</h3>
 
-                {/* Action Buttons */}
-                <div className="modal-action">
-                  <button type="submit" className="btn btn-success text-white">
-                    Export
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-cancel"
-                    onClick={() =>
-                      (
-                        document.getElementById(
-                          "modal_export_rooms"
-                        ) as HTMLDialogElement
-                      )?.close()
-                    }
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </dialog>
-        </div>
-      </div>
-      <div className="flex w-full justify-center items-start pb-2 px-4 border-b-gray-600 border-b-2 shadow-xl">
-        <input
-          type="text"
-          className="input w-full max-w-md border border-gray-300 rounded-lg"
-          placeholder="Search"
-        />
-        <div className="dropdown dropdown-end ml-2">
-          <div
-            tabIndex={0}
-            role="button"
-            className="btn shadow-xl bg-[#1c402a] border-0 text-white"
-          >
-            <FunnelIcon className="h-5 w-5" />
-          </div>
-          <ul
-            tabIndex={0}
-            className="dropdown-content menu bg-base-100 rounded-box z-10 w-52 p-2 shadow-sm"
-          >
-            <li>
-              <a href="#">Item 1</a>
-            </li>
-            <li>
-              <a href="#">Item 2</a>
-            </li>
-          </ul>
-        </div>
-      </div>
+						<form
+							onSubmit={(e) => {
+								e.preventDefault(); // Prevent default form behavior
+								createRoom(); // Call createRoom function
+								(
+									document.getElementById(
+										"create_new_room",
+									) as HTMLDialogElement
+								)?.close(); // Close the modal
+							}}
+							className="flex flex-col gap-6"
+						>
+							{/* Room Name */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/6">
+									Name:
+								</label>
+								<input
+									type="text"
+									value={newRoomName} // Bind value to state
+									onChange={(e) =>
+										setNewRoomName(e.target.value)
+									} // Update value on change
+									placeholder="Enter room name"
+									className="input input-bordered w-full"
+									required
+								/>
+							</div>
 
-      <div className="overflow-x-auto w-full text-white backdrop-blur-lg shadow-xl">
-        <table className="table">
-          {/* head */}
-          <thead className="text-white text-xl font-bold bg-[#1c402a]/50 shadow-xl">
-            <tr>
-              <th>
-                <input type="checkbox" defaultChecked className="checkbox" />
-              </th>
-              <th>Title</th>
-              <th></th>
-              <th></th>
-              <th>Publish</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody className="text-gray-300 text-lg">
-            {/* row 1 */}
-            <tr className="hover:bg-[#1b2e3e]/50">
-              <td>
-                <input type="checkbox" defaultChecked className="checkbox" />
-              </td>
-              <td>Renzo Cua</td>
-              <td></td>
-              <td></td>
-              <td>
-                <input type="checkbox" defaultChecked className="toggle" />
-              </td>
-              <td>Edit</td>
-            </tr>
-            {/* row 2 */}
-            <tr className="hover:bg-[#1b2e3e]/50">
-              <td>
-                <input type="checkbox" defaultChecked className="checkbox" />
-              </td>
-              <td>Martin Espineda</td>
-              <td></td>
-              <td></td>
-              <td>
-                <input type="checkbox" defaultChecked className="toggle" />
-              </td>
-              <td>Edit</td>
-            </tr>
-            {/* row 3 */}
-            <tr className="hover:bg-[#1b2e3e]/50">
-              <td>
-                <input type="checkbox" defaultChecked className="checkbox" />
-              </td>
-              <td>Chester Espineda</td>
-              <td></td>
-              <td></td>
-              <td>
-                <input type="checkbox" defaultChecked className="toggle" />
-              </td>
-              <td>Edit</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+							{/* Action Buttons */}
+							<div className="modal-action">
+								<button
+									type="submit"
+									className="btn btn-success text-white"
+								>
+									Submit
+								</button>
+								<button
+									type="button"
+									className="btn btn-cancel"
+									onClick={() =>
+										(
+											document.getElementById(
+												"create_new_room",
+											) as HTMLDialogElement
+										)?.close()
+									}
+								>
+									Cancel
+								</button>
+							</div>
+						</form>
+					</div>
+				</dialog>
+
+				<div className="flex flex-row justify-center">
+					{/* Import Rooms Button */}
+					<button
+						onClick={() =>
+							(
+								document.getElementById(
+									"modal_import_room",
+								) as HTMLDialogElement
+							)?.showModal()
+						}
+						className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
+					>
+						Import Room
+					</button>
+
+					<dialog id="modal_import_room" className="modal">
+						<div className="modal-box w-11/12 max-w-3xl">
+							<h3 className="mb-4 text-center text-2xl font-bold">
+								Import Room
+							</h3>
+
+							<form
+								method="dialog"
+								className="flex flex-col gap-6"
+							>
+								{/* CSV Upload */}
+								<div className="flex flex-col gap-2 md:flex-row md:items-center">
+									<label className="text-left text-lg font-bold md:w-1/6">
+										File:
+									</label>
+									<input
+										type="file"
+										accept=".csv"
+										className="file-input file-input-bordered w-full"
+										required
+									/>
+								</div>
+
+								{/* Action Buttons */}
+								<div className="modal-action">
+									<button
+										type="submit"
+										className="btn btn-success text-white"
+									>
+										Upload
+									</button>
+									<button
+										type="button"
+										className="btn btn-cancel"
+										onClick={() =>
+											(
+												document.getElementById(
+													"modal_import_room",
+												) as HTMLDialogElement
+											)?.close()
+										}
+									>
+										Cancel
+									</button>
+								</div>
+							</form>
+						</div>
+					</dialog>
+
+					{/* Export Rooms Button */}
+					<button
+						onClick={() =>
+							(
+								document.getElementById(
+									"modal_export_rooms",
+								) as HTMLDialogElement
+							)?.showModal()
+						}
+						className="w-full rounded-lg bg-[#d4c351] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
+					>
+						Export Room
+					</button>
+
+					<dialog id="modal_export_rooms" className="modal">
+						<div className="modal-box w-11/12 max-w-3xl">
+							<h3 className="mb-4 text-center text-2xl font-bold">
+								Export Room
+							</h3>
+
+							<form
+								method="dialog"
+								className="flex flex-col gap-6"
+							>
+								{/* Name Field */}
+								<div className="flex flex-col gap-2 md:flex-row md:items-center">
+									<label className="text-left text-lg font-bold md:w-1/6">
+										Name:
+									</label>
+									<input
+										type="text"
+										value="Room A"
+										readOnly
+										className="input input-bordered w-full cursor-not-allowed bg-gray-100"
+									/>
+								</div>
+
+								{/* Action Buttons */}
+								<div className="modal-action">
+									<button
+										type="submit"
+										className="btn btn-success text-white"
+									>
+										Export
+									</button>
+									<button
+										type="button"
+										className="btn btn-cancel"
+										onClick={() =>
+											(
+												document.getElementById(
+													"modal_export_rooms",
+												) as HTMLDialogElement
+											)?.close()
+										}
+									>
+										Cancel
+									</button>
+								</div>
+							</form>
+						</div>
+					</dialog>
+				</div>
+			</div>
+			{/* Search and New Room button */}
+			<div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
+				<label
+					htmlFor="search"
+					className="text-lg font-bold text-white"
+				></label>
+				<input
+					id="search"
+					type="text"
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
+					placeholder="Search by room name"
+					className="input input-bordered w-full max-w-md"
+				/>
+			</div>
+
+			{/* DataTable */}
+			<DataTable
+				data={rooms}
+				columns={roomColumns}
+				getRowKey={(room) => room.id}
+				actions={roomActions}
+				selectable
+			/>
+		</div>
+	);
 }
 
 export default Rooms;

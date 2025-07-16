@@ -1,136 +1,145 @@
 from django.db import models
-from .user_models import User
-from .custom_manager import *
-# Courses
-class Course(models.Model):
-    name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
-    code = models.CharField(max_length=50, unique=True)
-    professors = models.ManyToManyField("User", through="CourseProfessor")
+from .user_models import *
+
+# Programs
+class BaseModel(models.Model):
     is_active = models.BooleanField(default=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
-    def __str__(self):
-        return f'{self.name} - {self.code} - {self.slug} - {self.is_active} '
-
     def restore(self):
+        """Restore a soft-deleted record."""
         self.deleted_at = None
+        self.is_active = True
         self.save()
 
-class CourseProfessor(models.Model):
-    professor = models.ForeignKey(User, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    assigned_at = models.DateTimeField(auto_now_add=True)
-    objects = models.Manager()
-    active = ActiveCourseProfessorManager()
+    class Meta:
+        abstract = True  # This ensures no database table is created for this model.
+
+
+class Program(BaseModel):
+    name = models.CharField(max_length=255, unique=True)
+    slug = models.SlugField(blank=True, null=True)
+    code = models.CharField(max_length=50, blank=True, null=True)
+    professors = models.ManyToManyField("User", through="ProgramProfessor", blank=True)
+    faculty = models.ForeignKey("Faculty", on_delete=models.CASCADE, related_name="programs", null=True, blank=True)
 
     def __str__(self):
-        return f'{self.professor} - {self.course} - {self.assigned_at}'
+        return f'{self.name} - {self.code}'
+
+
+
+
+class ProgramProfessor(models.Model):
+    professor = models.ForeignKey("User", on_delete=models.CASCADE, blank=True, null=True)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.professor} - {self.program}'
+
 
 
 # Subjects
-class Subject(models.Model):
+class Subject(BaseModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
-    is_active = models.BooleanField(default=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-
 
     def __str__(self):
-        return f'{self.name} - {self.slug} - {self.is_active} '
+        return f"{self.name} ({'Active' if self.is_active else 'Inactive'})"
 
-    def restore(self):
-        self.deleted_at = None
-        self.save()
 
 
 # Rooms
-class Room(models.Model):
+class Room(BaseModel):
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
-    is_active = models.BooleanField(default=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-
+    slug = models.SlugField(unique=True, blank=True, null=True)
 
     def __str__(self):
-        return f'{self.name} - {self.slug} - {self.is_active}'
+        return f"{self.name} ({'Active' if self.is_active else 'Inactive'})"
 
-    def restore(self):
-        self.deleted_at = None
-        self.save()
-
-# Schedules
-class Schedule(models.Model):
-    section = models.ForeignKey("Section", on_delete=models.CASCADE, null=True, blank=True, related_name="schedules")  # 🔗 Add this
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    room = models.ForeignKey(Room, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100, null=True, blank=True)
-    start_time = models.TimeField()
-    end_time = models.TimeField()
-    SEMESTER_CHOICES = [('First', 'First'), ('Second', 'Second'), ('Summer', 'Summer')]
-    semester = models.CharField(max_length=10, choices=SEMESTER_CHOICES)
-    year = models.CharField(max_length=10)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE,null=True )
-    is_active = models.BooleanField(default=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-
-    def __str__(self):
-        return f' {self.section} - {self.subject} - {self.room} - {self.name} - {self.start_time} - {self.end_time} - {self.semester} - {self.year} - {self.is_active}'
-
-    def restore(self):
-        self.deleted_at = None
-        self.save()
-
-
-# Section
-class Section(models.Model):
+class Section(BaseModel):
     YEAR_LEVELS = [
         ('1', '1st Year'),
         ('2', '2nd Year'),
         ('3', '3rd Year'),
         ('4', '4th Year'),
     ]
-    name = models.CharField(max_length=100, unique=True)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="sections")
-    year_level = models.CharField(max_length=1, choices=YEAR_LEVELS, null=True)  # ✅ here!
-    students = models.ManyToManyField(User, related_name="sections")
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+
+    name = models.CharField(max_length=255, blank=True, null=True)
+    slug = models.SlugField(unique=True, blank=True, null=True)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name="sections", blank=True, null=True)
+    year_level = models.CharField(max_length=1, choices=YEAR_LEVELS, null=True)
+    students = models.ManyToManyField("User", related_name="sections")
+
+    constraints = [
+        models.UniqueConstraint(fields=['name', 'program', 'year_level'], name='unique_section_program_year'), ]
+
+
+
+    def save(self, *args, **kwargs):
+        # If name is provided and doesn't start with "Section", prepend it
+        if self.name:
+            if not self.name.startswith("Section"):
+                self.name = f"Section {self.name} - {self.program} - {self.year_level}"
+        # If name is not provided, auto-generate using program and year_level
+        elif self.program and self.year_level:
+            year_display = dict(self.YEAR_LEVELS).get(self.year_level, self.year_level)
+            self.name = f"Section {self.program.name} - {year_display}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f' Year {self.year_level} - {self.name}  - {self.course.name} '
+        return self.name
+
+# Schedules
+class Schedule(BaseModel):
+    SEMESTER_CHOICES = [
+        ('First', 'First Semester'),
+        ('Second', 'Second Semester'),
+        ('Summer', 'Summer Semester'),
+    ]
+    instructor = models.ForeignKey("User", on_delete=models.CASCADE, null=True, blank=True, related_name="schedules")
+    section = models.ForeignKey("Section", on_delete=models.CASCADE, null=True, blank=True)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255, null=True, blank=True)
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+    semester = models.CharField(max_length=10, choices=SEMESTER_CHOICES)
+    year = models.DateField(null=True, blank=True)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, null=True, blank=True)
+
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['program','section','subject'], name='unique_section_subject'),
+
+
+        ]
+
+
+    def __str__(self):
+        return f"{self.name}" if self.year else "No year"
+
+
+    def save(self, *args, **kwargs):
+        # Automatically combine year and semester to create academic_period
+        self.name = f"{self.section.name} - {self.subject.name} - {self.section.year_level}"
+        self.academic_period = f"{self.year} - {self.semester}"
+        super().save(*args, **kwargs)
+
+
 
 
 
 # Faculty Assignments
-class FacultyAssignment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    schedules = models.ManyToManyField('Schedule', through='FacultySchedule')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
+class FacultyAssignment(BaseModel):
+    user = models.ForeignKey("User", on_delete=models.SET_NULL, null=True)
+    schedules = models.ManyToManyField(Schedule, through="FacultySchedule")
 
     def __str__(self):
-        return f'{self.user}'
-
-    def restore(self):
-        self.deleted_at = None
-        self.save()
-
-
+        return f"Faculty Assignment: {self.user}"
 
 
 class FacultySchedule(models.Model):
@@ -139,4 +148,39 @@ class FacultySchedule(models.Model):
     assigned_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.faculty_assignment.user} -> {self.schedule.name} at {self.assigned_at}'
+        return f"Faculty: {self.faculty_assignment.user}, Schedule: {self.schedule.name} at {self.assigned_at}"
+
+class Faculty(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    dean = models.ForeignKey(
+        "User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="faculties_as_dean"
+        # REMOVE limit_choices_to
+    )
+    professors = models.ManyToManyField(
+        "User",
+        related_name="faculties_as_professor",
+        blank=True
+        # REMOVE limit_choices_to
+    )
+    evaluations = models.ManyToManyField(
+        "Evaluation",
+        related_name="faculties",
+        blank=True
+    )
+    student_evaluations = models.ManyToManyField(
+        "StudentEvaluation",
+        related_name="faculties",
+        blank=True
+    )
+
+    def clean(self):
+        # Extra validation if needed
+        if self.dean and self.dean.role != 'Dean':
+            raise ValidationError("Selected user is not a Dean.")
+        # You can add more validation for professors if needed
+
+    def __str__(self):
+        return self.name
