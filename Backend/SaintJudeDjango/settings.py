@@ -117,7 +117,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "https://phinma-fes.com",
 ]
-
+ALLOWED_HOSTS = ['merged-front-back.onrender.com', 'localhost', '127.0.0.1']
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
