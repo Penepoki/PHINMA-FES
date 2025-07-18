@@ -1,4 +1,10 @@
 import { useEffect, useState } from "react";
+
+// Option type for comboboxes
+interface Option {
+  id: number | string;
+  name: string;
+}
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import api from "../../../utils/api";
 import DataTable, {
@@ -272,18 +278,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 									);
 									return;
 								}
-								createSchedule({
-									program: selectedProgram.id,
-									section: selectedSection.id,
-									subject: selectedSubject.id,
-									room: selectedRoom.id,
-									instructor: selectedProfessor.id,
-									name: form.name,
-									start_time: form.start_time,
-									end_time: form.end_time,
-									semester: form.semester,
-									year: form.year,
-								});
+								createSchedule();
 								(
 									document.getElementById(
 										"create_new_schedule",

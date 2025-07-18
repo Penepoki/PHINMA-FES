@@ -47,6 +47,7 @@ interface CopusMatrixProps {
 
 // Define the TimestampData interface
 interface TimestampData {
+	id: number;
 	evaluation: number;
 	student_activities: Record<string, boolean>;
 	instructor_activities: Record<string, boolean>;
@@ -102,7 +103,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 	);
 	const [isWithinScheduleTime, setIsWithinScheduleTime] = useState(true);
 	const [canEditEvaluation, setCanEditEvaluation] = useState(false);
-	const [schedule, setSchedule] = useState<any>(null);
+	const [  setSchedule] = useState<any>(null);
 
 	const minuteBoxes = Array.from(
 		{ length: (MAX_MINUTE - MIN_MINUTE) / INCREMENT + 1 },
@@ -167,7 +168,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 
 	// Define the timestamp API functions
 	const timestampApi = {
-		createTimestamp: async (data: TimestampData) => {
+		createTimestamp: async (data: Omit<TimestampData, "id">) => {
 			const response = await api.post("/timestamp/timestamps/", data);
 			return response.data;
 		},
@@ -210,7 +211,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 				),
 				student_comments: { notes: currentStudentComments },
 				instructor_comments: { notes: currentTeacherComments },
-				time_record: formatStaticTimeRecord(activeMinute),
+				time_record: formatTimeRecord(activeMinute),
 			};
 
 			if (timestampId) {
@@ -603,7 +604,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 			type === "teacher" ? selections : currentSelections.teacher;
 
 		// Create the timestamp data
-		const timestampData: TimestampData = {
+		const timestampData: Omit<TimestampData, "id"> = {
 			evaluation: evaluationId,
 			// Convert frontend labels to backend keys and set as boolean values
 			student_activities: Object.fromEntries(

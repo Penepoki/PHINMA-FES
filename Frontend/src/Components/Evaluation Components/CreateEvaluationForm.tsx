@@ -1,4 +1,3 @@
-// New component: CreateEvaluationForm.tsx
 import { useState, useEffect } from "react";
 import api from "../../utils/api.ts";
 
@@ -8,15 +7,35 @@ interface CreateEvaluationProps {
 	initialInstructor?: User | null;
 	initialCopusType?: string;
 }
+
 interface User {
 	id: number;
 	first_name: string;
 	last_name: string;
 }
+
+interface Schedule {
+	id: number;
+	name: string;
+	program: number;
+	instructor: number;
+	subject: string;
+	room: string;
+	semester: string;
+	year: string;
+	section_name?: string;
+	subject_name?: string;
+	room_name?: string;
+	program_name?: string;
+	start_time?: string;
+	end_time?: string;
+}
+
 const getToday = () => {
-	  const today = new Date();
-	  return today.toISOString().split('T')[0];
-	};
+	const today = new Date();
+	return today.toISOString().split('T')[0];
+};
+
 const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 	onSuccess,
 	schedules,
@@ -24,11 +43,11 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 	initialCopusType = "copus_1",
 }) => {
 	const [formData, setFormData] = useState({
-	  schedule: "",
-	  observation_date: getToday(), // <-- set to today
-	  evaluation_type: initialCopusType || "copus_1",
-	  instructor: "",
-	  additional_comments: "",
+		schedule: "",
+		observation_date: getToday(),
+		evaluation_type: initialCopusType || "copus_1",
+		instructor: "",
+		additional_comments: "",
 	});
 	const [loading, setLoading] = useState(false);
 	const [instructors, setInstructors] = useState<User[]>([]);
@@ -69,8 +88,6 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 	// When instructor changes, clear schedule and filter schedules
 	const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
 
-
-
 	useEffect(() => {
 		if (selectedInstructor) {
 			const filtered = schedules.filter(
@@ -85,7 +102,7 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 			setFilteredSchedules([]);
 			setFormData((f) => ({ ...f, schedule: "" }));
 		}
-	}, [selectedInstructor, schedules]);
+	}, [selectedInstructor, schedules, formData.schedule]);
 
 	// When schedule changes, update instructor to match the schedule's instructor
 	useEffect(() => {
@@ -148,11 +165,11 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 			onSuccess(response.data.data);
 			// Reset form
 			setFormData({
-			  schedule: "",
-			  observation_date: getToday(),
-			  evaluation_type: "copus_1",
-  				instructor: selectedInstructor ? String(selectedInstructor.id) : "",
-			  additional_comments: "",
+				schedule: "",
+				observation_date: getToday(),
+				evaluation_type: "copus_1",
+				instructor: selectedInstructor ? String(selectedInstructor.id) : "",
+				additional_comments: "",
 			});
 			setSelectedInstructor(initialInstructor || null);
 
@@ -169,27 +186,27 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 			{error && <div className="text-red-500">{error}</div>}
 
 			<div>
-			  <label className="block text-sm font-medium text-gray-700">
-				Instructor
-			  </label>
-			  <select
-				name="instructor_select"
-				value={selectedInstructor ? selectedInstructor.id : ""}
-				onChange={e => {
-				  const instructor = instructors.find(i => String(i.id) === e.target.value);
-				  setSelectedInstructor(instructor || null);
-				}}
-				className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-				required
-				disabled={!!initialInstructor} // <-- disables if initialInstructor is set
-			  >
-				<option value="">Select an instructor</option>
-				{instructors.map((instructor) => (
-				  <option key={instructor.id} value={instructor.id}>
-					{instructor.first_name} {instructor.last_name}
-				  </option>
-				))}
-			  </select>
+				<label className="block text-sm font-medium text-gray-700">
+					Instructor
+				</label>
+				<select
+					name="instructor_select"
+					value={selectedInstructor ? selectedInstructor.id : ""}
+					onChange={e => {
+						const instructor = instructors.find(i => String(i.id) === e.target.value);
+						setSelectedInstructor(instructor || null);
+					}}
+					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
+					required
+					disabled={!!initialInstructor}
+				>
+					<option value="">Select an instructor</option>
+					{instructors.map((instructor) => (
+						<option key={instructor.id} value={instructor.id}>
+							{instructor.first_name} {instructor.last_name}
+						</option>
+					))}
+				</select>
 			</div>
 
 			<div>
@@ -207,13 +224,11 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 					<option value="">{selectedInstructor ? "Select a schedule" : "Select an instructor first"}</option>
 					{filteredSchedules.map((schedule) => (
 						<option key={schedule.id} value={schedule.id}>
-							{schedule.name} - {schedule.subject}
+							{schedule.name} - {schedule.subject_name || schedule.subject}
 						</option>
 					))}
 				</select>
 			</div>
-
-
 
 			<div>
 				<label className="block text-sm font-medium text-gray-700">
@@ -246,8 +261,22 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 				</select>
 			</div>
 
+			<div>
+				<label className="block text-sm font-medium text-gray-700">
+					Additional Comments
+				</label>
+				<textarea
+					name="additional_comments"
+					value={formData.additional_comments}
+					onChange={handleChange}
+					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
+					rows={3}
+					placeholder="Optional comments about the evaluation..."
+				/>
+			</div>
+
 			<div className="modal-action">
-				<button type="submit" className="btn bg-[#1c402a] text-white">
+				<button type="submit" className="btn bg-[#1c402a] text-white" disabled={loading}>
 					{loading ? "Creating..." : "Create Evaluation"}
 				</button>
 				<button
@@ -259,7 +288,7 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 								"create_new_copus",
 							) as HTMLDialogElement
 						)?.close();
-					}} // You'd need to add onClose to props
+					}}
 				>
 					Cancel
 				</button>
@@ -267,4 +296,5 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 		</form>
 	);
 };
+
 export default CreateEvaluationForm;

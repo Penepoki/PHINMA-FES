@@ -1,4 +1,10 @@
 import { useEffect, useState } from "react";
+
+// Option type for comboboxes
+interface Option {
+  id: number | string;
+  name: string;
+}
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import api from "../../../utils/api";
 import DataTable, {

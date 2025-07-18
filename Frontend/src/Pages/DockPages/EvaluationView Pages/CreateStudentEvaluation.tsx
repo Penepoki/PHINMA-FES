@@ -263,7 +263,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
       });
       const updated = await api.get("studentevaluation/studentevaluation/");
       setEvaluations(updated.data);
-      setForm({ schedule: "", title: "", description: "" });
+      setForm({ schedule: "", title: "", description: "", questions: "" });
       setQuestions([]);
       setImportedQuestionIds([]);
       setIsCreateEvalModalOpen(false);
