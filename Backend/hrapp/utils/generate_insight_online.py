@@ -1,45 +1,41 @@
 import os
 import requests
+import yaml
 from hrapp.models.evaluation_models import Evaluation, Timestamp
 from django.conf import settings
 
-# ---------- COPUS CODES BRIEF EXPLANATION ----------
-COPUS_CODE_EXPLANATION = """
-The Classroom Observation Protocol for Undergraduate STEM (COPUS) is a standardized tool to document how STEM instructors and students spend class time. Key codes include:
-- Student Codes:
-  - L: Listening
-  - Ind: Individual Thinking
-  - Grp: Group Activity
-  - AnQ: Answer Questions
-  - AsQ: Ask Questions
-  - WC: Whole Class Discussion
-  - SP: Student Presentations
-  - T/Q: Test/Quiz
-  - W: Waiting
-  - O: Other
+# ---------- LOAD PROMPTS FROM YAML ----------
+PROMPT_PATH = os.path.join(os.path.dirname(__file__), '../prompts/ai_prompts.yaml')
 
-- Instructor Codes:
-  - L: Lecture
-  - RtW: Realtime Writing
-  - M/G: Moving/Guiding
-  - AnQ: Answer Question
-  - PQ: Pose Question
-  - FUp: Follow-up
-  - 1o1: 1-on-1 Discussion
-  - D/V: Demonstrate/Video
-  - Adm: Administrative Tasks
-  - W: Waiting
-  - O: Other
-"""
+def load_prompts():
+    if not os.path.exists(PROMPT_PATH):
+        raise FileNotFoundError(f"Prompt YAML file not found at {PROMPT_PATH}")
+    with open(PROMPT_PATH, 'r', encoding='utf-8') as f:
+        prompts_yaml = yaml.safe_load(f)
+    if not prompts_yaml or 'prompts' not in prompts_yaml:
+        raise KeyError("'prompts' key missing in YAML file.")
+    prompts = prompts_yaml['prompts']
+    for key in ['copus_code_explanation', 'feedback_instructions']:
+        if key not in prompts:
+            raise KeyError(f"'{key}' key missing under 'prompts' in YAML file.")
+        if 'description' not in prompts[key]:
+            raise KeyError(f"'description' key missing under '{key}' in YAML file.")
+    return prompts
+
+PROMPTS = load_prompts()
+COPUS_CODE_EXPLANATION = PROMPTS['copus_code_explanation']['description']
+FEEDBACK_INSTRUCTIONS = PROMPTS['feedback_instructions']['description']
 
 # ---------- API KEY CONFIG ----------
 def get_api_key():
-    return (
+    api_key = (
         os.getenv("HUGGINGFACE_API_KEY")
         or os.getenv("HF_API_KEY")
         or getattr(settings, "HF_API_KEY", None)
     )
-    #raise RuntimeError("No HuggingFace API key found in 'HUGGINGFACE_API_KEY' or 'HF_API_KEY' environment variable.")
+    if not api_key:
+        raise RuntimeError("No HuggingFace API key found in environment variables or Django settings.")
+    return api_key
 
 # ---------- AI REQUEST ----------
 def generate_ai_feedback(prompt: str, hf_api_key: str, hf_endpoint: str, max_new_tokens: int = 400, temperature: float = 0.7) -> str:
@@ -72,9 +68,7 @@ def generate_ai_feedback(prompt: str, hf_api_key: str, hf_endpoint: str, max_new
 # ---------- PROMPT FORMULATION (UPDATED) ----------
 def build_copus_prompt_from_timestamps(evaluation, timestamps):
     prompt = COPUS_CODE_EXPLANATION
-    prompt += "\n\nBelow is all data from a COPUS class session. Each row is a timestamped observation from the class session."
-    prompt += "\nProvide a concise but actionable classroom-level feedback, highlighting strength and meaningful areas for instructor/professor improvement using evidence from the data"
-    prompt += "\n\nData:\n"
+    prompt += "\n" + FEEDBACK_INSTRUCTIONS
     if not timestamps:
         prompt += "- No classroom data detected.\n"
     else:
@@ -86,20 +80,36 @@ def build_copus_prompt_from_timestamps(evaluation, timestamps):
                 prompt += f", Student Comments: {ts.student_comments}"
             if ts.instructor_comments:
                 prompt += f", Instructor Comments: {ts.instructor_comments}"
-
     prompt += "\n\n[End of data. Copus specialist, please provide your expert feedback for the above classroom data:]\n"
     return prompt
 
 def generate_ai_feedback_for_evaluation(evaluation, hf_endpoint=None, max_new_tokens=400, temperature=0.7):
+    """
+    Sends a prompt to the HuggingFace inference API and returns the generated feedback.
+    Args:
+        prompt (str): The prompt to send.
+        ...
+    Returns:
+        str: The generated feedback.
+    Raises:
+        requests.HTTPError: If the API call fails.
+    """
+    import re
     timestamp = Timestamp.objects.filter(evaluation=evaluation).order_by('time_record')
     prompt = build_copus_prompt_from_timestamps(evaluation, timestamp)
     api_key = get_api_key()
     if not api_key:
         raise RuntimeError("No HuggingFace API key found in environment or settings")
     if not hf_endpoint:
-        hf_endpoint = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
+            
+        hf_endpoint = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
     feedback = generate_ai_feedback(prompt, api_key, hf_endpoint, max_new_tokens, temperature)
-    feedback = feedback.replace(COPUS_CODE_EXPLANATION.strip(), "").lstrip()
+    feedback = feedback.replace(COPUS_CODE_EXPLANATION.strip(), "").replace(FEEDBACK_INSTRUCTIONS.strip(), "").lstrip()
+    # Remove any lines that match the data row format: Row N: Time: ...
+    feedback = '\n'.join([
+        line for line in feedback.splitlines()
+        if not re.match(r"^\s*Row \d+: Time: ", line)
+    ])
     return {"feedback": feedback}
 
 

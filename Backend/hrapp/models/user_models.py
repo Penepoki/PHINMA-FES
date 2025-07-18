@@ -5,7 +5,7 @@ from django.utils.timezone import now
 from django.db import models
 from django.contrib.auth.models import AbstractUser, Permission
 from django.contrib.auth.base_user import BaseUserManager
-
+from .custom_manager import *
 # Custom User Model
 
 # Custom Managers
@@ -46,18 +46,6 @@ class User(AbstractUser):
     #ByteISO or Image (Profile PICTURE!!!)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
-    @property
-    def faculty(self):
-        # If user is a dean
-        from hrapp.models import Faculty
-        faculty = Faculty.objects.filter(dean=self).first()
-        if faculty:
-            return faculty
-        # If user is a professor
-        faculty = Faculty.objects.filter(professors=self).first()
-        if faculty:
-            return faculty
-        return None
 
     def restore(self):
         """Restore a soft-deleted user."""

@@ -41,14 +41,3 @@ class ScheduleFilter(filters.FilterSet):
     class Meta:
         model = Schedule
         fields = ['id','name', 'section', 'is_active', 'start_time']
-
-
-class SectionFilter(filters.FilterSet):
-    name = filters.CharFilter(lookup_expr='icontains')
-    year_level = filters.CharFilter(lookup_expr='icontains')
-    is_active = filters.BooleanFilter()
-    created_at = filters.DateFromToRangeFilter()
-
-    class Meta:
-        model = Section
-        fields = ['id','name', 'year_level', 'is_active']

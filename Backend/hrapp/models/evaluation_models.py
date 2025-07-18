@@ -128,6 +128,12 @@ class Evaluation(models.Model):
         return None
 
 
+
+    """def delete(self, using=None, keep_parents=False):
+        self.deleted_at = timezone.now()
+        self.is_deleted = True
+        self.save()"""
+
     def __str__(self):
         return f"Evaluation #{self.id} on {self.observation_date}"
 
@@ -135,11 +141,32 @@ class Evaluation(models.Model):
         self.deleted_at = None
         self.save()
 
+
+"""class EvaluationEvaluator(models.Model):#Junction Table Many to Many for User and Evaluations
+        evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE)
+        evaluator = models.ForeignKey(User, on_delete=models.CASCADE)
+        help_text = "THIS IS INTERMEDIATE TABLE FOR COPUS EVALUATION CONNECTS EVALUATOR(USERS TO EVALUATIONS)"
+
+# Role can be derived at runtime using the user's groups.
+@property
+def role(self):
+    return self.evaluator.groups.first().name if self.evaluator.groups.exists() else None
+
+
+class EvaluationInstructor(models.Model):
+    evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE)
+    instructor = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
+    @property #Similarly, you can also fetch the role dynamically if needed.
+    def role(self):
+        return self.instructor.groups.first().name if self.instructor.groups.exists() else None"""
+
 # Student Evaluations Table
 class StudentEvaluation(models.Model):
-    title = models.CharField(max_length=255, null=True ,blank=True)
+    title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
-    schedule = models.ForeignKey(Schedule, on_delete=models.SET_NULL, null=True)
+    user_professor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     import_questions = models.ManyToManyField("StudentEvaluationQuestion", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -147,20 +174,16 @@ class StudentEvaluation(models.Model):
 
     objects = CustomStudentEvaluation()
 
-    def save(self, *args, **kwargs):
-        if self.title:
-            if not self.title.startswith("Student Evaluation: "):
-                self.title = f"Student Evaluation: {self.schedule.instructor} - {self.schedule.subject}"
-
-        elif self.schedule.instructor and self.schedule.subject:
-            self.title = f"Student Evaluation: {self.schedule.instructor.full_name} - {self.schedule.subject}"
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return f"{self.title} - {self.description}"
 
+    def restore(self):
+        self.deleted_at = None
+        self.save()
 
-
+    def delete(self):
+        self.deleted_at = True
+        self.save()
 
 #STUDENT EVALUATION QUESTION TABLE
 class StudentEvaluationQuestion(models.Model):
@@ -170,7 +193,7 @@ class StudentEvaluationQuestion(models.Model):
         ("RATING", "Rating Scale"),
     ]
 
-    #student_evaluation = models.ForeignKey(StudentEvaluation, on_delete=models.SET_NULL, null=True, blank=True)
+    student_evaluation = models.ForeignKey(StudentEvaluation, on_delete=models.SET_NULL, null=True, blank=True)
     question = models.TextField()
     type = models.CharField(max_length=15, choices=TYPE_CHOICES)  # Limited choices
     options = models.JSONField(null=True, blank=True)
@@ -193,17 +216,17 @@ class StudentEvaluationResponse(models.Model):
     student_evaluation = models.ForeignKey(StudentEvaluation, on_delete=models.SET_NULL, null=True)  # Links response to evaluation
     student_eval_question = models.ForeignKey(StudentEvaluationQuestion,
                                               on_delete=models.SET_NULL, null=True)  # Links response to question
+    schedule = models.ForeignKey(Schedule, on_delete=models.SET_NULL, null=True)  # Links response to schedule
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Student who provided the response
     answer = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
-    class Meta:
-        unique_together = ("user", "student_evaluation", "student_eval_question")
+
 
     def __str__(self):
-        return f"{self.student_evaluation} - {self.user} - {self.answer} "
+        return f"{self.student_evaluation} - {self.schedule} - {self.user} - {self.answer} "
 
     def restore(self):
         self.deleted_at = None

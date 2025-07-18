@@ -20,7 +20,7 @@ class ProgramSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Program
-        fields = ['id','name', 'is_active', 'professor_names', 'professors']
+        fields = ['id','name', 'code', 'is_active', 'professor_names', 'professors']
         read_only_fields = ['deleted_at', 'updated_at']
 
     def to_representation(self, instance):
@@ -94,11 +94,13 @@ class ProgramSerializer(serializers.ModelSerializer):
         return value
 
 class ProgramProfessorSerializer(serializers.ModelSerializer):
-    professor_details = UserProgramProfessorSerializer(source='professor', read_only=True)
-    program_name = serializers.CharField(source='program.name', read_only=True)
+    professor_details = UserProgramProfessorSerializer(source='professor',
+                                                       read_only=True)  # Uses the professor user serializer
+
     class Meta:
         model = ProgramProfessor
-        fields = ['program', 'program_name', 'professor', 'professor_details', 'assigned_at']
+        fields = ['program', 'professor', 'professor_details', 'assigned_at']  # Expose `professor_details`
+
 
     def get_professors(self, obj):
         return {
@@ -128,11 +130,10 @@ class RoomSerializer(serializers.ModelSerializer):
 
 # SECTION SERIALIZER
 class SectionSerializer(serializers.ModelSerializer):
-    program_name = serializers.CharField(source='program.name', read_only=True)
 
     class Meta:
         model = Section
-        fields = ['id', 'name', 'year_level', 'program', 'program_name', 'students', 'is_active']
+        fields = ['name', 'year_level' ,'is_active']
         read_only_fields = ['created_at', 'updated_at', 'deleted_at']
 
 # SCHEDULE SERIALIZER
