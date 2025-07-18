@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Evaluation Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; color: #222; }
+        h1 { color: #2c3e50; }
+        h2 { color: #34495e; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .section { margin-bottom: 30px; }
+        .chart-img { display: block; margin: 20px auto; max-width: 400px; max-height: 300px; }
+        .summary-box { background: #f8f8f8; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Evaluation Report</h1>
+
+    <div class="section">
+        <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+            <tr>
+                <td style="font-weight:bold; padding:6px 12px; width:30%;">Role:</td>
+                <td style="padding:6px 12px;">{{ role }}</td>
+                <td style="font-weight:bold; padding:6px 12px; width:30%;">Date:</td>
+                <td style="padding:6px 12px;">{{ date }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight:bold; padding:6px 12px;">Professor Name:</td>
+                <td style="padding:6px 12px;">{{ professor_name }}</td>
+                <td style="font-weight:bold; padding:6px 12px;">Section:</td>
+                <td style="padding:6px 12px;">{{ section }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight:bold; padding:6px 12px;">Subject:</td>
+                <td style="padding:6px 12px;">{{ subject }}</td>
+                <td style="font-weight:bold; padding:6px 12px;">Room:</td>
+                <td style="padding:6px 12px;">{{ room }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight:bold; padding:6px 12px;">Program:</td>
+                <td style="padding:6px 12px;">{{ program }}</td>
+                <td style="font-weight:bold; padding:6px 12px;">Start Time:</td>
+                <td style="padding:6px 12px;">{{ start_time }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight:bold; padding:6px 12px;">Semester:</td>
+                <td style="padding:6px 12px;">{{ semester }}</td>
+                <td style="font-weight:bold; padding:6px 12px;">End time:</td>
+                <td style="padding:6px 12px;">{{ end_time }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Pie Graph</h2>
+        {% if pie_chart_img %}
+            <img class="chart-img" src="{{ pie_chart_img }}" alt="Pie Chart" />
+        {% else %}
+            <p>No pie chart available.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>Chart</h2>
+        {% if chart_img %}
+            <img class="chart-img" src="{{ chart_img }}" alt="Chart" />
+        {% else %}
+            <p>No chart available.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>AI Summary</h2>
+        <div class="summary-box">
+            {{ ai_summary|linebreaksbr }}
+        </div>
+    </div>
+</body>
+</html>
