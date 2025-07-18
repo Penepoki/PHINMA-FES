@@ -1,14 +1,14 @@
 import base64
 from io import BytesIO
 from django.template.loader import render_to_string
-from weasyprint import HTML
+#from weasyprint import HTML
 
 
-def generate_evaluation_pdf(evaluation_data):
-    """
+"""def generate_evaluation_pdf(evaluation_data):
+    #COMMENT HERE  
     Generates a PDF from evaluation data (dict), including base64 images for charts.
     Returns PDF bytes.
-    """
+    #COMMENT HERE
 
     # Render HTML using a Django template (to be created)
     html_content = render_to_string('evaluation_pdf_template.html', {
@@ -31,6 +31,7 @@ def generate_evaluation_pdf(evaluation_data):
 
     # Generate PDF from HTML
     pdf_file = BytesIO()
-    HTML(string=html_content).write_pdf(pdf_file)
+    #HTML(string=html_content).write_pdf(pdf_file)
     pdf_file.seek(0)
     return pdf_file.read()
+"""

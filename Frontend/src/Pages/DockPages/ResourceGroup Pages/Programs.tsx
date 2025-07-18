@@ -43,6 +43,20 @@ function Programs({ setActiveView }: ProgramProps) {
 	// Edit form state
 	const [editProgramName, setEditProgramName] = useState("");
 	const [currentEditingProgram, setCurrentEditingProgram] = useState<Program | null>(null);
+	// Add these additional state variables to your existing state declarations
+	const [availableProfessors, setAvailableProfessors] = useState<any[]>([]);
+	const [selectedProfessorsForEdit, setSelectedProfessorsForEdit] = useState<number[]>([]);
+	const [currentProgramProfessors, setCurrentProgramProfessors] = useState<ProgramProfessor[]>([]);
+
+	// Add this function to fetch available professors
+	const fetchAvailableProfessors = async () => {
+		try {
+			const response = await api.get("/program-professor/program-professors/");
+			setAvailableProfessors(response.data);
+		} catch (error) {
+			console.error("Error fetching professors:", error);
+		}
+	};
 
 	// Code below adds junc table progprof
 	const fetchProgramsandProgramProfessors = async () => {
@@ -111,7 +125,10 @@ function Programs({ setActiveView }: ProgramProps) {
 		try {
 			await api.patch(
 				`/program/programs/${currentEditingProgram.id}/`,
-				{ name: editProgramName },
+				{
+					name: editProgramName,
+					professors: selectedProfessorsForEdit // Include professors in the update
+				},
 				{
 					headers: { Authorization: `Bearer ${token}` },
 				},
@@ -127,14 +144,29 @@ function Programs({ setActiveView }: ProgramProps) {
 		}
 	};
 
+	// Update the resetEditForm function
 	const resetEditForm = () => {
 		setEditProgramName("");
 		setCurrentEditingProgram(null);
+		setSelectedProfessorsForEdit([]);
+		setCurrentProgramProfessors([]);
+		setAvailableProfessors([]);
 	};
 
+
+	// Update the openEditDialog function to include professor data
 	const openEditDialog = (program: Program) => {
 		setCurrentEditingProgram(program);
 		setEditProgramName(program.name);
+
+		// Get current professors for this program
+		const currentProfs = programProfessors.filter(rel => rel.program === program.id);
+		setCurrentProgramProfessors(currentProfs);
+		setSelectedProfessorsForEdit(currentProfs.map(rel => rel.professor));
+
+		// Fetch available professors
+		fetchAvailableProfessors();
+
 		(document.getElementById("edit_program_modal") as HTMLDialogElement)?.showModal();
 	};
 
@@ -233,6 +265,17 @@ function Programs({ setActiveView }: ProgramProps) {
 			),
 		},
 	];
+
+	// Add helper functions for professor management
+	const addProfessorToProgram = (professorId: number) => {
+		if (!selectedProfessorsForEdit.includes(professorId)) {
+			setSelectedProfessorsForEdit([...selectedProfessorsForEdit, professorId]);
+		}
+	};
+
+	const removeProfessorFromProgram = (professorId: number) => {
+		setSelectedProfessorsForEdit(selectedProfessorsForEdit.filter(id => id !== professorId));
+	};
 
 	const programProfessorColumns: Column<ProgramProfessor>[] = [
 		{
@@ -341,63 +384,203 @@ function Programs({ setActiveView }: ProgramProps) {
 					</div>
 				</dialog>
 
-				{/* Edit Program Modal */}
-				<dialog id="edit_program_modal" className="modal">
-					<div className="modal-box w-11/12 max-w-3xl">
-						<h3 className="mb-4 text-center text-2xl font-bold">
-							Edit Program
-						</h3>
+				// Replace your existing edit dialog with this enhanced version:
+{/* Enhanced Edit Program Modal */}
+<dialog id="edit_program_modal" className="modal">
+	<div className="modal-box w-11/12 max-w-5xl max-h-[90vh] overflow-y-auto">
+		<h3 className="mb-4 text-center text-2xl font-bold">
+			Edit Program
+		</h3>
 
-						<form
-							onSubmit={(e) => {
-								e.preventDefault();
-								if (!editProgramName.trim()) {
-									alert("Please enter a program name.");
-									return;
-								}
-								updateProgram();
-							}}
-							className="flex flex-col gap-6"
-						>
-							{/* Program Name */}
-							<div className="flex flex-col gap-2 md:flex-row md:items-center">
-								<label className="text-left text-lg font-bold md:w-1/6">
-									Name:
-								</label>
-								<input
-									type="text"
-									value={editProgramName}
-									onChange={(e) =>
-										setEditProgramName(e.target.value)
-									}
-									placeholder="Enter program name"
-									className="input input-bordered w-full"
-									required
-								/>
-							</div>
+		<form
+			onSubmit={(e) => {
+				e.preventDefault();
+				if (!editProgramName.trim()) {
+					alert("Please enter a program name.");
+					return;
+				}
+				updateProgram();
+			}}
+			className="flex flex-col gap-6"
+		>
+			{/* Program Name */}
+			<div className="flex flex-col gap-2 md:flex-row md:items-center">
+				<label className="text-left text-lg font-bold md:w-1/4">
+					Program Name:
+				</label>
+				<input
+					type="text"
+					value={editProgramName}
+					onChange={(e) => setEditProgramName(e.target.value)}
+					placeholder="Enter program name"
+					className="input input-bordered w-full"
+					required
+					autoFocus
+				/>
+			</div>
 
-							{/* Action Buttons */}
-							<div className="modal-action">
-								<button
-									type="submit"
-									className="btn btn-success text-white"
-								>
-									Update
-								</button>
-								<button
-									type="button"
-									className="btn btn-cancel"
-									onClick={() => {
-										resetEditForm();
-										(document.getElementById("edit_program_modal") as HTMLDialogElement)?.close();
-									}}
-								>
-									Cancel
-								</button>
-							</div>
-						</form>
+			{/* Current Program Info Display */}
+			{currentEditingProgram && (
+				<div className="rounded-lg bg-gray-100 p-4">
+					<h4 className="mb-2 font-semibold text-gray-700">Current Program Information:</h4>
+					<div className="grid grid-cols-1 gap-2 text-sm text-gray-600 md:grid-cols-2">
+						<div>
+							<span className="font-medium">ID:</span> {currentEditingProgram.id}
+						</div>
+						<div>
+							<span className="font-medium">Status:</span>
+							<span className={`ml-1 ${currentEditingProgram.is_active ? 'text-green-600' : 'text-red-600'}`}>
+								{currentEditingProgram.is_active ? 'Active' : 'Inactive'}
+							</span>
+						</div>
+						<div className="md:col-span-2">
+							<span className="font-medium">Original Name:</span> {currentEditingProgram.name}
+						</div>
 					</div>
-				</dialog>
+				</div>
+			)}
+
+			{/* Professor Management Section */}
+			<div className="rounded-lg border-2 border-gray-200 p-4">
+				<h4 className="mb-4 text-lg font-semibold text-gray-700">Manage Professors</h4>
+
+				{/* Currently Assigned Professors */}
+				<div className="mb-4">
+					<h5 className="mb-2 font-medium text-gray-600">Currently Assigned Professors:</h5>
+					{currentProgramProfessors.length > 0 ? (
+						<div className="space-y-2">
+							{currentProgramProfessors.map((rel) => (
+								<div key={rel.professor} className="flex items-center justify-between rounded bg-blue-50 p-2">
+									<span className="text-sm">
+										{rel.professor_details?.full_name || `Professor ID: ${rel.professor}`}
+									</span>
+									<button
+										type="button"
+										onClick={() => removeProfessorFromProgram(rel.professor)}
+										className="btn btn-sm btn-error text-white"
+									>
+										Remove
+									</button>
+								</div>
+							))}
+						</div>
+					) : (
+						<p className="text-sm text-gray-500">No professors currently assigned</p>
+					)}
+				</div>
+
+				{/* Add New Professor */}
+				<div>
+					<h5 className="mb-2 font-medium text-gray-600">Add Professor:</h5>
+					<div className="flex gap-2">
+						<select
+							className="select select-bordered flex-1"
+							onChange={(e) => {
+								const professorId = parseInt(e.target.value);
+								if (professorId && !selectedProfessorsForEdit.includes(professorId)) {
+									addProfessorToProgram(professorId);
+									e.target.value = ""; // Reset selection
+								}
+							}}
+						>
+							<option value="">Select a professor to add</option>
+							{availableProfessors
+								.filter(prof => !selectedProfessorsForEdit.includes(prof.id))
+								.map((professor) => (
+									<option key={professor.id} value={professor.id}>
+										{professor.full_name || `${professor.first_name} ${professor.last_name}`}
+									</option>
+								))
+							}
+						</select>
+					</div>
+				</div>
+
+				{/* Newly Added Professors (not yet saved) */}
+				{selectedProfessorsForEdit.length > currentProgramProfessors.length && (
+					<div className="mt-4">
+						<h5 className="mb-2 font-medium text-green-600">Professors to be Added:</h5>
+						<div className="space-y-2">
+							{selectedProfessorsForEdit
+								.filter(profId => !currentProgramProfessors.some(rel => rel.professor === profId))
+								.map((professorId) => {
+									const professor = availableProfessors.find(p => p.id === professorId);
+									return (
+										<div key={professorId} className="flex items-center justify-between rounded bg-green-50 p-2">
+											<span className="text-sm">
+												{professor?.full_name || professor?.first_name + " " + professor?.last_name || `Professor ID: ${professorId}`}
+											</span>
+											<button
+												type="button"
+												onClick={() => removeProfessorFromProgram(professorId)}
+												className="btn btn-sm btn-outline btn-error"
+											>
+												Remove
+											</button>
+										</div>
+									);
+								})
+							}
+						</div>
+					</div>
+				)}
+
+						{/* Professors to be Removed */}
+						{currentProgramProfessors.some(rel => !selectedProfessorsForEdit.includes(rel.professor)) && (
+							<div className="mt-4">
+								<h5 className="mb-2 font-medium text-red-600">Professors to be Removed:</h5>
+								<div className="space-y-2">
+									{currentProgramProfessors
+										.filter(rel => !selectedProfessorsForEdit.includes(rel.professor))
+										.map((rel) => (
+											<div key={rel.professor} className="flex items-center justify-between rounded bg-red-50 p-2">
+												<span className="text-sm">
+													{rel.professor_details?.full_name || `Professor ID: ${rel.professor}`}
+												</span>
+												<button
+													type="button"
+													onClick={() => addProfessorToProgram(rel.professor)}
+													className="btn btn-sm btn-outline btn-success"
+												>
+													Keep
+												</button>
+											</div>
+										))
+									}
+								</div>
+							</div>
+						)}
+					</div>
+
+					{/* Action Buttons */}
+					<div className="modal-action">
+						<button
+							type="submit"
+							className="btn btn-success text-white"
+							disabled={!editProgramName.trim()}
+						>
+							Update Program
+						</button>
+						<button
+							type="button"
+							className="btn btn-neutral"
+							onClick={() => {
+								resetEditForm();
+								(document.getElementById("edit_program_modal") as HTMLDialogElement)?.close();
+							}}
+						>
+							Cancel
+						</button>
+					</div>
+				</form>
+			</div>
+			{/* Click outside to close */}
+			<form method="dialog" className="modal-backdrop">
+				<button type="button" onClick={() => {
+					resetEditForm();
+				}}>close</button>
+			</form>
+		</dialog>
 
 				{/* Delete Program Modal */}
 				<dialog id="delete_program_modal" className="modal">

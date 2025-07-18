@@ -2,7 +2,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import Group
 from hrapp.models import User
-from django.db.models.signals import post_save
+from hrapp.models import Evaluation, StudentEvaluation
 from django.dispatch import receiver
 from django.utils.timezone import now
 from datetime import timedelta
@@ -30,5 +30,24 @@ def create_token_with_expiry(sender, instance, created, **kwargs):
         if not token.expires_at:
             token.expires_at = now() + timedelta(seconds=settings.TOKEN_EXPIRY_DURATION)
             token.save()
+
+
+@receiver(post_save, sender=Evaluation)
+def auto_associate_evaluation(sender, instance, created, **kwargs):
+    if created:
+        try:
+            associate_with_faculty(instance)
+        except Exception as e:
+            import logging
+            logging.exception("Failed to associate Faculty: %s", e)
+
+@receiver(post_save, sender=StudentEvaluation)
+def auto_associate_studentevaluation_with_faculty(sender, instance, created, **kwargs):
+    if created:
+       try:
+            associate_with_faculty(instance)
+       except Exception as e:
+           import logging
+           logging.exception("Failed to associate Faculty: %s", e)
 
 

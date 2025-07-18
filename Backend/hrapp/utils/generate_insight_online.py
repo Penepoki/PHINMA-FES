@@ -7,6 +7,7 @@ from django.conf import settings
 # ---------- LOAD PROMPTS FROM YAML ----------
 PROMPT_PATH = os.path.join(os.path.dirname(__file__), '../prompts/ai_prompts.yaml')
 
+
 def load_prompts():
     if not os.path.exists(PROMPT_PATH):
         raise FileNotFoundError(f"Prompt YAML file not found at {PROMPT_PATH}")
@@ -22,23 +23,27 @@ def load_prompts():
             raise KeyError(f"'description' key missing under '{key}' in YAML file.")
     return prompts
 
+
 PROMPTS = load_prompts()
 COPUS_CODE_EXPLANATION = PROMPTS['copus_code_explanation']['description']
 FEEDBACK_INSTRUCTIONS = PROMPTS['feedback_instructions']['description']
 
+
 # ---------- API KEY CONFIG ----------
 def get_api_key():
     api_key = (
-        os.getenv("HUGGINGFACE_API_KEY")
-        or os.getenv("HF_API_KEY")
-        or getattr(settings, "HF_API_KEY", None)
+            os.getenv("HUGGINGFACE_API_KEY")
+            or os.getenv("HF_API_KEY")
+            or getattr(settings, "HF_API_KEY", None)
     )
     if not api_key:
         raise RuntimeError("No HuggingFace API key found in environment variables or Django settings.")
     return api_key
 
+
 # ---------- AI REQUEST ----------
-def generate_ai_feedback(prompt: str, hf_api_key: str, hf_endpoint: str, max_new_tokens: int = 400, temperature: float = 0.7) -> str:
+def generate_ai_feedback(prompt: str, hf_api_key: str, hf_endpoint: str, max_new_tokens: int = 400,
+                         temperature: float = 0.7) -> str:
     headers = {
         "Authorization": f"Bearer {hf_api_key}",
         "Content-Type": "application/json"
@@ -65,6 +70,7 @@ def generate_ai_feedback(prompt: str, hf_api_key: str, hf_endpoint: str, max_new
     else:
         return str(result)
 
+
 # ---------- PROMPT FORMULATION (UPDATED) ----------
 def build_copus_prompt_from_timestamps(evaluation, timestamps):
     prompt = COPUS_CODE_EXPLANATION
@@ -75,13 +81,14 @@ def build_copus_prompt_from_timestamps(evaluation, timestamps):
         for i, ts in enumerate(timestamps):
             student_acts = ", ".join([k for k, v in (ts.student_activities or {}).items() if v])
             instructor_acts = ", ".join([k for k, v in (ts.instructor_activities or {}).items() if v])
-            prompt += f" Row {i+1}: Time: {ts.time_record}, Student: [{student_acts}] Instructor: [{instructor_acts}]"
+            prompt += f" Row {i + 1}: Time: {ts.time_record}, Student: [{student_acts}] Instructor: [{instructor_acts}]"
             if ts.student_comments:
                 prompt += f", Student Comments: {ts.student_comments}"
             if ts.instructor_comments:
                 prompt += f", Instructor Comments: {ts.instructor_comments}"
     prompt += "\n\n[End of data. Copus specialist, please provide your expert feedback for the above classroom data:]\n"
     return prompt
+
 
 def generate_ai_feedback_for_evaluation(evaluation, hf_endpoint=None, max_new_tokens=400, temperature=0.7):
     """
@@ -101,7 +108,6 @@ def generate_ai_feedback_for_evaluation(evaluation, hf_endpoint=None, max_new_to
     if not api_key:
         raise RuntimeError("No HuggingFace API key found in environment or settings")
     if not hf_endpoint:
-            
         hf_endpoint = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
     feedback = generate_ai_feedback(prompt, api_key, hf_endpoint, max_new_tokens, temperature)
     feedback = feedback.replace(COPUS_CODE_EXPLANATION.strip(), "").replace(FEEDBACK_INSTRUCTIONS.strip(), "").lstrip()

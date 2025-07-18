@@ -27,9 +27,9 @@ SECRET_KEY = config('SECRET_KEY')
 HF_API_KEY = config('HF_API_KEY')
 print("RAW ENV HF_API_KEY:", os.environ.get("HF_API_KEY"))
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=lambda v: v.split(','))
+ALLOWED_HOSTS = []
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -42,7 +42,6 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://phinma-fes.com",
     "http://localhost:5174",  # Your frontend running on Vite
     "http://127.0.0.1:5174",  # You can add this as well if applicable (alternative forms)
 ]
@@ -116,10 +115,7 @@ WSGI_APPLICATION = 'SaintJudeDjango.wsgi.application'
 
 #CORS
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
-    "https://phinma-fes.com",
-]
-ALLOWED_HOSTS = ['merged-front-back.onrender.com', 'localhost', '127.0.0.1']
+
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -128,9 +124,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': config('DB_NAME'),
         'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='3306'),      # MySQL default port
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),      # MySQL default port
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",  # Ensure strict mode
         },

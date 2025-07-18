@@ -1,6 +1,6 @@
 from django.db import models
-from .user_models import User
-from .custom_manager import *
+from .user_models import *
+
 # Programs
 class BaseModel(models.Model):
     is_active = models.BooleanField(default=True)
@@ -23,6 +23,7 @@ class Program(BaseModel):
     slug = models.SlugField(blank=True, null=True)
     code = models.CharField(max_length=50, blank=True, null=True)
     professors = models.ManyToManyField("User", through="ProgramProfessor", blank=True)
+    faculty = models.ForeignKey("Faculty", on_delete=models.CASCADE, related_name="programs", null=True, blank=True)
 
     def __str__(self):
         return f'{self.name} - {self.code}'
@@ -66,17 +67,30 @@ class Section(BaseModel):
         ('4', '4th Year'),
     ]
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=255, blank=True, null=True)
+    slug = models.SlugField(unique=True, blank=True, null=True)
     program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name="sections", blank=True, null=True)
     year_level = models.CharField(max_length=1, choices=YEAR_LEVELS, null=True)
     students = models.ManyToManyField("User", related_name="sections")
 
+    constraints = [
+        models.UniqueConstraint(fields=['name', 'program', 'year_level'], name='unique_section_program_year'), ]
 
 
-    class Meta:
-        unique_together = ('name', 'program', 'year_level')
 
+    def save(self, *args, **kwargs):
+        # If name is provided and doesn't start with "Section", prepend it
+        if self.name:
+            if not self.name.startswith("Section"):
+                self.name = f"Section {self.name} - {self.program} - {self.year_level}"
+        # If name is not provided, auto-generate using program and year_level
+        elif self.program and self.year_level:
+            year_display = dict(self.YEAR_LEVELS).get(self.year_level, self.year_level)
+            self.name = f"Section {self.program.name} - {year_display}"
+        super().save(*args, **kwargs)
 
+    def __str__(self):
+        return self.name
 
 # Schedules
 class Schedule(BaseModel):
@@ -89,7 +103,7 @@ class Schedule(BaseModel):
     section = models.ForeignKey("Section", on_delete=models.CASCADE, null=True, blank=True)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100, null=True, blank=True)
+    name = models.CharField(max_length=255, null=True, blank=True)
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
     semester = models.CharField(max_length=10, choices=SEMESTER_CHOICES)
@@ -105,14 +119,13 @@ class Schedule(BaseModel):
         ]
 
 
-
     def __str__(self):
-        return f"{self.year.year}" if self.year else "No year"
+        return f"{self.name}" if self.year else "No year"
 
 
     def save(self, *args, **kwargs):
         # Automatically combine year and semester to create academic_period
-        self.name = f"{self.section.name} - {self.subject.name}"
+        self.name = f"{self.section.name} - {self.subject.name} - {self.section.year_level}"
         self.academic_period = f"{self.year} - {self.semester}"
         super().save(*args, **kwargs)
 
@@ -137,8 +150,37 @@ class FacultySchedule(models.Model):
     def __str__(self):
         return f"Faculty: {self.faculty_assignment.user}, Schedule: {self.schedule.name} at {self.assigned_at}"
 
-"""class Faculty(models.Model):
-    course = models.ForeignKey(Program, on_delete=models.CASCADE)
-    professor = models.ManyToManyField(
-        settings.AUTH
-    )"""
+class Faculty(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    dean = models.ForeignKey(
+        "User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="faculties_as_dean"
+        # REMOVE limit_choices_to
+    )
+    professors = models.ManyToManyField(
+        "User",
+        related_name="faculties_as_professor",
+        blank=True
+        # REMOVE limit_choices_to
+    )
+    evaluations = models.ManyToManyField(
+        "Evaluation",
+        related_name="faculties",
+        blank=True
+    )
+    student_evaluations = models.ManyToManyField(
+        "StudentEvaluation",
+        related_name="faculties",
+        blank=True
+    )
+
+    def clean(self):
+        # Extra validation if needed
+        if self.dean and self.dean.role != 'Dean':
+            raise ValidationError("Selected user is not a Dean.")
+        # You can add more validation for professors if needed
+
+    def __str__(self):
+        return self.name

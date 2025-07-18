@@ -1,4 +1,4 @@
-from hrapp.models.evaluation_models import Evaluation, Timestamp
+from hrapp.models.evaluation_models import *
 from rest_framework import serializers
 from .schedules_serializer import ScheduleSerializer
 from ..models import Schedule
@@ -143,4 +143,62 @@ class EvaluationSerializer(serializers.ModelSerializer):
             raise e
 
 
+
+### BELOW IS THE SFF SERIALIZERS(EVALUATION , QUESTIONS, AND ANSWERS) ###
+class StudentEvaluationSerializer(serializers.ModelSerializer):
+    schedule = serializers.PrimaryKeyRelatedField(queryset=Schedule.objects.all())
+    import_questions = serializers.PrimaryKeyRelatedField(
+        queryset=StudentEvaluationQuestion.objects.all(), many=True, required=False
+    )
+    all_questions = serializers.SerializerMethodField(read_only=True)
+
+    # Add these lines
+    instructor_name = serializers.SerializerMethodField()
+    subject_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StudentEvaluation
+        fields = [
+            'id', 'title', 'description', 'schedule',
+            'import_questions', 'all_questions',
+            'instructor_name', 'subject_name',
+        ]
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'all_questions']
+
+    def get_all_questions(self, obj):
+        #unique_qs = StudentEvaluationQuestion.objects.filter(student_evaluation=obj)
+        imported_qs = obj.import_questions.all()
+        all_qs = imported_qs
+        all_qs = all_qs.distinct()
+        return StudentEvaluationQuestionSerializer(all_qs, many=True).data
+
+    def get_subject_name(self, obj):
+        if obj.schedule and obj.schedule.subject:
+            return str(obj.schedule.subject)  # Or `.name` if defined
+        return None
+
+    def get_instructor_name(self, obj):
+        if obj.schedule and obj.schedule.instructor:
+            return obj.schedule.instructor.full_name  # uses the @property
+        return None
+
+class StudentEvaluationQuestionSerializer(serializers.ModelSerializer):
+    # Serial fields
+    class Meta:
+        model = StudentEvaluationQuestion
+        fields = ['id', 'question','type','options']
+        read_only_fields = ['created_at', 'updated_at','deleted_at']
+
+class StudentEvaluationResponseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentEvaluationResponse
+        fields = ['id', 'student_evaluation', 'student_eval_question', 'answer', 'user']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at']
+
+    def validate(self, data):
+        question = data.get('student_eval_question')
+        evaluation = data.get('student_evaluation')
+        if question and evaluation and not evaluation.import_questions.filter(id=question.id).exists():
+            raise serializers.ValidationError("Question does not belong to the specified evaluation.")
+        return data
 
