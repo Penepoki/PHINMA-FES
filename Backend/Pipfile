@@ -16,8 +16,12 @@ pandas = "*"
 django-filter = "*"
 pillow = "*"
 requests = "*"
+weasyprint = "*"
+cairocffi = "*"
+pyyaml = "*"
 python-dotenv = "*"
 gunicorn = "*"
+
 
 [dev-packages]
 
