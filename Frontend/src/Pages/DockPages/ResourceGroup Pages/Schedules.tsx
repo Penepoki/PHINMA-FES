@@ -382,36 +382,8 @@ function Schedules({ setActiveView }: SchedulesProps) {
 			accessor: (schedule: Schedule) => schedule.name,
 		},
 		{
-			header: "Program",
-			accessor: (schedule: Schedule) => schedule.program_name || "N/A",
-		},
-		{
-			header: "Section",
-			accessor: (schedule: Schedule) => schedule.section_name || "N/A",
-		},
-		{
-			header: "Subject",
-			accessor: (schedule: Schedule) => schedule.subject_name || "N/A",
-		},
-		{
 			header: "Instructor",
 			accessor: (schedule: Schedule) => schedule.instructor_name || "N/A",
-		},
-		{
-			header: "Room",
-			accessor: (schedule: Schedule) => schedule.room_name || "N/A",
-		},
-		{
-			header: "Time",
-			accessor: (schedule: Schedule) => `${schedule.start_time} - ${schedule.end_time}`,
-		},
-		{
-			header: "Semester",
-			accessor: (schedule: Schedule) => schedule.semester,
-		},
-		{
-			header: "Year",
-			accessor: (schedule: Schedule) => schedule.year,
 		},
 		{
 			header: "Status",

@@ -4,7 +4,6 @@ import api from "../../../utils/api";
 import DataTable, {
 	Column,
 } from "../../../Components/Evaluation Components/Data Table";
-// Assuming you have your generic DataTable component exported
 
 interface ProgramProps {
 	setActiveView: (view: string) => void;
@@ -18,6 +17,17 @@ interface Program {
 	professor_names: string[];
 }
 
+type ProgramProfessor = {
+	program: number; // Program ID
+	professor: number; // Professor ID
+	professor_details?: {
+		first_name: string;
+		last_name: string;
+		full_name: string;
+	};
+	assigned_at: string; // Example additional data
+};
+
 function Programs({ setActiveView }: ProgramProps) {
 	const [programs, setPrograms] = useState<Program[]>([]);
 	const [programProfessors, setProgramProfessors] = useState<
@@ -29,6 +39,10 @@ function Programs({ setActiveView }: ProgramProps) {
 	const [loading, setLoading] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [newProgramName, setNewProgramName] = useState("");
+
+	// Edit form state
+	const [editProgramName, setEditProgramName] = useState("");
+	const [currentEditingProgram, setCurrentEditingProgram] = useState<Program | null>(null);
 
 	// Code below adds junc table progprof
 	const fetchProgramsandProgramProfessors = async () => {
@@ -72,7 +86,7 @@ function Programs({ setActiveView }: ProgramProps) {
 				"/program/programs/",
 				{ name: newProgramName },
 				{
-					headers: { Authorization: "Bearer ${token}" },
+					headers: { Authorization: `Bearer ${token}` },
 				},
 			);
 			setNewProgramName("");
@@ -81,6 +95,47 @@ function Programs({ setActiveView }: ProgramProps) {
 		} catch (error) {
 			console.error("Error creating program:", error);
 		}
+	};
+
+	const updateProgram = async () => {
+		if (!currentEditingProgram) return;
+
+		if (!editProgramName.trim()) {
+			alert("Please enter a program name.");
+			return;
+		}
+
+		const token = localStorage.getItem("token");
+		if (!token) return alert("You are not authenticated. Please login.");
+
+		try {
+			await api.patch(
+				`/program/programs/${currentEditingProgram.id}/`,
+				{ name: editProgramName },
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
+
+			// Reset edit form and close modal
+			resetEditForm();
+			(document.getElementById("edit_program_modal") as HTMLDialogElement)?.close();
+			fetchProgramsandProgramProfessors();
+		} catch (error) {
+			console.error("Error updating program:", error);
+			alert("Error updating program. Please try again.");
+		}
+	};
+
+	const resetEditForm = () => {
+		setEditProgramName("");
+		setCurrentEditingProgram(null);
+	};
+
+	const openEditDialog = (program: Program) => {
+		setCurrentEditingProgram(program);
+		setEditProgramName(program.name);
+		(document.getElementById("edit_program_modal") as HTMLDialogElement)?.showModal();
 	};
 
 	const toggleProgramStatus = async (program: Program) => {
@@ -105,13 +160,26 @@ function Programs({ setActiveView }: ProgramProps) {
 	};
 
 	const deleteProgram = async (programId: number) => {
+		const token = localStorage.getItem("token");
+		if (!token) return alert("You are not authenticated. Please login.");
+
 		try {
-			await api.delete(`/program/programs/${programId}/`);
+			await api.delete(`/program/programs/${programId}/`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+			(document.getElementById("delete_program_modal") as HTMLDialogElement)?.close();
 			fetchProgramsandProgramProfessors();
 		} catch (error) {
 			console.error("Error deleting program:", error);
+			alert("Error deleting program. Please try again.");
 		}
 	};
+
+	const openDeleteDialog = (program: Program) => {
+		setCurrentEditingProgram(program);
+		(document.getElementById("delete_program_modal") as HTMLDialogElement)?.showModal();
+	};
+
 	// Actions column render function
 	const programActions = (program: Program) => (
 		<div className="flex flex-col items-start gap-2">
@@ -123,76 +191,17 @@ function Programs({ setActiveView }: ProgramProps) {
 				<PencilSquareIcon className="h-4 w-4" />
 				View
 			</button>
-			<dialog id="program_details_modal" className="modal">
-				<div className="modal-box w-11/12 max-w-3xl">
-					<div>
-						<h3 className="mb-4 text-center text-2xl font-bold text-black">
-							{selectedProgram?.name}
-						</h3>
-						<table className="w-full overflow-y-auto">
-							<thead className="text-lg font-semibold text-black">
-								<tr>
-									<th className="hidden">Program ID</th>
-									<th>Professor Name</th>
-									<th>Assigned Date</th>
-								</tr>
-							</thead>
-							<tbody className="text-lg text-gray-600">
-								{programProfessors
-									.filter(
-										(rel) =>
-											rel.program === selectedProgram?.id,
-									)
-									.map((rel) => (
-										<tr
-											key={`${rel.program}-${rel.professor}`}
-										>
-											<td className="hidden">
-												{rel.program}
-											</td>
-											<td>
-												{rel.professor_details
-													?.full_name || "Unknown"}
-											</td>
-											<td>
-												{new Date(
-													rel.assigned_at,
-												).toLocaleDateString()}
-											</td>
-										</tr>
-									))}
-							</tbody>
-						</table>
-						<div className="modal-action">
-							<button
-								type="submit"
-								className="btn btn-success text-white"
-							>
-								Done
-							</button>
-							<button
-								type="button"
-								className="btn btn-cancel"
-								onClick={() =>
-									(
-										document.getElementById(
-											"program_details_modal",
-										) as HTMLDialogElement
-									)?.close()
-								}
-							>
-								Cancel
-							</button>
-						</div>
-					</div>
-				</div>
-			</dialog>
+			<button
+				title="Edit"
+				onClick={() => openEditDialog(program)}
+				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-green-500 hover:underline"
+			>
+				<PencilSquareIcon className="h-4 w-4" />
+				Edit
+			</button>
 			<button
 				title="Delete"
-				onClick={() => {
-					if (window.confirm(`Delete program "${program.name}"?`))
-						deleteProgram(program.id);
-				}}
+				onClick={() => openDeleteDialog(program)}
 				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline"
 			>
 				<TrashIcon className="h-4 w-4" />
@@ -224,17 +233,6 @@ function Programs({ setActiveView }: ProgramProps) {
 			),
 		},
 	];
-
-	type ProgramProfessor = {
-		program: number; // Program ID
-		professor: number; // Professor ID
-		professor_details?: {
-			first_name: string;
-			last_name: string;
-			full_name: string;
-		};
-		assigned_at: string; // Example additional data
-	};
 
 	const programProfessorColumns: Column<ProgramProfessor>[] = [
 		{
@@ -281,6 +279,7 @@ function Programs({ setActiveView }: ProgramProps) {
 					New Program
 				</button>
 
+				{/* Create Program Modal */}
 				<dialog id="create_new_program" className="modal">
 					<div className="modal-box w-11/12 max-w-3xl">
 						<h3 className="mb-4 text-center text-2xl font-bold">
@@ -339,6 +338,99 @@ function Programs({ setActiveView }: ProgramProps) {
 								</button>
 							</div>
 						</form>
+					</div>
+				</dialog>
+
+				{/* Edit Program Modal */}
+				<dialog id="edit_program_modal" className="modal">
+					<div className="modal-box w-11/12 max-w-3xl">
+						<h3 className="mb-4 text-center text-2xl font-bold">
+							Edit Program
+						</h3>
+
+						<form
+							onSubmit={(e) => {
+								e.preventDefault();
+								if (!editProgramName.trim()) {
+									alert("Please enter a program name.");
+									return;
+								}
+								updateProgram();
+							}}
+							className="flex flex-col gap-6"
+						>
+							{/* Program Name */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/6">
+									Name:
+								</label>
+								<input
+									type="text"
+									value={editProgramName}
+									onChange={(e) =>
+										setEditProgramName(e.target.value)
+									}
+									placeholder="Enter program name"
+									className="input input-bordered w-full"
+									required
+								/>
+							</div>
+
+							{/* Action Buttons */}
+							<div className="modal-action">
+								<button
+									type="submit"
+									className="btn btn-success text-white"
+								>
+									Update
+								</button>
+								<button
+									type="button"
+									className="btn btn-cancel"
+									onClick={() => {
+										resetEditForm();
+										(document.getElementById("edit_program_modal") as HTMLDialogElement)?.close();
+									}}
+								>
+									Cancel
+								</button>
+							</div>
+						</form>
+					</div>
+				</dialog>
+
+				{/* Delete Program Modal */}
+				<dialog id="delete_program_modal" className="modal">
+					<div className="modal-box w-11/12 max-w-md">
+						<h3 className="mb-4 text-center text-2xl font-bold">
+							Delete Program
+						</h3>
+						<p className="mb-6 text-center">
+							Are you sure you want to delete the program "{currentEditingProgram?.name}"?
+							This action cannot be undone.
+						</p>
+						<div className="modal-action">
+							<button
+								onClick={() => {
+									if (currentEditingProgram) {
+										deleteProgram(currentEditingProgram.id);
+									}
+								}}
+								className="btn btn-error text-white"
+							>
+								Delete
+							</button>
+							<button
+								type="button"
+								className="btn btn-cancel"
+								onClick={() => {
+									setCurrentEditingProgram(null);
+									(document.getElementById("delete_program_modal") as HTMLDialogElement)?.close();
+								}}
+							>
+								Cancel
+							</button>
+						</div>
 					</div>
 				</dialog>
 
