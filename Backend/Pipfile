@@ -19,7 +19,9 @@ requests = "*"
 weasyprint = "*"
 cairocffi = "*"
 pyyaml = "*"
-dotenv = "*"
+python-dotenv = "*"
+gunicorn = "*"
+
 
 [dev-packages]
 

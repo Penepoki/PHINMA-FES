@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 export interface QuestionData {
-  id: number;
+  id?: number; // Make id optional for new questions
   question: string;
   type: "mcq" | "rating" | "comment";
   choices?: string[];
@@ -70,18 +70,18 @@ function CreateStudentQuestion({
 
   const validateForm = (): boolean => {
     const newErrors: {question?: string; choices?: string} = {};
-    
+
     if (!questionText.trim()) {
       newErrors.question = "Question text is required";
     }
-    
+
     if (questionType === "mcq") {
       const validChoices = choices.filter(c => c.trim());
       if (validChoices.length < 2) {
         newErrors.choices = "At least 2 choices are required for multiple choice questions";
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -92,13 +92,13 @@ function CreateStudentQuestion({
     const newQuestion: QuestionData = {
       question: questionText.trim(),
       type: questionType,
-      ...(questionType === "mcq" && { 
-        choices: choices.filter((c) => c.trim()) 
+      ...(questionType === "mcq" && {
+        choices: choices.filter((c) => c.trim())
       }),
       ...(questionToEdit?.id && { id: questionToEdit.id })
     };
 
-    if (questionToEdit && onUpdate && editIndex !== null) {
+    if (questionToEdit && onUpdate && editIndex !== null && editIndex !== undefined) {
       onUpdate(newQuestion, editIndex);
     } else {
       onAdd(newQuestion);
@@ -172,7 +172,7 @@ function CreateStudentQuestion({
           <select
             className="select select-bordered w-full"
             value={questionType}
-            onChange={(e) => setQuestionType(e.target.value as any)}
+            onChange={(e) => setQuestionType(e.target.value as "mcq" | "rating" | "comment")}
           >
             <option value="mcq">Multiple Choice</option>
             <option value="rating">Rating Scale (1-5)</option>
@@ -241,8 +241,8 @@ function CreateStudentQuestion({
         )}
 
         <div className="modal-action">
-          <button 
-            className="btn btn-success" 
+          <button
+            className="btn btn-success"
             onClick={handleSubmit}
             disabled={!questionText.trim()}
           >

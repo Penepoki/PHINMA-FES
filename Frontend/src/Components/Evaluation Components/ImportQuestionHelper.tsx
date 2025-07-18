@@ -1,5 +1,5 @@
 import React from "react";
-import { QuestionData, mapTypeToFrontend } from "./Evaluation Components/CreateStudentQuestion";
+import { QuestionData, mapTypeToFrontend } from "./CreateStudentQuestion";
 import api from "../../utils/api.ts";
 
 interface ImportQuestionProps {

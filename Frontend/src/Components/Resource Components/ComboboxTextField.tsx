@@ -1,29 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import api from "../../utils/api.ts";
-import { Schedule } from "framer-motion";
 
 type Item = {
 	id: number | string;
 	name: string;
 };
 
-type Props = {
+type Props<T = Item> = {
 	label: string;
 	placeholder?: string;
 	fetchUrl: string;
-	value: Item | null;
-
-	options?: Item[];
-	mapResponse?: (data: any[]) => Item[];
-	onChange?: (
-		value:
-			| ((prevState: Schedule | null) => Schedule | null)
-			| Schedule
-			| null,
-	) => void;
+	value: T | null;
+	options?: T[];
+	mapResponse?: (data: any[]) => T[];
+	onChange?: (value: T | null) => void;
 };
 
-const ComboboxTextField: React.FC<Props> = ({
+function ComboboxTextField<T extends Item = Item>({
 	label,
 	placeholder = "Search...",
 	fetchUrl,
@@ -31,8 +24,8 @@ const ComboboxTextField: React.FC<Props> = ({
 	onChange,
 	options,
 	mapResponse,
-}) => {
-	const [items, setItems] = useState<Item[]>(options || []);
+}: Props<T>) {
+	const [items, setItems] = useState<T[]>(options || []);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [isOpen, setIsOpen] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -81,10 +74,20 @@ const ComboboxTextField: React.FC<Props> = ({
 			document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
-	const handleSelect = (item: Item) => {
+	const handleSelect = (item: T) => {
 		setSearchTerm(item.name);
-		onChange(item);
+		if (onChange) {
+			onChange(item);
+		}
 		setIsOpen(false);
+	};
+
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setSearchTerm(e.target.value);
+		if (onChange) {
+			onChange(null); // Clear selection on typing
+		}
+		setIsOpen(true);
 	};
 
 	return (
@@ -103,11 +106,7 @@ const ComboboxTextField: React.FC<Props> = ({
 							? value.name
 							: searchTerm || ""
 					}
-					onChange={(e) => {
-						setSearchTerm(e.target.value);
-						onChange(null); // Clear selection on typing
-						setIsOpen(true);
-					}}
+					onChange={handleInputChange}
 					onFocus={() => setIsOpen(true)}
 				/>
 
@@ -136,6 +135,6 @@ const ComboboxTextField: React.FC<Props> = ({
 			</div>
 		</div>
 	);
-};
+}
 
 export default ComboboxTextField;

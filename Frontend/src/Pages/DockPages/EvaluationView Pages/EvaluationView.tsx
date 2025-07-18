@@ -14,6 +14,7 @@ interface Evaluation {
 	schedule: number;
 	observation_date: string;
 	evaluation_label: string;
+	evaluation_type: string;
 	additional_comments?: string;
 	instructor?: string;
 }
@@ -173,7 +174,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 			throw error;
 		}
 	};
-	const handleOpenEvaluation = (evaluation) => {
+	const handleOpenEvaluation = (evaluation: Evaluation) => {
 		setSelectedEvaluation(evaluation);
 		const scheduleObj = schedules.find((s) => s.id === evaluation.schedule);
 		console.log("Schedules:", schedules);

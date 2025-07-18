@@ -29,7 +29,7 @@ print("RAW ENV HF_API_KEY:", os.environ.get("HF_API_KEY"))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=lambda v: v.split(','))
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -42,6 +42,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 CSRF_TRUSTED_ORIGINS = [
+    "https://phinma-fes.com",
     "http://localhost:5174",  # Your frontend running on Vite
     "http://127.0.0.1:5174",  # You can add this as well if applicable (alternative forms)
 ]
@@ -115,7 +116,10 @@ WSGI_APPLICATION = 'SaintJudeDjango.wsgi.application'
 
 #CORS
 CORS_ALLOW_ALL_ORIGINS = True
-
+CORS_ALLOWED_ORIGINS = [
+    "https://phinma-fes.com",
+]
+ALLOWED_HOSTS = ['merged-front-back.onrender.com', 'localhost', '127.0.0.1']
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 

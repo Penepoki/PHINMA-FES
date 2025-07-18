@@ -98,6 +98,7 @@ const NavbarStudent: React.FC<NavbarProps> = ({
 				</div>
 			</nav>
 		</>
+	)
 };
 
 export default NavbarStudent;
