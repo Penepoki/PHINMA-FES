@@ -11,7 +11,6 @@ import DataTable, {
 	Column,
 } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
-// Assuming you have your generic DataTable component exported
 
 interface SchedulesProps {
 	setActiveView: (view: string) => void;
@@ -42,6 +41,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 	const [schedules, setSchedules] = useState<Schedule[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
+
 	// Form state for all required fields
 	const [form, setForm] = useState({
 		section: "",
@@ -55,14 +55,39 @@ function Schedules({ setActiveView }: SchedulesProps) {
 		semester: "",
 		year: "",
 	});
+
+	// Edit form state
+	const [editForm, setEditForm] = useState({
+		section: "",
+		subject: "",
+		instructor: "",
+		room: "",
+		program: "",
+		name: "",
+		start_time: "",
+		end_time: "",
+		semester: "",
+		year: "",
+	});
+
 	const [selectedProgram, setSelectedProgram] = useState<Option | null>(null);
 	const [selectedSection, setSelectedSection] = useState<Option | null>(null);
 	const [selectedSubject, setSelectedSubject] = useState<Option | null>(null);
 	const [selectedRoom, setSelectedRoom] = useState<Option | null>(null);
-	const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(
-		null,
-	);
+	const [selectedProfessor, setSelectedProfessor] = useState<Option | null>(null);
+
+	// Edit form selections
+	const [editSelectedProgram, setEditSelectedProgram] = useState<Option | null>(null);
+	const [editSelectedSection, setEditSelectedSection] = useState<Option | null>(null);
+	const [editSelectedSubject, setEditSelectedSubject] = useState<Option | null>(null);
+	const [editSelectedRoom, setEditSelectedRoom] = useState<Option | null>(null);
+	const [editSelectedProfessor, setEditSelectedProfessor] = useState<Option | null>(null);
+
 	const [professorOptions, setProfessorOptions] = useState<Option[]>([]);
+	const [editProfessorOptions, setEditProfessorOptions] = useState<Option[]>([]);
+	const [currentEditingSchedule, setCurrentEditingSchedule] = useState<Schedule | null>(null);
+
+	// Professor options for create form
 	useEffect(() => {
 		if (selectedProgram) {
 			api.get(
@@ -71,7 +96,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 				setProfessorOptions(
 					res.data.map((item: any) => ({
 						id: item.professor,
-						name: item.professor_details.full_name, // Use full_name for display
+						name: item.professor_details.full_name,
 					})),
 				);
 			});
@@ -79,6 +104,24 @@ function Schedules({ setActiveView }: SchedulesProps) {
 			setProfessorOptions([]);
 		}
 	}, [selectedProgram]);
+
+	// Professor options for edit form
+	useEffect(() => {
+		if (editSelectedProgram) {
+			api.get(
+				`/program-professor/program-professors/?program_id=${editSelectedProgram.id}`,
+			).then((res) => {
+				setEditProfessorOptions(
+					res.data.map((item: any) => ({
+						id: item.professor,
+						name: item.professor_details.full_name,
+					})),
+				);
+			});
+		} else {
+			setEditProfessorOptions([]);
+		}
+	}, [editSelectedProgram]);
 
 	const fetchSchedules = async () => {
 		setLoading(true);
@@ -132,6 +175,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 					headers: { Authorization: `Bearer ${token}` },
 				},
 			);
+			// Reset form
 			setForm({
 				section: "",
 				subject: "",
@@ -144,11 +188,132 @@ function Schedules({ setActiveView }: SchedulesProps) {
 				semester: "",
 				year: "",
 			});
-			// Also reset selected* states if needed
+			setSelectedProgram(null);
+			setSelectedSection(null);
+			setSelectedSubject(null);
+			setSelectedRoom(null);
+			setSelectedProfessor(null);
 			fetchSchedules();
 		} catch (error) {
 			console.error("Error creating schedule:", error);
 		}
+	};
+
+	const updateSchedule = async () => {
+		if (!currentEditingSchedule) return;
+
+		// Validate required fields
+		if (
+			!editSelectedProgram ||
+			!editSelectedSection ||
+			!editSelectedSubject ||
+			!editSelectedRoom ||
+			!editSelectedProfessor ||
+			!editForm.name ||
+			!editForm.start_time ||
+			!editForm.end_time ||
+			!editForm.semester ||
+			!editForm.year
+		) {
+			alert("Please fill in all required fields.");
+			return;
+		}
+
+		const token = localStorage.getItem("token");
+		if (!token) return alert("You are not authenticated. Please login.");
+
+		try {
+			await api.patch(
+				`/schedule/schedules/${currentEditingSchedule.id}/`,
+				{
+					program: editSelectedProgram.id,
+					section: editSelectedSection.id,
+					subject: editSelectedSubject.id,
+					room: editSelectedRoom.id,
+					instructor: editSelectedProfessor.id,
+					name: editForm.name,
+					start_time: editForm.start_time,
+					end_time: editForm.end_time,
+					semester: editForm.semester,
+					year: editForm.year,
+				},
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
+
+			// Reset edit form and close modal
+			resetEditForm();
+			(document.getElementById("edit_schedule_modal") as HTMLDialogElement)?.close();
+			fetchSchedules();
+		} catch (error) {
+			console.error("Error updating schedule:", error);
+			alert("Error updating schedule. Please try again.");
+		}
+	};
+
+	const resetEditForm = () => {
+		setEditForm({
+			section: "",
+			subject: "",
+			instructor: "",
+			room: "",
+			program: "",
+			name: "",
+			start_time: "",
+			end_time: "",
+			semester: "",
+			year: "",
+		});
+		setEditSelectedProgram(null);
+		setEditSelectedSection(null);
+		setEditSelectedSubject(null);
+		setEditSelectedRoom(null);
+		setEditSelectedProfessor(null);
+		setCurrentEditingSchedule(null);
+	};
+
+	const openEditDialog = (schedule: Schedule) => {
+		setCurrentEditingSchedule(schedule);
+
+		// Populate edit form with current schedule data
+		setEditForm({
+			section: schedule.section.toString(),
+			subject: schedule.subject.toString(),
+			instructor: schedule.instructor.toString(),
+			room: schedule.room.toString(),
+			program: schedule.program.toString(),
+			name: schedule.name,
+			start_time: schedule.start_time,
+			end_time: schedule.end_time,
+			semester: schedule.semester,
+			year: schedule.year,
+		});
+
+		// Set selected options for comboboxes
+		setEditSelectedProgram({
+			id: schedule.program,
+			name: schedule.program_name || "",
+		});
+		setEditSelectedSection({
+			id: schedule.section,
+			name: schedule.section_name || "",
+		});
+		setEditSelectedSubject({
+			id: schedule.subject,
+			name: schedule.subject_name || "",
+		});
+		setEditSelectedRoom({
+			id: schedule.room,
+			name: schedule.room_name || "",
+		});
+		setEditSelectedProfessor({
+			id: schedule.instructor,
+			name: schedule.instructor_name || "",
+		});
+
+		// Open the modal
+		(document.getElementById("edit_schedule_modal") as HTMLDialogElement)?.showModal();
 	};
 
 	const toggleScheduleStatus = async (schedule: Schedule) => {
@@ -163,12 +328,24 @@ function Schedules({ setActiveView }: SchedulesProps) {
 	};
 
 	const deleteSchedule = async (scheduleId: number) => {
+		const token = localStorage.getItem("token");
+		if (!token) return alert("You are not authenticated. Please login.");
+
 		try {
-			await api.delete(`/schedule/schedules/${scheduleId}/`);
+			await api.delete(`/schedule/schedules/${scheduleId}/`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+			(document.getElementById("delete_schedule_modal") as HTMLDialogElement)?.close();
 			fetchSchedules();
 		} catch (error) {
 			console.error("Error deleting schedule:", error);
+			alert("Error deleting schedule. Please try again.");
 		}
+	};
+
+	const openDeleteDialog = (schedule: Schedule) => {
+		setCurrentEditingSchedule(schedule);
+		(document.getElementById("delete_schedule_modal") as HTMLDialogElement)?.showModal();
 	};
 
 	// Actions column render function
@@ -176,7 +353,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 		<div className="flex flex-col items-start gap-2">
 			<button
 				title="Edit"
-				onClick={() => alert("Edit feature not implemented yet")}
+				onClick={() => openEditDialog(schedule)}
 				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
 			>
 				<PencilSquareIcon className="h-4 w-4" />
@@ -184,10 +361,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 			</button>
 			<button
 				title="Delete"
-				onClick={() => {
-					if (window.confirm(`Delete schedule "${schedule.name}"?`))
-						deleteSchedule(schedule.id);
-				}}
+				onClick={() => openDeleteDialog(schedule)}
 				className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline"
 			>
 				<TrashIcon className="h-4 w-4" />
@@ -206,6 +380,38 @@ function Schedules({ setActiveView }: SchedulesProps) {
 		{
 			header: "Name",
 			accessor: (schedule: Schedule) => schedule.name,
+		},
+		{
+			header: "Program",
+			accessor: (schedule: Schedule) => schedule.program_name || "N/A",
+		},
+		{
+			header: "Section",
+			accessor: (schedule: Schedule) => schedule.section_name || "N/A",
+		},
+		{
+			header: "Subject",
+			accessor: (schedule: Schedule) => schedule.subject_name || "N/A",
+		},
+		{
+			header: "Instructor",
+			accessor: (schedule: Schedule) => schedule.instructor_name || "N/A",
+		},
+		{
+			header: "Room",
+			accessor: (schedule: Schedule) => schedule.room_name || "N/A",
+		},
+		{
+			header: "Time",
+			accessor: (schedule: Schedule) => `${schedule.start_time} - ${schedule.end_time}`,
+		},
+		{
+			header: "Semester",
+			accessor: (schedule: Schedule) => schedule.semester,
+		},
+		{
+			header: "Year",
+			accessor: (schedule: Schedule) => schedule.year,
 		},
 		{
 			header: "Status",
@@ -252,6 +458,243 @@ function Schedules({ setActiveView }: SchedulesProps) {
 				>
 					New Schedule
 				</button>
+
+				{/* Edit Schedule Modal */}
+				<dialog id="edit_schedule_modal" className="modal">
+					<div className="modal-box w-11/12 max-w-5xl">
+						<h3 className="mb-4 text-center text-2xl font-bold">
+							Edit Schedule
+						</h3>
+						<form
+							onSubmit={(e) => {
+								e.preventDefault();
+								if (
+									!editSelectedProgram ||
+									!editSelectedSection ||
+									!editSelectedSubject ||
+									!editSelectedRoom ||
+									!editSelectedProfessor ||
+									!editForm.name ||
+									!editForm.start_time ||
+									!editForm.end_time ||
+									!editForm.semester ||
+									!editForm.year
+								) {
+									alert("Please fill in all required fields.");
+									return;
+								}
+								updateSchedule();
+							}}
+							className="flex flex-col gap-6"
+						>
+							{/* Program */}
+							<ComboboxTextField
+								label="Program"
+								placeholder="Enter program"
+								fetchUrl="/program/programs/"
+								value={editSelectedProgram}
+								onChange={setEditSelectedProgram}
+							/>
+
+							{/* Section */}
+							<ComboboxTextField
+								label="Section"
+								placeholder="Enter section"
+								fetchUrl="/section/sections"
+								value={editSelectedSection}
+								onChange={setEditSelectedSection}
+							/>
+
+							{/* Subject */}
+							<ComboboxTextField
+								label="Subject"
+								placeholder="Enter subject"
+								fetchUrl="/subject/subjects/"
+								value={editSelectedSubject}
+								onChange={setEditSelectedSubject}
+							/>
+
+							{/* Room */}
+							<ComboboxTextField
+								label="Room"
+								placeholder="Enter room"
+								fetchUrl="/room/rooms/"
+								value={editSelectedRoom}
+								onChange={setEditSelectedRoom}
+							/>
+
+							{/* Professor */}
+							<ComboboxTextField
+								label="Professor"
+								placeholder="Enter professor name"
+								fetchUrl={`/program-professor/program-professors/?program_id=${editSelectedProgram?.id || ""}`}
+								value={editSelectedProfessor}
+								onChange={setEditSelectedProfessor}
+								mapResponse={(data) =>
+									data.map((item: any) => ({
+										id: item.professor,
+										name: item.professor_details.full_name,
+									}))
+								}
+							/>
+
+							{/* Title */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Title:
+								</label>
+								<input
+									type="text"
+									placeholder="Enter title"
+									className="input input-bordered w-full"
+									value={editForm.name}
+									onChange={(e) =>
+										setEditForm((f) => ({
+											...f,
+											name: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
+
+							{/* Start Time */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Start Time:
+								</label>
+								<input
+									type="time"
+									className="input input-bordered w-full"
+									value={editForm.start_time}
+									onChange={(e) =>
+										setEditForm((f) => ({
+											...f,
+											start_time: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
+
+							{/* End Time */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									End Time:
+								</label>
+								<input
+									type="time"
+									className="input input-bordered w-full"
+									value={editForm.end_time}
+									onChange={(e) =>
+										setEditForm((f) => ({
+											...f,
+											end_time: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
+
+							{/* Semester */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Semester:
+								</label>
+								<select
+									className="input input-bordered w-full"
+									value={editForm.semester}
+									onChange={(e) =>
+										setEditForm((f) => ({
+											...f,
+											semester: e.target.value,
+										}))
+									}
+									required
+								>
+									<option value="">Select semester</option>
+									<option value="First">First Semester</option>
+									<option value="Second">Second Semester</option>
+									<option value="Summer">Summer Semester</option>
+								</select>
+							</div>
+
+							{/* Year */}
+							<div className="flex flex-col gap-2 md:flex-row md:items-center">
+								<label className="text-left text-lg font-bold md:w-1/4">
+									Year:
+								</label>
+								<input
+									type="date"
+									className="input input-bordered w-full"
+									value={editForm.year}
+									onChange={(e) =>
+										setEditForm((f) => ({
+											...f,
+											year: e.target.value,
+										}))
+									}
+									required
+								/>
+							</div>
+
+							{/* Action Buttons */}
+							<div className="modal-action">
+								<button
+									type="submit"
+									className="btn btn-success text-white"
+								>
+									Update
+								</button>
+								<button
+									type="button"
+									className="btn btn-cancel"
+									onClick={() => {
+										resetEditForm();
+										(document.getElementById("edit_schedule_modal") as HTMLDialogElement)?.close();
+									}}
+								>
+									Cancel
+								</button>
+							</div>
+						</form>
+					</div>
+				</dialog>
+
+				{/* Delete Schedule Modal */}
+				<dialog id="delete_schedule_modal" className="modal">
+					<div className="modal-box w-11/12 max-w-md">
+						<h3 className="mb-4 text-center text-2xl font-bold">
+							Delete Schedule
+						</h3>
+						<p className="mb-6 text-center">
+							Are you sure you want to delete the schedule "{currentEditingSchedule?.name}"?
+							This action cannot be undone.
+						</p>
+						<div className="modal-action">
+							<button
+								onClick={() => {
+									if (currentEditingSchedule) {
+										deleteSchedule(currentEditingSchedule.id);
+									}
+								}}
+								className="btn btn-error text-white"
+							>
+								Delete
+							</button>
+							<button
+								type="button"
+								className="btn btn-cancel"
+								onClick={() => {
+									setCurrentEditingSchedule(null);
+									(document.getElementById("delete_schedule_modal") as HTMLDialogElement)?.close();
+								}}
+							>
+								Cancel
+							</button>
+						</div>
+					</div>
+				</dialog>
 
 				<dialog id="create_new_schedule" className="modal">
 					<div className="modal-box w-11/12 max-w-5xl">

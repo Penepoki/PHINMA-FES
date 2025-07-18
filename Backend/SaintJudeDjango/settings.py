@@ -43,6 +43,8 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 CSRF_TRUSTED_ORIGINS = [
     "https://phinma-fes.com",
+    "http://localhost:5174",  # Your frontend running on Vite
+    "http://127.0.0.1:5174",  # You can add this as well if applicable (alternative forms)
 ]
 
 
@@ -113,7 +115,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'SaintJudeDjango.wsgi.application'
 
 #CORS
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     "https://phinma-fes.com",
 ]
