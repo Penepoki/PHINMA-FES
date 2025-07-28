@@ -34,7 +34,7 @@ function Sections({ setActiveView }: SectionsProps) {
 	const fetchSections = async () => {
 		setLoading(true);
 		try {
-			const response = await api.get("/Section/Sections", {
+			const response = await api.get("/section/sections", {
 				params: { name: searchTerm || undefined },
 			});
 			setSections(response.data);
@@ -51,7 +51,7 @@ function Sections({ setActiveView }: SectionsProps) {
 		if (!token) return alert("You are not authenticated. Please login.");
 		try {
 			await api.post(
-				"/Section/Sections/",
+				"/section/sections/",
 				{ name: newSectionName },
 				{
 					headers: { Authorization: `Bearer ${token}` },
@@ -66,7 +66,7 @@ function Sections({ setActiveView }: SectionsProps) {
 
 	const toggleSectionstatus = async (Section: Section) => {
 		try {
-			await api.patch(`/Section/Sections/${Section.id}/`, {
+			await api.patch(`/section/sections/${Section.id}/`, {
 				is_active: !Section.is_active,
 			});
 			fetchSections();
@@ -77,7 +77,7 @@ function Sections({ setActiveView }: SectionsProps) {
 
 	const deleteSection = async (SectionId: number) => {
 		try {
-			await api.delete(`/Section/Sections/${SectionId}/`);
+			await api.delete(`/section/sections/${SectionId}/`);
 			fetchSections();
 		} catch (error) {
 			console.error("Error deleting Section:", error);
