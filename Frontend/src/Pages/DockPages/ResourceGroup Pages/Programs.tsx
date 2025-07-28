@@ -44,7 +44,7 @@ function Programs({ setActiveView }: ProgramProps) {
 		setLoading(true);
 		try {
 			const token = localStorage.getItem("token");
-			const programResponse = await api.get("/program/programs", {
+			const programResponse = await api.get("/program/programs/", {
 				params: { name: searchTerm || undefined },
 				headers: { Authorization: `Bearer ${token}` }
 			});
@@ -395,7 +395,7 @@ function Programs({ setActiveView }: ProgramProps) {
 										<ComboboxTextField
 											label="Add new Professor:"
 											placeholder="Enter professor name"
-											fetchUrl="/program-professor/program-professors/"
+											fetchUrl="/users/professors/"
 											value={comboboxSelectedProfessor}
 											onChange={(prof) => {
 												if (prof && prof.id && !selectedProfessorsForEdit.includes(prof.id)) {
@@ -405,10 +405,10 @@ function Programs({ setActiveView }: ProgramProps) {
 											}}
 											mapResponse={(data) =>
 												data
-													.filter((item) => !selectedProfessorsForEdit.includes(item.professor))
+													.filter((item) => !selectedProfessorsForEdit.includes(item.id))
 													.map((item) => ({
-														id: item.professor,
-														name: item.professor_details?.full_name || `Professor ID: ${item.professor}`,
+														id: item.id,
+														name: item.full_name_professor || `${item.first_name} ${item.last_name}` || `Professor ID: ${item.id}`,
 													}))
 											}
 										/>

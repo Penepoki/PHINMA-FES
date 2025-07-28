@@ -26,11 +26,19 @@ def authenticate_user(data):
     user = authenticate(username=username, password=password)
     if user:
         Token.objects.filter(user=user).delete()
-
         token = Token.objects.create(user=user)
-
         roles = list(user.groups.values_list('name', flat=True))
-        return {'token': token.key, 'roles': roles}
+
+        # Get faculty_id if available
+        faculty_id = None
+        if hasattr(user, 'faculty') and user.faculty:
+            faculty_id = user.faculty.id
+
+        return {
+            'token': token.key,
+            'roles': roles,
+            'faculty_id': faculty_id,  # <-- Add this line
+        }
     else:
         return {'error': 'Invalid credentials'}
 

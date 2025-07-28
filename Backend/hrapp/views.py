@@ -665,6 +665,7 @@ class ProgramViewSet(viewsets.ModelViewSet):
     filter_class = ProgramFilter
 
     def get_queryset(self):
+        print("Debug: /program endpoint was called!" )
         user = self.request.user
         base_qs = super().get_queryset()  # This is Program.objects.all()
         if user.is_superuser:
@@ -902,15 +903,13 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
     # SCHEDULE Read/Retrieve (All)
     def list(self, request, *args, **kwargs):
-        """Retrieve and filter schedules.
-        Filter by semester, program, section, or other fields."""
-        queryset = self.filter_queryset(self.get_queryset())  # Apply global filters
-
-        # Apply custom filters
+        """Retrieve and filter schedules. Filter by semester, program, section, subject, or professor."""
+        queryset = self.filter_queryset(self.get_queryset())
         semester = request.query_params.get('semester', None)
         program = request.query_params.get('program', None)
         section = request.query_params.get('section', None)
         subject = request.query_params.get('subject', None)
+        professor = request.query_params.get('professor', None)  # <-- Add this
 
         if semester:
             queryset = queryset.filter(semester=semester)
@@ -920,13 +919,13 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(section=section)
         if subject:
             queryset = queryset.filter(subject=subject)
+        if professor:
+            queryset = queryset.filter(instructor=professor)  # <-- Add this
 
-        # PAGINATE THE RESPONSE
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
