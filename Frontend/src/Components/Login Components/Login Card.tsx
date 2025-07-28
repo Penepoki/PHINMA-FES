@@ -39,6 +39,9 @@ function LoginCard() {
 				localStorage.setItem("token", response.data.token);
 				localStorage.setItem("userRole", userRole);
 
+				if (response.data.faculty_id) {
+					localStorage.setItem("faculty_id", response.data.faculty_id)
+				}
 				switch (userRole) {
 					case "Dean":
 						navigate("/Dashboard/dean");

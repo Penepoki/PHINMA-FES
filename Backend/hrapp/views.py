@@ -666,13 +666,11 @@ class ProgramViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        base_qs = super().get_queryset()
+        base_qs = super().get_queryset()  # This is Program.objects.all()
         if user.is_superuser:
             return base_qs
         if hasattr(user, 'faculty') and user.faculty:
-            qs = base_qs.filter(faculty=user.faculty)
-            print("DEBUG: Programs for user", user, ":", list(qs))
-            return qs  # <-- THIS LINE WAS MISSIN
+            return base_qs.filter(faculty=user.faculty)
         return base_qs.none()
 
     def get_parser_classes(self):
@@ -684,7 +682,10 @@ class ProgramViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         """PROGRAMS"""
+        user = request.user
         data = request.data
+
+        data['faculty'] = user.faculty.id if hasattr(user, 'faculty') and user.faculty else None
 
         # HANDLE BULK CREATION
         if isinstance(data, list):

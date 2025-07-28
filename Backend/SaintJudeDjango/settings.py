@@ -31,6 +31,12 @@ DEBUG = config('DEBUG', cast=bool)
 
 ALLOWED_HOSTS = ['merged-front-back.onrender.com', 'localhost', '127.0.0.1']
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://Phinma-fes.com",
+    "http://localhost:5174",  # Your frontend running on Vite
+    "http://127.0.0.1:5174",  # You can add this as well if applicable (alternative forms)
+]
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -38,16 +44,6 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'maor.espineda.sjc@phinmaed.com'
 EMAIL_HOST_PASSWORD = 'ntbr iwon kajq xqjk'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
-
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://Phinma-fes.com",
-    "http://localhost:5174",  # Your frontend running on Vite
-    "http://127.0.0.1:5174",  # You can add this as well if applicable (alternative forms)
-]
-
-
 
 # Application definition
 
