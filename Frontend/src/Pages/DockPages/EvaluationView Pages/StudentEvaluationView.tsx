@@ -178,9 +178,9 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         const token = localStorage.getItem("token");
         if (!token) return;
         // You may need to adjust the endpoint
-        const res = await api.get(`/studentevaluation/studentevaluation/${selectedSchedule.id}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get(`/studentevaluation/studentevaluation/by-schedule/${selectedSchedule.id}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
         setSffData(res.data);
       } catch (e) {
         setSffData(null);

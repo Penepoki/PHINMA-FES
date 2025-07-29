@@ -404,6 +404,15 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+    @action(detail=False, methods=['get'], url_path='by-schedule/(?P<schedule_id>[^/.]+)')
+    def by_schedule(self, request, schedule_id=None):
+        try:
+            evaluation = self.get_queryset().get(schedule_id=schedule_id)
+            serializer = self.get_serializer(evaluation)
+            return Response(serializer.data)
+        except StudentEvaluation.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=404)
+
 
 class StudentEvaluationQuestionViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationQuestion.objects.all()
