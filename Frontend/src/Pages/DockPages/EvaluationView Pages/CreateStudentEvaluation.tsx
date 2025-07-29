@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import StudentEvaluationRow from "../../../Components/Evaluation Components/Student Evaluation Row";
 import api from "../../../utils/api";
 import CreateStudentQuestion, { QuestionData, mapTypeToBackend, mapTypeToFrontend } from "../../../Components/Evaluation Components/CreateStudentQuestion";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
-
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 
 interface CreateStudentEvalProps {
   setActiveView: (view: string) => void;
@@ -173,7 +172,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
     setIsImportModalOpen(false);
   };
 
- // Add/Edit/Delete question in edit modal
+  // Add/Edit/Delete question in edit modal
   const handleEditEvalAddQuestion = (q: QuestionData) => {
     setEditEvalQuestions((prev) => [...prev, q]);
   };
@@ -298,7 +297,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
           Create New Student Evaluation
         </button>
         {isCreateEvalModalOpen && (
-          <dialog open className="modal" style={{zIndex: 999}}>
+          <dialog open className="modal" style={{ zIndex: 999 }}>
             <div className="modal-box w-11/12 max-w-5xl">
               <h3 className="mb-4 text-center text-2xl font-bold">New Student Evaluation</h3>
               <form method="dialog" className="flex flex-col gap-6">
@@ -413,9 +412,9 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
         )}
       </div>
 
-      <div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg">
+      <div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg text-white">
         <table className="table">
-          <thead className="bg-[#1c402a]/50 text-xl font-bold">
+          <thead className="bg-[#1c402a]/50 text-xl font-bold text-white">
             <tr>
               <th></th>
               <th>Evaluation Title</th>
@@ -433,10 +432,11 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                 <td>{evaluation.import_questions?.length ?? 0}</td>
                 <td>
                   <button
-                    className="btn btn-sm btn-primary"
+                    className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
                     onClick={() => handleEditEvaluation(evaluation)}
                   >
-                    ✏️ Edit
+                    <PencilSquareIcon className="h-4 w-4" />
+                    Edit
                   </button>
                 </td>
               </tr>
@@ -519,52 +519,52 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                 </button>
               </div>
               <div className="overflow-x-auto rounded-lg border border-gray-300">
-                  <table className="table w-full ">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Question</th>
-                        <th>Type</th>
-                        <th>Imported?</th>
-                        <th className="text-center">Actions</th>
+                <table className="table w-full ">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Question</th>
+                      <th>Type</th>
+                      <th>Imported?</th>
+                      <th className="text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {editEvalQuestions.map((q, i) => (
+                      <tr key={i}>
+                        <td>{i + 1}</td>
+                        <td>{q.question}</td>
+                        <td>{q.type}</td>
+                        <td>
+                          {q.id ? (
+                            <span className="text-blue-500 font-medium">Yes</span>
+                          ) : (
+                            <span className="text-gray-500">No</span>
+                          )}
+                        </td>
+                        <td className="text-center space-x-2">
+                          <button
+                            className="btn btn-xs btn-primary"
+                            onClick={() => {
+                              setEditQuestionToEdit(q);
+                              setEditQuestionIndex(i);
+                              setEditQuestionModalOpen(true);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn-xs btn-error"
+                            onClick={() => handleEditEvalDeleteQuestion(i)}
+                          >
+                            Delete
+                          </button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {editEvalQuestions.map((q, i) => (
-                        <tr key={i}>
-                          <td>{i + 1}</td>
-                          <td>{q.question}</td>
-                          <td>{q.type}</td>
-                          <td>
-                            {q.id ? (
-                              <span className="text-blue-500 font-medium">Yes</span>
-                            ) : (
-                              <span className="text-gray-500">No</span>
-                            )}
-                          </td>
-                          <td className="text-center space-x-2">
-                            <button
-                              className="btn btn-xs btn-primary"
-                              onClick={() => {
-                                setEditQuestionToEdit(q);
-                                setEditQuestionIndex(i);
-                                setEditQuestionModalOpen(true);
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="btn btn-xs btn-error"
-                              onClick={() => handleEditEvalDeleteQuestion(i)}
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
             <div className="modal-action">
               <button
@@ -635,7 +635,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
           setEditIndex(null);
         }}
         onAdd={handleAddQuestion}
-        onUpdate={() => {}}
+        onUpdate={() => { }}
         questionToEdit={questionToEdit}
         editIndex={editIndex}
       />
