@@ -81,7 +81,7 @@ function Home() {
             if (allAnswered) {
               completed.add(subject.name);
             }
-          } catch (e) {}
+          } catch (e) { }
         }));
         setCompletedSubjects(completed);
       } catch (error) {
@@ -133,7 +133,7 @@ function Home() {
       // Check if completed
       if (completedSubjects.has(selectedSubject.name)) {
         // Fetch only answers for this evaluation
-        let answers: Record<number, string> = {};
+        const answers: Record<number, string> = {};
         try {
           const prevResponse = await api.get(`/studentevaluationresponse/studentevaluationresponse/?student_evaluation_id=${evalResponse.data.id}`);
           if (prevResponse.data && prevResponse.data.length > 0) {
@@ -141,7 +141,7 @@ function Home() {
               answers[resp.student_eval_question] = resp.answer;
             });
           }
-        } catch (err) {}
+        } catch (err) { }
         setViewAnswers(answers);
         setOpenViewDialog(true);
       } else {
@@ -205,6 +205,9 @@ function Home() {
     );
   }
 
+  const unfinishedSubjects = subjects.filter(subject => !completedSubjects.has(subject.name));
+  const finishedSubjects = subjects.filter(subject => completedSubjects.has(subject.name));
+
   return (
     <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
       {/* Header */}
@@ -213,14 +216,36 @@ function Home() {
 
       {/* Content */}
       <div className="mt-35 ml-3 flex h-auto w-auto flex-col-reverse items-start justify-center gap-4 overflow-y-auto md:mr-103 md:flex-row">
+        {/* Subject Lists Split into Unfinished and Finished */}
+        <div className="flex flex-col gap-6">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Unfinished Subjects</h2>
+            <SubjectCards
+              subjects={unfinishedSubjects}
+              onClick={handleSubjectClick}
+              completedSubjects={completedSubjects}
+            />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-white">Finished Subjects</h2>
+            <SubjectCards
+              subjects={finishedSubjects}
+              onClick={handleSubjectClick}
+              completedSubjects={completedSubjects}
+            />
+          </div>
+        </div>
 
-        {/* Subject List */}
-        <SubjectCards
-          subjects={subjects}
-          onClick={handleSubjectClick}
-          completedSubjects={completedSubjects}
-        />
-
+        {/* Progress */}
+        <div className="flex w-full flex-row items-center justify-center gap-6 md:absolute md:right-20 md:mt-26 md:w-auto md:flex-col">
+          {semesterData.map(({ semester, ratio }) => (
+            <SemesterCard
+              key={semester}
+              semester={semester}
+              ratio={ratio}
+            />
+          ))}
+        </div>
         {/* Progress Bar */}
 
         <div className="flex w-full flex-row items-center justify-center gap-6 md:absolute md:right-20 md:mt-26 md:w-auto md:flex-col">
@@ -311,10 +336,10 @@ function Home() {
                             />
                             {rating} - {
                               rating === 1 ? "Poor/Strongly Disagree" :
-                              rating === 2 ? "Below Average/Disagree" :
-                              rating === 3 ? "Average/Neutral" :
-                              rating === 4 ? "Good/Agree" :
-                              "Excellent/Strongly Agree"
+                                rating === 2 ? "Below Average/Disagree" :
+                                  rating === 3 ? "Average/Neutral" :
+                                    rating === 4 ? "Good/Agree" :
+                                      "Excellent/Strongly Agree"
                             }
                           </label>
                         ))}
@@ -422,10 +447,10 @@ function Home() {
                               />
                               {rating} - {
                                 rating === 1 ? "Poor/Strongly Disagree" :
-                                rating === 2 ? "Below Average/Disagree" :
-                                rating === 3 ? "Average/Neutral" :
-                                rating === 4 ? "Good/Agree" :
-                                "Excellent/Strongly Agree"
+                                  rating === 2 ? "Below Average/Disagree" :
+                                    rating === 3 ? "Average/Neutral" :
+                                      rating === 4 ? "Good/Agree" :
+                                        "Excellent/Strongly Agree"
                               }
                             </label>
                           ))}
