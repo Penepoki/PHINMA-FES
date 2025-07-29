@@ -82,7 +82,7 @@ class FacultyScheduleInline(admin.TabularInline):
 ##REGISTRY SECTION
 @admin.register(Schedule)
 class ScheduleAdmin(admin.ModelAdmin):
-    list_display = ( "subject", "room", "start_time","program", "end_time", "semester", "year", "is_active")
+    list_display = ( "id","subject", "room", "start_time","program", "end_time", "semester", "year", "is_active")
                                                                             #"deleted_at", "created_at", "updated_at")
     #inlines = [RoomInLine, ProgramInline, SubjectInline]
 

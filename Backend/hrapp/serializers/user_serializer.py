@@ -18,24 +18,24 @@ class UserProgramProfessorSerializer(serializers.ModelSerializer):
 # USER SERIALIZER THATS GETS ALL THE SELECTED FIELDS LOOK AT META CLASS BELOW THE FIELDS
 class UserSerializer(serializers.ModelSerializer):
     profile_picture_url = serializers.SerializerMethodField()
-    #Provides a URL for the Image
-
     full_name_professor = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'last_name', 'first_name', 'profile_picture_url',
-            'profile_picture','role', 'full_name_professor'
-        ] #DICT FOR FIELDS YOU WANT TO SHOW
+            'profile_picture', 'role', 'full_name_professor'
+        ]
 
     def get_profile_picture_url(self, obj):
-        #GENERATE A FULLY QUALIFIED URL FOR THE USER'S PROFILE
         request = self.context.get('request')
         if obj.profile_picture and request:
             return request.build_absolute_uri(obj.profile_picture.url)
         return None
 
+    def get_full_name_professor(self, obj):
+        # Adjust as needed for your User model
+        return f"{obj.first_name} {obj.last_name}"
 
 class UserDashboardSerializer(serializers.ModelSerializer):
     profile_picture_url = serializers.SerializerMethodField()

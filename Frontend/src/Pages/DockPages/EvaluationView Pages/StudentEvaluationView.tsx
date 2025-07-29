@@ -1,4 +1,3 @@
-console.log("StudentEvaluationView mounted", Date.now());
 import React, { useEffect, useState } from "react";
 import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
@@ -86,10 +85,13 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [sffData, setSffData] = useState<SFFData | null>(null);
+  const [students, setStudents] = useState<any[]>([]);
+  const [studentResponses, setStudentResponses] = useState<{ [userId: string]: any[] }>({});
 
   // Loading state
   const [loading, setLoading] = useState(false);
   const [sectionsLoading, setSectionsLoading] = useState(false);
+  const [studentsLoading, setStudentsLoading] = useState(false);
 
   // Fetch programs for the faculty on mount
   useEffect(() => {
@@ -185,7 +187,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         const token = localStorage.getItem("token");
         if (!token) return;
         // Adjust endpoint as needed
-        const res = await api.get(`/schedule/${selectedSchedule.id}/sections/`, {
+        const res = await api.get(`/schedule/schedules/${selectedSchedule.id}/sections/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSections(res.data);
@@ -221,6 +223,54 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchSFF();
   }, [selectedSection]);
 
+  // Fetch students for selected section
+  useEffect(() => {
+    if (!selectedSection) return;
+    setStudents([]);
+    setStudentResponses({});
+    setStudentsLoading(true);
+    const fetchStudents = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const res = await api.get(`/section/sections/${selectedSection.id}/students/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setStudents(res.data);
+      } catch (e) {
+        setStudents([]);
+      } finally {
+        setStudentsLoading(false);
+      }
+    };
+    fetchStudents();
+  }, [selectedSection]);
+
+  // Fetch responses for each student for the current evaluation
+  useEffect(() => {
+    if (!students.length || !sffData?.id) return;
+    const fetchResponses = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const responsesMap: { [userId: string]: any[] } = {};
+      await Promise.all(
+        students.map(async (student) => {
+          try {
+            const res = await api.get(
+              `/studentevaluation/studentevaluation/${sffData.id}/responses/?user=${student.id}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            responsesMap[student.id] = res.data;
+          } catch {
+            responsesMap[student.id] = [];
+          }
+        })
+      );
+      setStudentResponses(responsesMap);
+    };
+    fetchResponses();
+  }, [students, sffData]);
+
   // Columns for DataTable
   const professorColumns: Column<Professor>[] = [
     { header: "Name", accessor: (prof) => prof.full_name },
@@ -230,6 +280,20 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   ];
   const sectionColumns: Column<Section>[] = [
     { header: "Section Name", accessor: (sec) => sec.name },
+  ];
+  const studentColumns: Column<any>[] = [
+    { header: "Student Name", accessor: (stu) => `${stu.first_name} ${stu.last_name}` },
+    { header: "Email", accessor: (stu) => stu.email },
+    { header: "Responses", accessor: (stu) => (
+        <ul>
+          {(studentResponses[stu.id] || []).map((resp, idx) => (
+            <li key={idx}>
+              Q{resp.student_eval_question}: {resp.answer}
+            </li>
+          ))}
+        </ul>
+      )
+    }
   ];
 
   // UI rendering
@@ -346,6 +410,18 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               <p>No SFF data found.</p>
             )}
           </div>
+
+          {/* Step 6: Students and their responses */}
+          <h3 className="text-2xl font-semibold text-white mb-4 mt-8">Student Responses for {selectedSection.name}</h3>
+          {studentsLoading ? (
+            <SkeletonTable rows={4} cols={3} />
+          ) : (
+            <DataTable
+              data={students}
+              columns={studentColumns}
+              getRowKey={(stu) => stu.id}
+            />
+          )}
         </>
       )}
     </div>

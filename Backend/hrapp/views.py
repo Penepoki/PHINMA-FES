@@ -413,6 +413,36 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
         except StudentEvaluation.DoesNotExist:
             return Response({'detail': 'Not found.'}, status=404)
 
+    @action(detail=True, methods=['get'], url_path='responses')
+    def responses(self, request, pk=None):
+        """
+        Returns all responses for this evaluation, optionally filtered by user.
+        """
+        user_id = request.query_params.get('user')
+        responses = StudentEvaluationResponse.objects.filter(student_evaluation_id=pk)
+        if user_id:
+            responses = responses.filter(user_id=user_id)
+        serializer = StudentEvaluationResponseSerializer(responses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='by-section/(?P<section_id>[^/.]+)')
+    def by_section(self, request, section_id=None):
+        """
+        Get student evaluation for a specific section.
+        """
+        try:
+            # This assumes each schedule is linked to a section
+            evaluation = StudentEvaluation.objects.get(
+                schedule__section_id=section_id,
+                deleted_at__isnull=True
+            )
+            serializer = self.get_serializer(evaluation)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except StudentEvaluation.DoesNotExist:
+            return Response(
+                {'error': 'No evaluation found for this section'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 class StudentEvaluationQuestionViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationQuestion.objects.all()
@@ -479,7 +509,17 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
+    @action(detail=False, methods=['get'], url_path='by-evaluation-and-user')
+    def by_evaluation_and_user(self, request):
+        """Get all Response bt students(User)
+        Usage or Endpoint: /studentevaluationresponse/studentevaluationresponse/by-evaluation-and-user"""
+        student_evaluation_id = request.query_params.get('student_evaluation')
+        user_id = request.query_params.get('user')
+        if not student_evaluation_id or not user_id:
+            return Response({'error': 'student_evaluation and user are required to query the parameter'}, status=status.HTTP_400_BAD_REQUEST)
+        responses = StudentEvaluationResponse.objects.filter(student_evaluation_id=student_evaluation_id,user_id=user_id)
+        serializer = self.get_serializer(responses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 ### END OF STUDENTEVALUATION VIEW ###
 """-------------------------------------------------------------"""
 
@@ -957,6 +997,16 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(schedules, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['get'], url_path='sections')
+    def sections(self, request, pk=None):
+        """RETURNS SECTIONS ASSIGNED TO A SCHEDULE"""
+        schedule = self.get_object()
+        if schedule.section:
+            serializer = SectionSerializer(schedule.section)
+            return Response([serializer.data], status=status.HTTP_200_OK)
+        else:
+            return Response({'detail': 'No sections is assigned to this schedule.'}, status=status.HTTP_404_NOT_FOUND)
+
 
 # USER VIEWS.
 @api_view(['GET'])
@@ -992,6 +1042,17 @@ class SectionViewSet(viewsets.ModelViewSet):
         section.students.add(*student_ids)
         return Response({'message': f'Added {len(student_ids)} students to section {section.name}.'},
                         status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='students')
+    def students(self, request, pk=None):
+        """
+        Returns all students assigned to this section.
+        """
+        section = self.get_object()
+        students = section.students.all()
+        serializer = UserSerializer(students, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
     def create(self, request, *args, **kwargs):
         data = request.data
