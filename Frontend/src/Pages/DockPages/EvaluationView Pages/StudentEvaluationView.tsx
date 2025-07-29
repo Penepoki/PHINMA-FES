@@ -62,37 +62,43 @@ interface Schedule {
   // Add more fields as needed
 }
 
+interface Section {
+  id: number;
+  name: string;
+  // Add more fields as needed
+}
+
 interface SFFData {
   // Define SFF data structure
   [key: string]: any;
 }
-
 
 function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   // Step state
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [selectedProfessor, setSelectedProfessor] = useState<Professor | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
 
   // Data state
   const [programs, setPrograms] = useState<Program[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [sffData, setSffData] = useState<SFFData | null>(null);
 
   // Loading state
   const [loading, setLoading] = useState(false);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
 
   // Fetch programs for the faculty on mount
   useEffect(() => {
-    // Fetch programs using the same logic as Programs.tsx
     const fetchPrograms = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
         const faculty_id = localStorage.getItem("faculty_id");
         if (!token) return;
-        // If faculty_id is available, filter by it
         const params: any = {};
         if (faculty_id) params.faculty_id = faculty_id;
         const response = await api.get("/program/programs/", {
@@ -109,12 +115,12 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchPrograms();
   }, []);
 
-
   // Fetch professors for selected program
   useEffect(() => {
     if (!selectedProgram) return;
     setSelectedProfessor(null);
     setSelectedSchedule(null);
+    setSelectedSection(null);
     setSffData(null);
     const fetchProfessors = async () => {
       setLoading(true);
@@ -125,7 +131,6 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
           params: { program_id: selectedProgram.id },
           headers: { Authorization: `Bearer ${token}` },
         });
-        // Map to Professor[]
         setProfessors(
           res.data.map((item: any) => ({
             id: item.professor,
@@ -147,13 +152,13 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   useEffect(() => {
     if (!selectedProfessor || !selectedProgram) return;
     setSelectedSchedule(null);
+    setSelectedSection(null);
     setSffData(null);
     const fetchSchedules = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
-        // You may need to adjust the endpoint and params
         const res = await api.get("/schedule/schedules/", {
           params: { professor: selectedProfessor.id, program: selectedProgram.id },
           headers: { Authorization: `Bearer ${token}` },
@@ -168,19 +173,44 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchSchedules();
   }, [selectedProfessor, selectedProgram]);
 
-  // Fetch SFF data for selected schedule
+  // Fetch sections for selected schedule
   useEffect(() => {
     if (!selectedSchedule) return;
+    setSelectedSection(null);
+    setSections([]);
+    setSffData(null);
+    const fetchSections = async () => {
+      setSectionsLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        // Adjust endpoint as needed
+        const res = await api.get(`/schedule/${selectedSchedule.id}/sections/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSections(res.data);
+      } catch (e) {
+        setSections([]);
+      } finally {
+        setSectionsLoading(false);
+      }
+    };
+    fetchSections();
+  }, [selectedSchedule]);
+
+  // Fetch SFF data for selected section
+  useEffect(() => {
+    if (!selectedSection) return;
     setSffData(null);
     const fetchSFF = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
-        // You may need to adjust the endpoint
-        const res = await api.get(`/studentevaluation/studentevaluation/by-schedule/${selectedSchedule.id}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        // Adjust endpoint as needed
+        const res = await api.get(`/studentevaluation/studentevaluation/by-section/${selectedSection.id}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setSffData(res.data);
       } catch (e) {
         setSffData(null);
@@ -189,7 +219,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       }
     };
     fetchSFF();
-  }, [selectedSchedule]);
+  }, [selectedSection]);
 
   // Columns for DataTable
   const professorColumns: Column<Professor>[] = [
@@ -197,6 +227,9 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   ];
   const scheduleColumns: Column<Schedule>[] = [
     { header: "Schedule Name", accessor: (s) => s.name },
+  ];
+  const sectionColumns: Column<Section>[] = [
+    { header: "Section Name", accessor: (sec) => sec.name },
   ];
 
   // UI rendering
@@ -260,6 +293,30 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               getRowKey={(s) => s.id}
               actions={(s) => (
                 <button className="btn btn-sm btn-primary" onClick={() => setSelectedSchedule(s)}>
+                  View Sections
+                </button>
+              )}
+            />
+          )}
+        </>
+      )}
+
+      {/* Step 4: Sections Table */}
+      {selectedProgram && selectedProfessor && selectedSchedule && !selectedSection && (
+        <>
+          <button className="btn btn-neutral mb-4" onClick={() => setSelectedSchedule(null)}>
+            Back to Schedules
+          </button>
+          <h3 className="text-2xl font-semibold text-white mb-4">Sections for {selectedSchedule.name}</h3>
+          {sectionsLoading ? (
+            <SkeletonTable rows={4} cols={1} />
+          ) : (
+            <DataTable
+              data={sections}
+              columns={sectionColumns}
+              getRowKey={(sec) => sec.id}
+              actions={(sec) => (
+                <button className="btn btn-sm btn-primary" onClick={() => setSelectedSection(sec)}>
                   View SFF
                 </button>
               )}
@@ -268,13 +325,13 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         </>
       )}
 
-      {/* Step 4: SFF Data */}
-      {selectedProgram && selectedProfessor && selectedSchedule && (
+      {/* Step 5: SFF Data */}
+      {selectedProgram && selectedProfessor && selectedSchedule && selectedSection && (
         <>
-          <button className="btn btn-neutral mb-4" onClick={() => setSelectedSchedule(null)}>
-            Back to Schedules
+          <button className="btn btn-neutral mb-4" onClick={() => setSelectedSection(null)}>
+            Back to Sections
           </button>
-          <h3 className="text-2xl font-semibold text-white mb-4">SFF Data for {selectedSchedule.name}</h3>
+          <h3 className="text-2xl font-semibold text-white mb-4">SFF Data for {selectedSection.name}</h3>
           <div className="bg-white text-black rounded-lg p-6 shadow-xl">
             {loading ? (
               <>
