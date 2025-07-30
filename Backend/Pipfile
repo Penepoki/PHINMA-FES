@@ -21,7 +21,7 @@ cairocffi = "*"
 pyyaml = "*"
 python-dotenv = "*"
 gunicorn = "*"
-
+huggingface-hub = "*"
 
 [dev-packages]
 

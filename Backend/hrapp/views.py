@@ -114,7 +114,7 @@ def user_view_dashboard(request):
 def user_view_profile(request):
     user = request.user
     serializer = UserSerializer(user, context={'request': request})
-    return Response(serializers.data)
+    return Response(serializer.data)
 
 
 # Evaluation View
