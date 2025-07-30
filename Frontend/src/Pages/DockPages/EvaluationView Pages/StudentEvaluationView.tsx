@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ProgramCards from "../../../Components/Evaluation Components/ProgramCards.tsx";
-
+import SffDataDisplay from "../../../Components/Evaluation Components/SffDataDisplay";
 // Simple skeleton loader components
 const SkeletonBox = ({ width = '100%', height = 24, className = '' }) => (
   <div
@@ -78,7 +78,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   const [selectedProfessor, setSelectedProfessor] = useState<Professor | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
-
+  const sffDialogRef = React.useRef(null);
+  const studentDialogRef = React.useRef(null);
   // Data state
   const [programs, setPrograms] = useState<Program[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
@@ -87,6 +88,12 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   const [sffData, setSffData] = useState<SFFData | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [studentResponses, setStudentResponses] = useState<{ [userId: string]: any[] }>({});
+  const [studentLoading, setStudentLoading] = useState(false);
+  const [studentDialogResponses, setStudentDialogResponses] = useState<any[]>([]);
+
+  // Modal state
+  const [viewingStudent, setViewingStudent] = useState<any | null>(null);
+  const [showSffDialog, setShowSffDialog] = useState(false);
 
   // Loading state
   const [loading, setLoading] = useState(false);
@@ -210,9 +217,9 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         const token = localStorage.getItem("token");
         if (!token) return;
         // Adjust endpoint as needed
-        const res = await api.get(`/studentevaluation/studentevaluation/by-section/${selectedSection.id}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get(`/studentevaluation/studentevaluation/all-by-schedule/${selectedSchedule.id}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
         setSffData(res.data);
       } catch (e) {
         setSffData(null);
@@ -246,7 +253,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchStudents();
   }, [selectedSection]);
 
-  // Fetch responses for each student for the current evaluation
+  // Fetch responses for each student for the current evaluation (for table preview, not dialog)
   useEffect(() => {
     if (!students.length || !sffData?.id) return;
     const fetchResponses = async () => {
@@ -271,6 +278,30 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchResponses();
   }, [students, sffData]);
 
+  // Fetch responses for the selected student when dialog opens
+  useEffect(() => {
+    const fetchStudentDialogResponses = async () => {
+      // If sffData is a list, get the first evaluation's id
+      const evaluationId = Array.isArray(sffData) && sffData.length > 0 ? sffData[0].id : sffData?.id;
+      if (!viewingStudent || !evaluationId) return;
+      setStudentLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        console.log("Fetching answers for", { student_evaluation: evaluationId, user: viewingStudent.id });
+        const res = await api.get(`/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-user?student_evaluation=${evaluationId}&user=${viewingStudent.id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setStudentDialogResponses(res.data);
+      } catch {
+        setStudentDialogResponses([]);
+      } finally {
+        setStudentLoading(false);
+      }
+    };
+    fetchStudentDialogResponses();
+  }, [viewingStudent, sffData]);
+
   // Columns for DataTable
   const professorColumns: Column<Professor>[] = [
     { header: "Name", accessor: (prof) => prof.full_name },
@@ -284,21 +315,11 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   const studentColumns: Column<any>[] = [
     { header: "Student Name", accessor: (stu) => `${stu.first_name} ${stu.last_name}` },
     { header: "Email", accessor: (stu) => stu.email },
-    { header: "Responses", accessor: (stu) => (
-        <ul>
-          {(studentResponses[stu.id] || []).map((resp, idx) => (
-            <li key={idx}>
-              Q{resp.student_eval_question}: {resp.answer}
-            </li>
-          ))}
-        </ul>
-      )
-    }
   ];
 
   // UI rendering
   return (
-    <div className="custom-container gap-y-6">
+    <div className="custom-container gap-y-6 h-screen overflow-y-auto">
       <div className="breadcrumbs">
         <ul>
           <li>
@@ -396,21 +417,6 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             Back to Sections
           </button>
           <h3 className="text-2xl font-semibold text-white mb-4">SFF Data for {selectedSection.name}</h3>
-          <div className="bg-white text-black rounded-lg p-6 shadow-xl">
-            {loading ? (
-              <>
-                <SkeletonBox height={24} width="60%" />
-                <SkeletonBox height={16} width="90%" />
-                <SkeletonBox height={16} width="80%" />
-                <SkeletonBox height={16} width="70%" />
-              </>
-            ) : sffData ? (
-              <pre className="whitespace-pre-wrap">{JSON.stringify(sffData, null, 2)}</pre>
-            ) : (
-              <p>No SFF data found.</p>
-            )}
-          </div>
-
           {/* Step 6: Students and their responses */}
           <h3 className="text-2xl font-semibold text-white mb-4 mt-8">Student Responses for {selectedSection.name}</h3>
           {studentsLoading ? (
@@ -420,8 +426,64 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               data={students}
               columns={studentColumns}
               getRowKey={(stu) => stu.id}
+              actions={(stu) => (
+                <button className="btn btn-sm btn-primary" onClick={() => {
+                  console.log("View Responses clicked for student:", stu);
+                  console.log("Fetching answers for", { student_evaluation: sffData?.id, user: viewingStudent?.id });
+                  setViewingStudent(stu);
+                  if (studentDialogRef.current) studentDialogRef.current.showModal();
+                }}>
+                  View Responses
+                </button>
+              )}
             />
           )}
+
+          {/* Student Responses Dialog using <dialog> */}
+          <dialog ref={studentDialogRef} className="rounded-lg shadow-xl p-0 w-full max-w-2xl">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl relative">
+              <button
+                className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+                onClick={() => studentDialogRef.current && studentDialogRef.current.close()}
+              >
+                &times;
+              </button>
+              {viewingStudent && (
+                <>
+                  <h4 className="text-xl font-bold mb-4">
+                    Responses for {viewingStudent.first_name} {viewingStudent.last_name}
+                  </h4>
+                  <h5 className="text-lg font-semibold mb-2">SFF Data for {selectedSection.name}</h5>
+                  {loading ? (
+                    <>
+                      <SkeletonBox height={24} width="60%" />
+                      <SkeletonBox height={16} width="90%" />
+                      <SkeletonBox height={16} width="80%" />
+                      <SkeletonBox height={16} width="70%" />
+                    </>
+                  ) : (
+                    <SffDataDisplay sffData={sffData} />
+                  )}
+                  <h5 className="text-lg font-semibold mt-4 mb-2">Student Answers</h5>
+                  {studentLoading ? (
+                    <SkeletonTable rows={4} cols={1} />
+                  ) : (
+                    (studentDialogResponses && studentDialogResponses.length > 0) ? (
+                      <ul className="list-disc pl-5">
+                        {studentDialogResponses.map((resp, idx) => (
+                          <li key={idx} className="mb-2">
+                            <strong>Q{resp.student_eval_question}:</strong> {resp.answer}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No responses found for this student.</p>
+                    )
+                  )}
+                </>
+              )}
+            </div>
+          </dialog>
         </>
       )}
     </div>

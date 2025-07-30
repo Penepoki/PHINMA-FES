@@ -404,14 +404,20 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-    @action(detail=False, methods=['get'], url_path='by-schedule/(?P<schedule_id>[^/.]+)')
-    def by_schedule(self, request, schedule_id=None):
-        try:
-            evaluation = self.get_queryset().get(schedule_id=schedule_id)
-            serializer = self.get_serializer(evaluation)
-            return Response(serializer.data)
-        except StudentEvaluation.DoesNotExist:
-            return Response({'detail': 'Not found.'}, status=404)
+        # Returns all evaluations (as a list)
+
+    @action(detail=False, methods=['get'], url_path='all-by-schedule/(?P<schedule_id>[^/.]+)')
+    def all_by_schedule(self, request, schedule_id=None):
+        evaluations = StudentEvaluation.objects.filter(
+            schedule_id=schedule_id,
+            deleted_at__isnull=True
+        )
+        if not evaluations.exists():
+            return Response({'error': 'No evaluation found for this schedule'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(evaluations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 
     @action(detail=True, methods=['get'], url_path='responses')
     def responses(self, request, pk=None):
@@ -515,11 +521,15 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         Usage or Endpoint: /studentevaluationresponse/studentevaluationresponse/by-evaluation-and-user"""
         student_evaluation_id = request.query_params.get('student_evaluation')
         user_id = request.query_params.get('user')
+
         if not student_evaluation_id or not user_id:
             return Response({'error': 'student_evaluation and user are required to query the parameter'}, status=status.HTTP_400_BAD_REQUEST)
         responses = StudentEvaluationResponse.objects.filter(student_evaluation_id=student_evaluation_id,user_id=user_id)
         serializer = self.get_serializer(responses, many=True)
+        print("student_evaluation_id:", student_evaluation_id, "user_id:", user_id)
+        print("Queryset count:", responses.count())
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 ### END OF STUDENTEVALUATION VIEW ###
 """-------------------------------------------------------------"""
 
