@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ProgramCards from "../../../Components/Evaluation Components/ProgramCards.tsx";
@@ -79,7 +79,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const sffDialogRef = React.useRef(null);
-  const studentDialogRef = React.useRef(null);
+  const studentDialogRef = useRef<HTMLDialogElement>(null);
   // Data state
   const [programs, setPrograms] = useState<Program[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
@@ -216,7 +216,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
-        // Adjust endpoint as needed
+        if (!selectedSchedule) return; // or handle the null case appropriately
         const res = await api.get(`/studentevaluation/studentevaluation/all-by-schedule/${selectedSchedule.id}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
