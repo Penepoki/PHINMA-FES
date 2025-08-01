@@ -3,6 +3,7 @@ import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ProgramCards from "../../../Components/Evaluation Components/ProgramCards.tsx";
 import SffDataDisplay from "../../../Components/Evaluation Components/SffDataDisplay";
+import SectionResponsesChartsTable from "../../../Components/Evaluation Components/SectionResponsesChartsTable.tsx";
 // Simple skeleton loader components
 const SkeletonBox = ({ width = '100%', height = 24, className = '' }) => (
   <div
@@ -253,8 +254,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchStudents();
   }, [selectedSection]);
 
-  // Fetch responses for each student for the current evaluation (for table preview, not dialog)
-  useEffect(() => {
+    // Fetch responses for each student for the current evaluation (for table preview, not dialog)
+    useEffect(() => {
     if (!students.length || !sffData?.id) return;
     const fetchResponses = async () => {
       const token = localStorage.getItem("token");
@@ -278,18 +279,27 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchResponses();
   }, [students, sffData]);
 
+    const fetchSectionResponses = async (evaluationId: string, sectionId: string) => {
+  const token = localStorage.getItem("token");
+  if (!token) return [];
+  const res = await api.get(
+    `/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-section?student_evaluation=${evaluationId}&section=${sectionId}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data; // array of StudentEvaluationResponse objects
+  };
+
   // Fetch responses for the selected student when dialog opens
-  useEffect(() => {
+    useEffect(() => {
     const fetchStudentDialogResponses = async () => {
-      // If sffData is a list, get the first evaluation's id
       const evaluationId = Array.isArray(sffData) && sffData.length > 0 ? sffData[0].id : sffData?.id;
       if (!viewingStudent || !evaluationId) return;
       setStudentLoading(true);
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
-        console.log("Fetching answers for", { student_evaluation: evaluationId, user: viewingStudent.id });
-        const res = await api.get(`/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-user?student_evaluation=${evaluationId}&user=${viewingStudent.id}`,
+        const res = await api.get(
+          `/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-user?student_evaluation=${evaluationId}&user=${viewingStudent.id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setStudentDialogResponses(res.data);
@@ -417,34 +427,51 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             Back to Sections
           </button>
           <h3 className="text-2xl font-semibold text-white mb-4">SFF Data for {selectedSection.name}</h3>
+          {/* Section-wide charts for rating and MCQ questions */}
+          {sffData && selectedSection && (
+            <React.Suspense fallback={<div>Loading charts...</div>}>
+              {/* @ts-ignore */}
+              <SectionResponsesChartsTable evaluationId={Array.isArray(sffData) ? sffData[0]?.id : sffData.id} sectionId={selectedSection.id} />
+            </React.Suspense>
+          )}
           {/* Step 6: Students and their responses */}
           <h3 className="text-2xl font-semibold text-white mb-4 mt-8">Student Responses for {selectedSection.name}</h3>
           {studentsLoading ? (
             <SkeletonTable rows={4} cols={3} />
           ) : (
             <DataTable
+
               data={students}
               columns={studentColumns}
               getRowKey={(stu) => stu.id}
               actions={(stu) => (
-                <button className="btn btn-sm btn-primary" onClick={() => {
-                  console.log("View Responses clicked for student:", stu);
-                  console.log("Fetching answers for", { student_evaluation: sffData?.id, user: viewingStudent?.id });
-                  setViewingStudent(stu);
-                  if (studentDialogRef.current) studentDialogRef.current.showModal();
-                }}>
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={() => {
+                    console.log("View Responses clicked for student:", stu);
+                    setViewingStudent(stu);
+                    if (studentDialogRef.current) studentDialogRef.current.showModal();
+                  }}
+                >
                   View Responses
                 </button>
               )}
             />
-          )}
-
-          {/* Student Responses Dialog using <dialog> */}
-          <dialog ref={studentDialogRef} className="rounded-lg shadow-xl p-0 w-full max-w-2xl">
+          )}{/* Student Responses Dialog using <dialog> */}
+          <dialog ref={studentDialogRef} className=" modal"
+            onClose={() => {
+              setViewingStudent(null);
+              setStudentDialogResponses([]);
+            }}
+          >
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl relative">
               <button
                 className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
-                onClick={() => studentDialogRef.current && studentDialogRef.current.close()}
+                onClick={() => {
+                  if (studentDialogRef.current) studentDialogRef.current.close();
+                  setViewingStudent(null);
+                  setStudentDialogResponses([]);
+                }}
               >
                 &times;
               </button>

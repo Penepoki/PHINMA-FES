@@ -338,7 +338,6 @@ function Evaluation({ setActiveView }: EvalProps) {
 			</h2>
 
 
-
 			{/* Search Filters */}
 			<div className="flex w-full flex-row items-center justify-center gap-1 border-b-2 border-gray-600 px-4 pb-2 text-black shadow-xl backdrop-blur-lg md:gap-6">
 				<input

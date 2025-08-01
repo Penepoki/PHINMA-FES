@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
+from django.db.models import Count
 from hrapp.models.schedules_models import *
 from hrapp.serializers import *
 from hrapp.utils.user_utils import *
@@ -454,6 +455,22 @@ class StudentEvaluationQuestionViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationQuestion.objects.all()
     serializer_class = StudentEvaluationQuestionSerializer
 
+    @action(detail=False, methods=['get'], url_path='by-evaluation')
+    def by_evaluation(self, request):
+        """
+        Returns all questions for a given student evaluation.
+        Usage: /studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=<eval_id>
+        """
+        evaluation_id = request.query_params.get('student_evaluation')
+        if not evaluation_id:
+            return Response({'error': 'student_evaluation is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            evaluation = StudentEvaluation.objects.get(id=evaluation_id)
+        except StudentEvaluation.DoesNotExist:
+            return Response({'error': 'StudentEvaluation not found'}, status=status.HTTP_404_NOT_FOUND)
+        questions = evaluation.import_questions.all()
+        serializer = self.get_serializer(questions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationResponse.objects.all()
@@ -517,7 +534,7 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='by-evaluation-and-user')
     def by_evaluation_and_user(self, request):
-        """Get all Response bt students(User)
+        """Get all Response bt a speicific students(User)
         Usage or Endpoint: /studentevaluationresponse/studentevaluationresponse/by-evaluation-and-user"""
         student_evaluation_id = request.query_params.get('student_evaluation')
         user_id = request.query_params.get('user')
@@ -530,6 +547,77 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         print("Queryset count:", responses.count())
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'], url_path="by-evaluation-respondents")
+    def by_evaluation_respondents(self, request):
+        """RETURNS ALL STUDENTS RESPONSE TO A SPECIFIC EVALUATION
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-evaluation-respondents?student_evaluation=<eval_id"""
+        student_evaluation_id=request.query_params.get('student_evaluation')
+        if not student_evaluation_id:
+            return Response({'error': 'student_evaluation is required'}, status=status.HTTP_400_BAD_REQUEST)
+        # get student(user) id if they submitted a response
+        user_ids = StudentEvaluationResponse.objects.filter(
+            student_evaluation_id=student_evaluation_id).values_list('user_id', flat=True).distinct()
+        users = User.objects.filter(id__in=user_ids)
+        user_counts = StudentEvaluationResponse.objects.filter(student_evaluation_id=student_evaluation_id).values('user_id').annotate(response_count=Count('id'))
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='by-evaluation-and-section')
+    def by_evaluation_and_section(self, request):
+        """RETURNS ALL RESPONSES FOR A GIVEN EVALUATION, FILTERED BY SECTION
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-evaluation-and-section?student_evaluation=<eval_id>&section=<section_id>
+        """
+        student_evaluation_id = request.query_params.get('student_evaluation')
+        section_id = request.query_params.get('section')
+        if not student_evaluation_id or not section_id:
+            return Response({'error': 'student_evaluation and section are required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            section = Section.objects.get(id=section_id)
+            user_ids = section.students.values_list('id', flat=True)
+        except Section.DoesNotExist:
+            return Response({'error': 'section not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        responses = StudentEvaluationResponse.objects.filter(
+            student_evaluation_id=student_evaluation_id,user_id__in=user_ids
+            )
+        serializer = StudentEvaluationResponseSerializer(responses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='by-professor')
+    def by_professor(self, request):
+        """RETURNS RESPONSES FOR A PROFESSOR BASED ON THEIR SCHEDULES
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-professor?professor=<professor_id>"""
+        professor_id = request.query_params.get('professor')
+        if not professor_id:
+            return Response({'error': 'professor is required'}, status=status.HTTP_400_BAD_REQUEST)
+        responses = StudentEvaluationResponse.objects.filter(
+            student_evaluation__schedule__instructor_id=professor_id)
+        serializer = self.get_serializer(responses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='by-program')
+    def by_program(self, request):
+        """RETURNS RESPONSES FOR A PROGRAM
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-program?program=<pogram_id>"""
+        program_id = request.query_params.get('programs')
+        if not program_id:
+            return Response({'error': 'program is required'}, status=status.HTTP_400_BAD_REQUEST)
+        responses = StudentEvaluationResponse.objects.filter(
+            student_evaluation__schedule__program_id=program_id)
+        serializer = self.get_serializer(responses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='by-faculty')
+    def by_faculty(self, request):
+        """RETURNS RESPONSES FOR A FACULTY
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-faculty?faculty=<faculty_id>"""
+        faculty_id = request.query_params.get('faculty')
+        if not faculty_id:
+            return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
+        responses = StudentEvaluationResponse.objects.filter(
+            student_evaluation_faculty_id=faculty_id)
+        serializer = self.get_serializer(responses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 ### END OF STUDENTEVALUATION VIEW ###
 """-------------------------------------------------------------"""
 

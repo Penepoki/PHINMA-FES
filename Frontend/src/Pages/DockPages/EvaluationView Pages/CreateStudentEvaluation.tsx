@@ -300,7 +300,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
           <dialog open className="modal" style={{ zIndex: 999 }}>
             <div className="modal-box w-11/12 max-w-5xl">
               <h3 className="mb-4 text-center text-2xl font-bold">New Student Evaluation</h3>
-              <form method="dialog" className="flex flex-col gap-6">
+              <form method="dialog" className="flex flex-col gap-6 ">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center">
                   <label className="text-lg font-bold md:w-1/4">Schedule:</label>
                   <ComboboxTextField
@@ -368,7 +368,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                     >Import Question
                     </button>
                   </div>
-                  <div className="overflow-x-auto rounded-lg border border-gray-300">
+                  <div className="overflow-x-auto max-h-64 overflow-y-auto rounded-lg border border-gray-300">
                     <table className="table w-full">
                       <thead>
                         <tr>
@@ -518,7 +518,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                   Import Question
                 </button>
               </div>
-              <div className="overflow-x-auto rounded-lg border border-gray-300">
+              <div className="overflow-x-auto max-h-64 overflow-y-auto rounded-lg border border-gray-300">
                 <table className="table w-full ">
                   <thead>
                     <tr>

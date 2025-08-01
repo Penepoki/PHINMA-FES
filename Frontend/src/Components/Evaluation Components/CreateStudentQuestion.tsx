@@ -142,7 +142,7 @@ function CreateStudentQuestion({
 
   return (
     <dialog ref={dialogRef} id="create_question_modal" className="modal">
-      <div className="modal-box max-w-2xl">
+      <div className="modal-box max-w-2xl ">
         <h3 className="font-bold text-lg mb-4">
           {questionToEdit ? "Edit Question" : "Add a Question"}
         </h3>
