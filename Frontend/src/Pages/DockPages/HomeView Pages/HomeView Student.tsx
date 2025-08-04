@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import SubjectCards from "../../../Components/Dashboard Components/Student Components/Subject Cards";
 import SemesterCard from "../../../Components/Dashboard Components/HR Components/Semester Cards";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
@@ -30,6 +30,7 @@ interface Subject {
   scheduleId: number;
   questions: any[];
   image?: string | null;
+  isCompleted?: boolean;
 }
 
 function Home() {
@@ -39,11 +40,9 @@ function Home() {
   const [currentEvaluation, setCurrentEvaluation] = useState<StudentEvaluation | null>(null);
   const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
-  const [completedSubjects, setCompletedSubjects] = useState<Set<string>>(new Set());
   const [viewAnswers, setViewAnswers] = useState<Record<number, string>>({});
 
-
-  // Fetch student's schedules and all previous responses to set progress and answers
+  // Fetch student's schedules and evaluation completion status
   useEffect(() => {
     const fetchStudentSchedulesAndProgress = async () => {
       setLoading(true);
@@ -57,33 +56,20 @@ function Home() {
           scheduleId: schedule.id,
           questions: [],
           image: null,
+          isCompleted: false,
         }));
-        setSubjects(subjectCards);
 
-        // Fetch all previous responses for the user
-        const allResponses = await api.get('/studentevaluationresponse/studentevaluationresponse/');
-        const answersByEval: Record<number, Record<number, string>> = {};
-        const completed = new Set<string>();
-        allResponses.data.forEach((resp: any) => {
-          const evalId = resp.student_evaluation;
-          const questionId = resp.student_eval_question;
-          if (!answersByEval[evalId]) answersByEval[evalId] = {};
-          answersByEval[evalId][questionId] = resp.answer;
-        });
-        // Mark as completed only if all questions for an evaluation have answers
+        // For each subject, fetch the evaluation and set isCompleted
         await Promise.all(subjectCards.map(async (subject) => {
           try {
             const evalRes = await api.get(`/studentevaluation/studentevaluation/by-schedule/${subject.scheduleId}/`);
-            const evalId = evalRes.data.id;
-            const questionIds = (evalRes.data.import_questions || []).map((q: any) => typeof q === 'number' ? q : q.id);
-            const answers = answersByEval[evalId] || {};
-            const allAnswered = questionIds.length > 0 && questionIds.every((qid: number) => answers[qid] !== undefined && answers[qid] !== null && answers[qid] !== '');
-            if (allAnswered) {
-              completed.add(subject.name);
-            }
-          } catch (e) { }
+            subject.isCompleted = !!evalRes.data.is_completed;
+          } catch (e) {
+            subject.isCompleted = false;
+          }
         }));
-        setCompletedSubjects(completed);
+
+        setSubjects(subjectCards);
       } catch (error) {
         console.error('Error fetching schedules or progress:', error);
       } finally {
@@ -130,12 +116,12 @@ function Home() {
       });
       setCurrentSubject(selectedSubject);
 
-      // Check if completed
-      if (completedSubjects.has(selectedSubject.name)) {
+      // Use is_completed from backend
+      if (evalResponse.data.is_completed) {
         // Fetch only answers for this evaluation
         const answers: Record<number, string> = {};
         try {
-          const prevResponse = await api.get(`/studentevaluationresponse/studentevaluationresponse/?student_evaluation_id=${evalResponse.data.id}`);
+          const prevResponse = await api.get(`/studentevaluationresponse/studentevaluationresponse/?student_evaluation=${evalResponse.data.id}&user=current`);
           if (prevResponse.data && prevResponse.data.length > 0) {
             prevResponse.data.forEach((resp: any) => {
               answers[resp.student_eval_question] = resp.answer;
@@ -168,7 +154,14 @@ function Home() {
         responses: responses
       });
 
-      setCompletedSubjects(prev => new Set([...prev, currentSubject.name]));
+      // Update isCompleted for the subject
+      setSubjects(prevSubjects =>
+        prevSubjects.map(subject =>
+          subject.id === currentSubject.id
+            ? { ...subject, isCompleted: true }
+            : subject
+        )
+      );
       setOpenAnswerDialog(false);
       alert(`${currentSubject.name} evaluation submitted successfully!`);
     } catch (error: any) {
@@ -181,9 +174,9 @@ function Home() {
     }
   };
 
-
   const totalSubjects = subjects.length;
-  const ratio = `${completedSubjects.size}/${totalSubjects}`;
+  const completedCount = subjects.filter(subject => subject.isCompleted).length;
+  const ratio = `${completedCount}/${totalSubjects}`;
 
   const semesterData = [
     {
@@ -205,13 +198,12 @@ function Home() {
     );
   }
 
-  const unfinishedSubjects = subjects.filter(subject => !completedSubjects.has(subject.name));
-  const finishedSubjects = subjects.filter(subject => completedSubjects.has(subject.name));
+  const unfinishedSubjects = subjects.filter(subject => !subject.isCompleted);
+  const finishedSubjects = subjects.filter(subject => subject.isCompleted);
 
   return (
     <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
       {/* Header */}
-
       <DashboardHeader />
 
       {/* Content */}
@@ -223,7 +215,7 @@ function Home() {
             <SubjectCards
               subjects={unfinishedSubjects}
               onClick={handleSubjectClick}
-              completedSubjects={completedSubjects}
+              completedSubjects={new Set()} // Not used anymore, but required by prop
             />
           </div>
           <div>
@@ -231,7 +223,7 @@ function Home() {
             <SubjectCards
               subjects={finishedSubjects}
               onClick={handleSubjectClick}
-              completedSubjects={completedSubjects}
+              completedSubjects={new Set()} // Not used anymore, but required by prop
             />
           </div>
         </div>
@@ -247,7 +239,6 @@ function Home() {
           ))}
         </div>
         {/* Progress Bar */}
-
         <div className="flex w-full flex-row items-center justify-center gap-6 md:absolute md:right-20 md:mt-26 md:w-auto md:flex-col">
           {semesterData.map(({ semester, ratio }) => (
             <SemesterCard

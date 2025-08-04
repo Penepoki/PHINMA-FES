@@ -139,7 +139,7 @@ class Evaluation(models.Model):
 class StudentEvaluation(models.Model):
     title = models.CharField(max_length=255, null=True ,blank=True)
     description = models.TextField(null=True, blank=True)
-    schedule = models.ForeignKey(Schedule, on_delete=models.SET_NULL, null=True)
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, null=True)
     import_questions = models.ManyToManyField("StudentEvaluationQuestion", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

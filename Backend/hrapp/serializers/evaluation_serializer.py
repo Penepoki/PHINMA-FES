@@ -151,26 +151,35 @@ class StudentEvaluationSerializer(serializers.ModelSerializer):
         queryset=StudentEvaluationQuestion.objects.all(), many=True, required=False
     )
     all_questions = serializers.SerializerMethodField(read_only=True)
-
-    # Add these lines
     instructor_name = serializers.SerializerMethodField()
     subject_name = serializers.SerializerMethodField()
+    is_completed = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentEvaluation
         fields = [
             'id', 'title', 'description', 'schedule',
             'import_questions', 'all_questions',
-            'instructor_name', 'subject_name',
+            'instructor_name', 'subject_name', 'is_completed',
         ]
         read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'all_questions']
 
     def get_all_questions(self, obj):
-        #unique_qs = StudentEvaluationQuestion.objects.filter(student_evaluation=obj)
         imported_qs = obj.import_questions.all()
-        all_qs = imported_qs
-        all_qs = all_qs.distinct()
+        all_qs = imported_qs.distinct()
         return StudentEvaluationQuestionSerializer(all_qs, many=True).data
+
+    def get_is_completed(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return False
+        total_questions = obj.import_questions.count()
+        answered = StudentEvaluationResponse.objects.filter(
+            student_evaluation=obj,
+            user=user
+        ).values('student_eval_question').distinct().count()
+        return total_questions > 0 and answered == total_questions
 
     def get_subject_name(self, obj):
         if obj.schedule and obj.schedule.subject:
