@@ -451,6 +451,34 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+    @action(detail=False, methods=['get'], url_path='by-program')
+    def by_program(self, request):
+        program_id = request.query_params.get('program')
+        if not program_id:
+            return Response({'error': 'program is required'}, status=status.HTTP_400_BAD_REQUEST)
+        evaluations = StudentEvaluation.objects.filter(schedule__program_id=program_id, deleted_at__isnull=True)
+        serializer = self.get_serializer(evaluations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='by-professor')
+    def by_professor(self, request):
+        professor_id = request.query_params.get('professor')
+        if not professor_id:
+            return Response({'error': 'professor is required'}, status=status.HTTP_400_BAD_REQUEST)
+        evaluations = StudentEvaluation.objects.filter(schedule__instructor_id=professor_id, deleted_at__isnull=True)
+        serializer = self.get_serializer(evaluations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='by-faculty')
+    def by_faculty(self, request):
+        faculty_id = request.query_params.get('faculty')
+        if not faculty_id:
+            return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
+        evaluations = StudentEvaluation.objects.filter(schedule__program__faculty_id=faculty_id,
+                                                       deleted_at__isnull=True)
+        serializer = self.get_serializer(evaluations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 class StudentEvaluationQuestionViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationQuestion.objects.all()
     serializer_class = StudentEvaluationQuestionSerializer
@@ -599,7 +627,7 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
     def by_program(self, request):
         """RETURNS RESPONSES FOR A PROGRAM
         usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-program?program=<pogram_id>"""
-        program_id = request.query_params.get('programs')
+        program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': 'program is required'}, status=status.HTTP_400_BAD_REQUEST)
         responses = StudentEvaluationResponse.objects.filter(
@@ -615,7 +643,7 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
         responses = StudentEvaluationResponse.objects.filter(
-            student_evaluation_faculty_id=faculty_id)
+            student_evaluation__schedule__program__faculty_id=faculty_id)
         serializer = self.get_serializer(responses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 ### END OF STUDENTEVALUATION VIEW ###

@@ -3,7 +3,7 @@ import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ProgramCards from "../../../Components/Evaluation Components/ProgramCards.tsx";
 import SffDataDisplay from "../../../Components/Evaluation Components/SffDataDisplay";
-import SectionResponsesChartsTable from "../../../Components/Evaluation Components/SectionResponsesChartsTable.tsx";
+import ResponsesChartsTable from "../../../Components/Evaluation Components/ResponsesChartsTable.tsx";
 // Simple skeleton loader components
 const SkeletonBox = ({ width = '100%', height = 24, className = '' }) => (
   <div
@@ -279,15 +279,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchResponses();
   }, [students, sffData]);
 
-    const fetchSectionResponses = async (evaluationId: string, sectionId: string) => {
-  const token = localStorage.getItem("token");
-  if (!token) return [];
-  const res = await api.get(
-    `/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-section?student_evaluation=${evaluationId}&section=${sectionId}`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  return res.data; // array of StudentEvaluationResponse objects
-  };
+
 
   // Fetch responses for the selected student when dialog opens
     useEffect(() => {
@@ -344,13 +336,43 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       <h2 className="mt-4 text-3xl font-bold text-white">Student Evaluation</h2>
 
       {/* Step 1: Program Tiles */}
+      {/* Step 1: Faculty-wide summary (if faculty_id is available) */}
       {!selectedProgram && (
-        loading ? <SkeletonProgramCards /> : <ProgramCards programs={programs} onClick={setSelectedProgram} />
+        <>
+          {/* Faculty summary charts */}
+          {(() => {
+            const faculty_id = localStorage.getItem("faculty_id");
+            // You may want to get evaluationId from context or let user select
+            // For demo, only show if faculty_id and programs exist
+            if (faculty_id && programs.length > 0) {
+              // Use the first program's first evaluation as a sample (customize as needed)
+              // You may want to fetch a faculty-wide evaluationId if available
+              return (
+                <ResponsesChartsTable
+                  evaluationId={programs[0]?.id} // Replace with correct evaluationId for faculty
+                  filterType="faculty"
+                  filterId={parseInt(faculty_id)}
+                />
+              );
+            }
+            return null;
+          })()}
+          {loading ? <SkeletonProgramCards /> : <ProgramCards programs={programs} onClick={(program) => {
+            console.log("Clicked program id:", program.id);
+            setSelectedProgram(program);
+          }} />}
+        </>
       )}
 
       {/* Step 2: Professors Table */}
       {selectedProgram && !selectedProfessor && (
         <>
+          {/* Program-wide summary charts */}
+          <ResponsesChartsTable
+            evaluationId={selectedProgram.id} // Replace with correct evaluationId for program
+            filterType="program"
+            filterId={selectedProgram.id}
+          />
           <button className="btn btn-neutral mb-4" onClick={() => setSelectedProgram(null)}>
             Back to Programs
           </button>
@@ -363,7 +385,10 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               columns={professorColumns}
               getRowKey={(prof) => prof.id}
               actions={(prof) => (
-                <button className="btn btn-sm btn-primary" onClick={() => setSelectedProfessor(prof)}>
+                <button className="btn btn-sm btn-primary" onClick={() => {
+                  console.log("Clicked professor id:", prof.id);
+                  setSelectedProfessor(prof);
+                }}>
                   View Schedules
                 </button>
               )}
@@ -375,6 +400,12 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       {/* Step 3: Schedules Table */}
       {selectedProgram && selectedProfessor && !selectedSchedule && (
         <>
+          {/* Professor-wide summary charts */}
+          <ResponsesChartsTable
+            evaluationId={selectedProfessor.id} // Replace with correct evaluationId for professor
+            filterType="professor"
+            filterId={selectedProfessor.id}
+          />
           <button className="btn btn-neutral mb-4" onClick={() => setSelectedProfessor(null)}>
             Back to Professors
           </button>
@@ -387,7 +418,10 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               columns={scheduleColumns}
               getRowKey={(s) => s.id}
               actions={(s) => (
-                <button className="btn btn-sm btn-primary" onClick={() => setSelectedSchedule(s)}>
+                <button className="btn btn-sm btn-primary" onClick={() => {
+                  console.log("Clicked schedule id:", s.id);
+                  setSelectedSchedule(s);
+                }}>
                   View Sections
                 </button>
               )}
@@ -411,7 +445,10 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               columns={sectionColumns}
               getRowKey={(sec) => sec.id}
               actions={(sec) => (
-                <button className="btn btn-sm btn-primary" onClick={() => setSelectedSection(sec)}>
+                <button className="btn btn-sm btn-primary" onClick={() => {
+                  console.log("Clicked section id:", sec.id);
+                  setSelectedSection(sec);
+                }}>
                   View SFF
                 </button>
               )}
@@ -430,8 +467,11 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
           {/* Section-wide charts for rating and MCQ questions */}
           {sffData && selectedSection && (
             <React.Suspense fallback={<div>Loading charts...</div>}>
-              {/* @ts-ignore */}
-              <SectionResponsesChartsTable evaluationId={Array.isArray(sffData) ? sffData[0]?.id : sffData.id} sectionId={selectedSection.id} />
+              <ResponsesChartsTable
+                evaluationId={Array.isArray(sffData) ? sffData[0]?.id : sffData.id}
+                filterType="section"
+                filterId={selectedSection.id}
+              />
             </React.Suspense>
           )}
           {/* Step 6: Students and their responses */}
@@ -440,7 +480,6 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             <SkeletonTable rows={4} cols={3} />
           ) : (
             <DataTable
-
               data={students}
               columns={studentColumns}
               getRowKey={(stu) => stu.id}
@@ -448,7 +487,6 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
                 <button
                   className="btn btn-sm btn-primary"
                   onClick={() => {
-                    console.log("View Responses clicked for student:", stu);
                     setViewingStudent(stu);
                     if (studentDialogRef.current) studentDialogRef.current.showModal();
                   }}
