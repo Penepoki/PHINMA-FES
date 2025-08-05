@@ -13,9 +13,11 @@ import api from "../../utils/api";
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
-interface SectionResponsesChartsTableProps {
+type FilterType = "section" | "professor" | "program" | "faculty";
+interface ResponsesChartsTableProps {
   evaluationId: number;
-  sectionId: number;
+  filterType: FilterType;
+  filterId: number;
 }
 
 // Helper to group responses by question and answer
@@ -27,27 +29,79 @@ function groupBy<T, K extends keyof any>(array: T[], getKey: (item: T) => K) {
   }, {} as Record<K, T[]>);
 }
 
-const SectionResponsesChartsTable: React.FC<SectionResponsesChartsTableProps> = ({ evaluationId, sectionId }) => {
+const endpointMap = {
+  section: (evaluationId: number, filterId: number) =>
+    `/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-section?student_evaluation=${evaluationId}&section=${filterId}`,
+  professor: (_evaluationId: number, filterId: number) =>
+    `/studentevaluationresponse/studentevaluationresponse/by-professor?professor=${filterId}`,
+  program: (_evaluationId: number, filterId: number) =>
+    `/studentevaluationresponse/studentevaluationresponse/by-program?program=${filterId}`,
+  faculty: (_evaluationId: number, filterId: number) =>
+    `/studentevaluationresponse/studentevaluationresponse/by-faculty?faculty=${filterId}`,
+};
+
+const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationId, filterType, filterId }) => {
   const [responses, setResponses] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!evaluationId || !sectionId) return;
-    setLoading(true);
-    setError(null);
-    Promise.all([
-      api.get(`/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-section?student_evaluation=${evaluationId}&section=${sectionId}`),
-      api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${evaluationId}`)
-    ])
-      .then(([resResponses, resQuestions]) => {
-        setResponses(resResponses.data);
-        setQuestions(resQuestions.data);
-      })
-      .catch(() => setError("Failed to fetch section responses or questions"))
-      .finally(() => setLoading(false));
-  }, [evaluationId, sectionId]);
+    let isMounted = true;
+    async function fetchBulk() {
+      setLoading(true);
+      setError(null);
+      try {
+        // For section, use the old logic
+        if (filterType === "section") {
+          const [resResponses, resQuestions] = await Promise.all([
+            api.get(endpointMap[filterType](evaluationId, filterId)),
+            api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${evaluationId}`)
+          ]);
+          if (!isMounted) return;
+          setResponses(resResponses.data);
+          setQuestions(resQuestions.data);
+        } else {
+          // For program/professor/faculty: fetch all evaluations for the context
+          let evalsRes;
+          if (filterType === "program") {
+            evalsRes = await api.get(`/studentevaluation/studentevaluation/by-program?program=${filterId}`);
+          } else if (filterType === "professor") {
+            evalsRes = await api.get(`/studentevaluation/studentevaluation/by-professor?professor=${filterId}`);
+          } else if (filterType === "faculty") {
+            evalsRes = await api.get(`/studentevaluation/studentevaluation/by-faculty?faculty=${filterId}`);
+          }
+          let evaluationIds: number[] = [];
+          if (Array.isArray(evalsRes?.data)) {
+            evaluationIds = evalsRes.data.map((e: any) => e.id);
+          } else if (evalsRes?.data?.id) {
+            evaluationIds = [evalsRes.data.id];
+          }
+          // Fetch all questions for all evaluations
+          const allQuestions = await Promise.all(
+            evaluationIds.map(eid =>
+              api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${eid}`)
+            )
+          );
+          // Flatten questions
+          const questions = allQuestions.flatMap(res => res.data);
+          // Fetch all responses for the context
+          const resResponses = await api.get(endpointMap[filterType](evaluationId, filterId));
+          if (!isMounted) return;
+          setResponses(resResponses.data);
+          setQuestions(questions);
+        }
+      } catch (e) {
+        if (!isMounted) return;
+        setError("Failed to fetch responses or questions");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    if (!evaluationId || !filterId) return;
+    fetchBulk();
+    return () => { isMounted = false; };
+  }, [evaluationId, filterType, filterId]);
 
   // Join responses with questions
   const enrichedResponses = responses.map((resp) => {
@@ -71,12 +125,20 @@ const SectionResponsesChartsTable: React.FC<SectionResponsesChartsTableProps> = 
     (arr) => arr[0]?.question_type?.toUpperCase() === "MCQ"
   );
 
+  // Title for the table
+  const tableTitle = {
+    section: "Section Response Charts",
+    professor: "Professor Response Charts",
+    program: "Program Response Charts",
+    faculty: "Faculty Response Charts",
+  }[filterType];
+
   return (
     <div className="w-full overflow-x-auto text-white shadow-xl">
       <table className="table text-lg">
         <thead className="sticky top-0 z-1 bg-[#1c402a] text-xl font-bold text-white">
           <tr>
-            <th>Section Response Charts</th>
+            <th>{tableTitle}</th>
           </tr>
         </thead>
         <tbody className="bg-black/20">
@@ -169,7 +231,7 @@ const SectionResponsesChartsTable: React.FC<SectionResponsesChartsTableProps> = 
                         </div>
                       )}
                       {ratingQuestions.length === 0 && mcqQuestions.length === 0 && !loading && (
-                        <div>No rating or MCQ responses found for this section.</div>
+                        <div>No rating or MCQ responses found for this {filterType}.</div>
                       )}
                     </div>
                   </div>
@@ -183,4 +245,4 @@ const SectionResponsesChartsTable: React.FC<SectionResponsesChartsTableProps> = 
   );
 };
 
-export default SectionResponsesChartsTable;
+export default ResponsesChartsTable;
