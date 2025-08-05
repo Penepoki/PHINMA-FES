@@ -10,6 +10,13 @@ const DashboardHeader = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
+      const cached = sessionStorage.getItem("firstName");
+
+      if (cached) {
+        setFirstName(cached);
+        return;
+      }
+
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
@@ -17,11 +24,15 @@ const DashboardHeader = () => {
         const response = await api.get("/user-dashboard/", {
           headers: { Authorization: `Token ${token}` },
         });
-        setFirstName(response.data.first_name || "User");
+
+        const name = response.data.first_name || "User";
+        setFirstName(name);
+        sessionStorage.setItem("firstName", name);
       } catch (error: any) {
         if (error.response?.status === 401) navigate("/login");
       }
     };
+
     fetchUserData();
   }, [navigate]);
 
@@ -37,8 +48,10 @@ const DashboardHeader = () => {
         headers: { Authorization: `Token ${token}` },
       });
 
+      // Clear both storages
       localStorage.removeItem("token");
       localStorage.removeItem("firstName");
+      sessionStorage.removeItem("firstName");
 
       setLogoutMessage("Logout successful!");
       setTimeout(() => navigate("/"), 1500);
@@ -57,9 +70,7 @@ const DashboardHeader = () => {
           <h1 className="text-5xl font-bold text-white md:text-7xl">
             Hi, {firstName}
           </h1>
-          <p className="text-md text-gray-300">
-            Welcome to the Home Page
-          </p>
+          <p className="text-md text-gray-300">Welcome to the Home Page</p>
         </div>
         <button
           className="text-md text-gray-300 underline"
@@ -81,8 +92,8 @@ const DashboardHeader = () => {
           {logoutMessage && (
             <div
               className={`mt-4 rounded-lg px-4 py-2 text-sm ${logoutMessage.includes("successful")
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
                 }`}
             >
               {logoutMessage}

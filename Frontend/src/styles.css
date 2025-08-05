@@ -72,10 +72,11 @@ html {
 	@apply hover:scale-105 hover:shadow-lg;
 }
 .checkbox {
-	@apply transition-all duration-300 ease-in-out;
-	@apply hover:scale-110 hover:shadow-lg;
-	color: #1c402a;
-	@apply border-[#1c402a] bg-white;
+  @apply transition-all duration-300 ease-in-out;
+  @apply hover:scale-110 hover:shadow-lg;
+  @apply border-[#1c402a] bg-white text-[#1c402a];
+
+  @apply checked:bg-[#1c402a] checked:text-white checked:border-[#1c402a];
 }
 .btn {
 	@apply transition-all duration-300 ease-in-out;

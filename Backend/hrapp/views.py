@@ -33,9 +33,15 @@ User = get_user_model()
 # Login Func look @ utils/Auth.py for the logic
 @api_view(['POST'])
 def login_view(request):
-    # calls a utility function here
     result = authenticate_user(request.data)
-    return Response(result)
+
+    if 'error' in result:
+        return Response(
+            {"detail": result["error"]},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    return Response(result, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
