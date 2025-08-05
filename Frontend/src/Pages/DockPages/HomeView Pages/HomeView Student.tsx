@@ -45,6 +45,16 @@ function Home() {
 
   // Fetch student's schedules and all previous responses to set progress and answers
   useEffect(() => {
+    const cachedSubjects = sessionStorage.getItem("studentSubjects");
+    const cachedCompleted = sessionStorage.getItem("completedSubjects");
+
+    if (cachedSubjects && cachedCompleted) {
+      setSubjects(JSON.parse(cachedSubjects));
+      setCompletedSubjects(new Set(JSON.parse(cachedCompleted)));
+      setLoading(false);
+      return;
+    }
+
     const fetchStudentSchedulesAndProgress = async () => {
       setLoading(true);
       try {
@@ -60,17 +70,17 @@ function Home() {
         }));
         setSubjects(subjectCards);
 
-        // Fetch all previous responses for the user
         const allResponses = await api.get('/studentevaluationresponse/studentevaluationresponse/');
         const answersByEval: Record<number, Record<number, string>> = {};
         const completed = new Set<string>();
+
         allResponses.data.forEach((resp: any) => {
           const evalId = resp.student_evaluation;
           const questionId = resp.student_eval_question;
           if (!answersByEval[evalId]) answersByEval[evalId] = {};
           answersByEval[evalId][questionId] = resp.answer;
         });
-        // Mark as completed only if all questions for an evaluation have answers
+
         await Promise.all(subjectCards.map(async (subject) => {
           try {
             const evalRes = await api.get(`/studentevaluation/studentevaluation/by-schedule/${subject.scheduleId}/`);
@@ -83,6 +93,10 @@ function Home() {
             }
           } catch (e) { }
         }));
+
+        sessionStorage.setItem("studentSubjects", JSON.stringify(subjectCards));
+        sessionStorage.setItem("completedSubjects", JSON.stringify(Array.from(completed)));
+
         setCompletedSubjects(completed);
       } catch (error) {
         console.error('Error fetching schedules or progress:', error);
@@ -92,7 +106,6 @@ function Home() {
     };
     fetchStudentSchedulesAndProgress();
   }, []);
-
   // Handle subject card click
   const handleSubjectClick = async (subjectName: string) => {
     const selectedSubject = subjects.find(s => s.name === subjectName);

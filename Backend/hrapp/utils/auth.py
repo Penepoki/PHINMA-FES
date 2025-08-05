@@ -40,7 +40,7 @@ def authenticate_user(data):
             'faculty_id': faculty_id,  # <-- Add this line
         }
     else:
-        return {'error': 'Invalid credentials'}
+        return {'error': 'Incorrect username or password, Please try again.'}
 
 def generate_otp_code():
     return str(random.randint(100000, 999999))
