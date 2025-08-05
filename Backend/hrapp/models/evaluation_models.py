@@ -142,7 +142,7 @@ class StudentEvaluation(models.Model):
     description = models.TextField(null=True, blank=True)
     schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, null=True)
     import_questions = models.ManyToManyField("StudentEvaluationQuestion", blank=True)
-    canonical_id = models.UUIDField(default=uuid.uuid4, editable=False, db_index=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -176,6 +176,7 @@ class StudentEvaluationQuestion(models.Model):
     question = models.TextField()
     type = models.CharField(max_length=15, choices=TYPE_CHOICES)  # Limited choices
     options = models.JSONField(null=True, blank=True)
+    canonical_id = models.UUIDField(default=uuid.uuid4, editable=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
