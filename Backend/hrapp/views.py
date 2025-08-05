@@ -357,11 +357,25 @@ def copus_bulk_tallies(request):
 
         for ts in timestamps:
             for key, display in STUDENT_ACTIVITY_MAP_REVERSE.items():
-                if getattr(ts, 'student_activities', {}).get(key, False):
+                student_acts = getattr(ts, 'student_activities', {})
+                if isinstance(student_acts, dict):
+                    found = student_acts.get(key, False)
+                elif isinstance(student_acts, list):
+                    found = key in student_acts
+                else:
+                    found = False
+                if found:
                     student_tallies[display]["count"] += 1
                     total_students += 1
             for key, display in INSTRUCTOR_ACTIVITY_MAP_REVERSE.items():
-                if getattr(ts, 'instructor_activities', {}).get(key, False):
+                instructor_acts = getattr(ts, 'instructor_activities', {})
+                if isinstance(instructor_acts, dict):
+                    found = instructor_acts.get(key, False)
+                elif isinstance(instructor_acts, list):
+                    found = key in instructor_acts
+                else:
+                    found = False
+                if found:
                     instructor_tallies[display]["count"] += 1
                     total_instructors += 1
 
@@ -559,6 +573,19 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['get'], url_path='unique-count-by-evaluation')
+    def unique_count_by_evaluation(self,request):
+        """RETURNS UNIQUE COUNT PER STUDENT
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/unique-count-by-evaluation"""
+        student_evaluation_id = request.query_params.get('student_evaluation')
+        if not student_evaluation_id:
+            return Response({'error': 'student_evaluation is required'}, status=status.HTTP_400_BAD_REQUEST)
+        unique_pairs=StudentEvaluationResponse.objects.filter(student_evaluation_id=student_evaluation_id).values(
+            'user_id',
+            'student_eval_question__canonical_id').distinct()
+        unique_count = unique_pairs.count()
+        return Response({'unique_response_count':unique_count}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='by-evaluation-and-user')
     def by_evaluation_and_user(self, request):

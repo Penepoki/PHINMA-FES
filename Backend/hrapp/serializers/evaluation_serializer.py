@@ -195,8 +195,8 @@ class StudentEvaluationQuestionSerializer(serializers.ModelSerializer):
     # Serial fields
     class Meta:
         model = StudentEvaluationQuestion
-        fields = ['id', 'question','type','options']
-        read_only_fields = ['created_at', 'updated_at','deleted_at']
+        fields = ['id', 'canonical_id','question','type','options']
+        read_only_fields = ['created_at', 'canonical_id','updated_at','deleted_at']
 
 class StudentEvaluationResponseSerializer(serializers.ModelSerializer):
     class Meta:

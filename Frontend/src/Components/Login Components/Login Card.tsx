@@ -66,16 +66,7 @@ function LoginCard() {
 		}
 	};
 
-	const handleLogout = async () => {
-		try {
-			await api.post("/logout/");
-		} catch (e) {
-			localStorage.clear();
-		}
-		localStorage.removeItem("token");
-		localStorage.removeItem("userRole");
-		navigate("/");
-	};
+
 
 	const handleSignUp = async () => {
 		setIsLoading(true); // Start loading
