@@ -593,6 +593,57 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         unique_count = unique_pairs.count()
         return Response({'unique_response_count':unique_count}, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'], url_path='unique-count-by-program')
+    def unique_count_by_program(self, request):
+        """RETURNS UNIQUE COUNT PER STUDENT ACROSS ALL EVALUATIONS IN A PROGRAM
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/unique-count-by-program?program=<program_id>"""
+        program_id = request.query_params.get('program')
+        if not program_id:
+            return Response({'error': 'program is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        unique_pairs = StudentEvaluationResponse.objects.filter(
+            student_evaluation__schedule__program_id=program_id
+        ).values(
+            'user_id',
+            'student_eval_question__canonical_id'
+        ).distinct()
+        unique_count = unique_pairs.count()
+        return Response({'unique_response_count': unique_count}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='unique-count-by-professor')
+    def unique_count_by_professor(self, request):
+        """RETURNS UNIQUE COUNT PER STUDENT ACROSS ALL EVALUATIONS BY A PROFESSOR
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/unique-count-by-professor?professor=<professor_id>"""
+        professor_id = request.query_params.get('professor')
+        if not professor_id:
+            return Response({'error': 'professor is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        unique_pairs = StudentEvaluationResponse.objects.filter(
+            student_evaluation__schedule__instructor_id=professor_id
+        ).values(
+            'user_id',
+            'student_eval_question__canonical_id'
+        ).distinct()
+        unique_count = unique_pairs.count()
+        return Response({'unique_response_count': unique_count}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='unique-count-by-faculty')
+    def unique_count_by_faculty(self, request):
+        """RETURNS UNIQUE COUNT PER STUDENT ACROSS ALL EVALUATIONS IN A FACULTY
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/unique-count-by-faculty?faculty=<faculty_id>"""
+        faculty_id = request.query_params.get('faculty')
+        if not faculty_id:
+            return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        unique_pairs = StudentEvaluationResponse.objects.filter(
+            student_evaluation__schedule__program__faculty_id=faculty_id
+        ).values(
+            'user_id',
+            'student_eval_question__canonical_id'
+        ).distinct()
+        unique_count = unique_pairs.count()
+        return Response({'unique_response_count': unique_count}, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['get'], url_path='by-evaluation-and-user')
     def by_evaluation_and_user(self, request):
         """Get all Response bt a speicific students(User)
