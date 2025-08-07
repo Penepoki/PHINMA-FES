@@ -69,7 +69,7 @@ function DataTable<T>({
           ) : data.length === 0 ? (
             <tr>
               <td colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0)} className="text-center py-8 text-gray-400">
-                No data available
+                No data available.
               </td>
             </tr>
           ) : (

@@ -18,15 +18,13 @@ interface Room {
 
 function Rooms({ setActiveView }: RoomsProps) {
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [newRoomName, setNewRoomName] = useState("");
 
   // Edit form state
   const [editRoomName, setEditRoomName] = useState("");
   const [currentEditingRoom, setCurrentEditingRoom] = useState<Room | null>(null);
-
-  //Loading skeleton state
-  const [loading, setLoading] = useState(true);
 
   const fetchRooms = async () => {
     setLoading(true);
