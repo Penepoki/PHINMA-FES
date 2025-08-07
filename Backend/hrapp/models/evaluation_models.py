@@ -193,9 +193,10 @@ class StudentEvaluationQuestion(models.Model):
 
 #STUDENT EVALUATION RESPONSE TABLE
 class StudentEvaluationResponse(models.Model):
-    student_evaluation = models.ForeignKey(StudentEvaluation, on_delete=models.SET_NULL, null=True)  # Links response to evaluation
+    student_evaluation = models.ForeignKey(StudentEvaluation, on_delete=models.CASCADE,
+                                           null=True)  # Links response to evaluation
     student_eval_question = models.ForeignKey(StudentEvaluationQuestion,
-                                              on_delete=models.SET_NULL, null=True)  # Links response to question
+                                              on_delete=models.CASCADE, null=True)  # Links response to question
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Student who provided the response
     answer = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)

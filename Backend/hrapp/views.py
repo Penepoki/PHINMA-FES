@@ -396,9 +396,65 @@ def copus_bulk_tallies(request):
                         instructor_tallies[display]["count"] / total_instructors * 100
                 )
 
+        # Define active learning activity keys
+        ACTIVE_TEACHER_KEYS = {
+            "moving/guiding",
+            "answer_questions",
+            "pose_question",
+            "follow_up_question",
+            "1_on_1_discussion",
+            "demonstrative",
+        }
+
+        ACTIVE_STUDENT_KEYS = {
+            "individual_thinking",
+            "group",
+            "answer_question",
+            "ask_question",
+            "whole_class_discussion",
+            "student_presentations",
+            "test/quiz",
+        }
+
+        # Calculate active learning percentage
+        total_timestamps = timestamps.count()
+        active_timestamps = 0
+
+        for ts in timestamps:
+            instructor_acts = getattr(ts, 'instructor_activities', {})
+            student_acts = getattr(ts, 'student_activities', {})
+
+            # Support both dict or list storage
+            if isinstance(instructor_acts, dict):
+                teacher_keys = [k for k, v in instructor_acts.items() if v]
+            elif isinstance(instructor_acts, list):
+                teacher_keys = instructor_acts
+            else:
+                teacher_keys = []
+
+            if isinstance(student_acts, dict):
+                student_keys = [k for k, v in student_acts.items() if v]
+            elif isinstance(student_acts, list):
+                student_keys = student_acts
+            else:
+                student_keys = []
+
+            # Active if any teacher or student activity is in the active list
+            teacher_active = any(k in ACTIVE_TEACHER_KEYS for k in teacher_keys)
+            student_active = any(k in ACTIVE_STUDENT_KEYS for k in student_keys)
+
+            if teacher_active or student_active:
+                active_timestamps += 1
+
+        if total_timestamps > 0:
+            active_learning_percentage = round((active_timestamps / total_timestamps) * 100, 2)
+        else:
+            active_learning_percentage = 0.0
+
         result[eval_id] = {
             "studentTallies": student_tallies,
             "teacherTallies": instructor_tallies,
+            "activeLearningPercentage": active_learning_percentage
         }
     return Response(result)
 

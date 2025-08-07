@@ -320,6 +320,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                               };
 
                               const barOptions = {
+                                indexAxis: 'y', // Make the bar chart horizontal
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 plugins: {
@@ -335,7 +336,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                     callbacks: {
                                       label: function(context: any) {
                                         const label = context.label || '';
-                                        const value = context.parsed.y || 0;
+                                        const value = context.parsed.x || 0; // Use x for horizontal bar
                                         const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
                                         const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
                                         return `${label}: ${value} responses (${percentage}%)`;
@@ -344,7 +345,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                   }
                                 },
                                 scales: {
-                                  y: {
+                                  x: {
                                     beginAtZero: true,
                                     ticks: {
                                       color: '#ffffff',
@@ -354,7 +355,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                       color: 'rgba(255, 255, 255, 0.1)',
                                     }
                                   },
-                                  x: {
+                                  y: {
                                     ticks: {
                                       color: '#ffffff',
                                       maxRotation: 45,
