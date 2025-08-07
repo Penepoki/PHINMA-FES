@@ -202,6 +202,112 @@ class TimestampViewSet(viewsets.ModelViewSet):
         return super().update(request, *args, **kwargs)
 
 
+def get_copus_bulk_tallies_data(eval_ids):
+    from .models import Timestamp  # or import at the top if not in utils.py
+
+    result = {}
+    STUDENT_CHOICES = Timestamp.STUDENT_ACTIVITY_CHOICES
+    INSTRUCTOR_CHOICES = Timestamp.INSTRUCTOR_ACTIVITY_CHOICES
+
+    STUDENT_ACTIVITY_MAP_REVERSE = dict((key, display) for key, display in STUDENT_CHOICES)
+    INSTRUCTOR_ACTIVITY_MAP_REVERSE = dict((key, display) for key, display in INSTRUCTOR_CHOICES)
+    STUDENT_OPTIONS = [display for key, display in STUDENT_CHOICES]
+    INSTRUCTOR_OPTIONS = [display for key, display in INSTRUCTOR_CHOICES]
+
+    for eval_id in eval_ids:
+        timestamps = Timestamp.objects.filter(evaluation_id=eval_id)
+        student_tallies = {opt: {"count": 0, "percentage": 0.0} for opt in STUDENT_OPTIONS}
+        instructor_tallies = {opt: {"count": 0, "percentage": 0.0} for opt in INSTRUCTOR_OPTIONS}
+        total_students = 0
+        total_instructors = 0
+
+        for ts in timestamps:
+            for key, display in STUDENT_ACTIVITY_MAP_REVERSE.items():
+                student_acts = getattr(ts, 'student_activities', {})
+                if isinstance(student_acts, dict):
+                    found = student_acts.get(key, False)
+                elif isinstance(student_acts, list):
+                    found = key in student_acts
+                else:
+                    found = False
+                if found:
+                    student_tallies[display]["count"] += 1
+                    total_students += 1
+
+            for key, display in INSTRUCTOR_ACTIVITY_MAP_REVERSE.items():
+                instructor_acts = getattr(ts, 'instructor_activities', {})
+                if isinstance(instructor_acts, dict):
+                    found = instructor_acts.get(key, False)
+                elif isinstance(instructor_acts, list):
+                    found = key in instructor_acts
+                else:
+                    found = False
+                if found:
+                    instructor_tallies[display]["count"] += 1
+                    total_instructors += 1
+
+        for display in STUDENT_OPTIONS:
+            if total_students > 0:
+                student_tallies[display]["percentage"] = (
+                        student_tallies[display]["count"] / total_students * 100
+                )
+        for display in INSTRUCTOR_OPTIONS:
+            if total_instructors > 0:
+                instructor_tallies[display]["percentage"] = (
+                        instructor_tallies[display]["count"] / total_instructors * 100
+                )
+
+        ACTIVE_TEACHER_KEYS = {
+            "moving/guiding", "answer_questions", "pose_question", "follow_up_question",
+            "1_on_1_discussion", "demonstrative",
+        }
+        ACTIVE_STUDENT_KEYS = {
+            "individual_thinking", "group", "answer_question", "ask_question",
+            "whole_class_discussion", "student_presentations", "test/quiz",
+        }
+        total_timestamps = timestamps.count()
+        active_timestamps = 0
+        for ts in timestamps:
+            instructor_acts = getattr(ts, 'instructor_activities', {})
+            student_acts = getattr(ts, 'student_activities', {})
+            if isinstance(instructor_acts, dict):
+                teacher_keys = [k for k, v in instructor_acts.items() if v]
+            elif isinstance(instructor_acts, list):
+                teacher_keys = instructor_acts
+            else:
+                teacher_keys = []
+            if isinstance(student_acts, dict):
+                student_keys = [k for k, v in student_acts.items() if v]
+            elif isinstance(student_acts, list):
+                student_keys = student_acts
+            else:
+                student_keys = []
+            teacher_active = any(k in ACTIVE_TEACHER_KEYS for k in teacher_keys)
+            student_active = any(k in ACTIVE_STUDENT_KEYS for k in student_keys)
+            if teacher_active or student_active:
+                active_timestamps += 1
+        if total_timestamps > 0:
+            active_learning_percentage = round((active_timestamps / total_timestamps) * 100, 2)
+        else:
+            active_learning_percentage = 0.0
+
+        result[eval_id] = {
+            "studentTallies": student_tallies,
+            "teacherTallies": instructor_tallies,
+            "activeLearningPercentage": active_learning_percentage
+        }
+    return result
+
+
+@api_view(["GET"])
+def copus_bulk_tallies(request):
+    eval_ids = request.GET.get('evaluation_ids')
+    if not eval_ids:
+        return Response({"Error": "evaluation_ids required"}, status=status.HTTP_400_BAD_REQUEST)
+    ids = [int(i) for i in eval_ids.split(',') if i.strip().isdigit()]
+    result = get_copus_bulk_tallies_data(ids)
+    return Response(result)
+
 # CRUD BELOW FOR EVALUATION (COPUS)----------------------------------------------
 # Create
 class EvaluationViewSet(viewsets.ModelViewSet):
@@ -333,130 +439,33 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 {"error": "No evaluation found"}, status=status.HTTP_404_NOT_FOUND,
             )
 
+    @action(detail=False, methods=['get'], url_path='copus-summary-by-faculty')
+    def copus_summary_by_faculty(self, request):
+        faculty_id = request.query_params.get('faculty')
+        if not faculty_id:
+            return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
+        evals = Evaluation.objects.filter(schedule__program__faculty_id=faculty_id, deleted_at__isnull=True)
+        eval_ids = [e.id for e in evals]
+        if not eval_ids:
+            return Response({'error': 'No evaluations found for this faculty'}, status=status.HTTP_404_BAD_REQUEST)
+        result = get_copus_bulk_tallies_data(eval_ids)
+        return Response(result)
+
+    @action(detail=False, methods=['get'], url_path='copus-summary-by-program')
+    def copus_summary_by_program(self, request):
+        program_id = request.query_params.get('program')
+        if not program_id:
+            return Response({'error': "program is required"}, status=status.HTTP_400_BAD_REQUEST)
+        evals = Evaluation.objects.filter(schedule__program_id=program_id, deleted_at__isnull=True)
+        eval_ids = [e.id for e in evals]
+        if not eval_ids:
+            return Response({'error': 'No evaluations found for this program'}, status=status.HTTP_404_BAD_REQUEST)
+        result = get_copus_bulk_tallies_data(eval_ids)
+        return Response(result)
+
 
 # END OF CRUD EVALUATION -----------------------------------------
 # Define your activity options (should match frontend)
-@api_view(["GET"])
-def copus_bulk_tallies(request):
-    eval_ids = request.GET.get('evaluation_ids')
-    if not eval_ids:
-        return Response({"Error": "evaluation_ids required"}, status=status.HTTP_400_BAD_REQUEST)
-    ids = [int(i) for i in eval_ids.split(',') if i.strip().isdigit()]
-    result = {}
-
-    # Use choices from the model
-    STUDENT_CHOICES = Timestamp.STUDENT_ACTIVITY_CHOICES
-    INSTRUCTOR_CHOICES = Timestamp.INSTRUCTOR_ACTIVITY_CHOICES
-
-    # Build Mappings
-    STUDENT_ACTIVITY_MAP_REVERSE = dict((key, display) for key, display in STUDENT_CHOICES)
-    INSTRUCTOR_ACTIVITY_MAP_REVERSE = dict((key, display) for key, display in INSTRUCTOR_CHOICES)
-    STUDENT_OPTIONS = [display for key, display in STUDENT_CHOICES]
-    INSTRUCTOR_OPTIONS = [display for key, display in INSTRUCTOR_CHOICES]
-
-    for eval_id in ids:
-        timestamps = Timestamp.objects.filter(evaluation_id=eval_id)
-        student_tallies = {opt: {"count": 0, "percentage": 0.0} for opt in STUDENT_OPTIONS}
-        instructor_tallies = {opt: {"count": 0, "percentage": 0.0} for opt in INSTRUCTOR_OPTIONS}
-        total_students = 0
-        total_instructors = 0
-
-        for ts in timestamps:
-            for key, display in STUDENT_ACTIVITY_MAP_REVERSE.items():
-                student_acts = getattr(ts, 'student_activities', {})
-                if isinstance(student_acts, dict):
-                    found = student_acts.get(key, False)
-                elif isinstance(student_acts, list):
-                    found = key in student_acts
-                else:
-                    found = False
-                if found:
-                    student_tallies[display]["count"] += 1
-                    total_students += 1
-            for key, display in INSTRUCTOR_ACTIVITY_MAP_REVERSE.items():
-                instructor_acts = getattr(ts, 'instructor_activities', {})
-                if isinstance(instructor_acts, dict):
-                    found = instructor_acts.get(key, False)
-                elif isinstance(instructor_acts, list):
-                    found = key in instructor_acts
-                else:
-                    found = False
-                if found:
-                    instructor_tallies[display]["count"] += 1
-                    total_instructors += 1
-
-        for display in STUDENT_OPTIONS:
-            if total_students > 0:
-                student_tallies[display]["percentage"] = (
-                        student_tallies[display]["count"] / total_students * 100
-                )
-        for display in INSTRUCTOR_OPTIONS:
-            if total_instructors > 0:
-                instructor_tallies[display]["percentage"] = (
-                        instructor_tallies[display]["count"] / total_instructors * 100
-                )
-
-        # Define active learning activity keys
-        ACTIVE_TEACHER_KEYS = {
-            "moving/guiding",
-            "answer_questions",
-            "pose_question",
-            "follow_up_question",
-            "1_on_1_discussion",
-            "demonstrative",
-        }
-
-        ACTIVE_STUDENT_KEYS = {
-            "individual_thinking",
-            "group",
-            "answer_question",
-            "ask_question",
-            "whole_class_discussion",
-            "student_presentations",
-            "test/quiz",
-        }
-
-        # Calculate active learning percentage
-        total_timestamps = timestamps.count()
-        active_timestamps = 0
-
-        for ts in timestamps:
-            instructor_acts = getattr(ts, 'instructor_activities', {})
-            student_acts = getattr(ts, 'student_activities', {})
-
-            # Support both dict or list storage
-            if isinstance(instructor_acts, dict):
-                teacher_keys = [k for k, v in instructor_acts.items() if v]
-            elif isinstance(instructor_acts, list):
-                teacher_keys = instructor_acts
-            else:
-                teacher_keys = []
-
-            if isinstance(student_acts, dict):
-                student_keys = [k for k, v in student_acts.items() if v]
-            elif isinstance(student_acts, list):
-                student_keys = student_acts
-            else:
-                student_keys = []
-
-            # Active if any teacher or student activity is in the active list
-            teacher_active = any(k in ACTIVE_TEACHER_KEYS for k in teacher_keys)
-            student_active = any(k in ACTIVE_STUDENT_KEYS for k in student_keys)
-
-            if teacher_active or student_active:
-                active_timestamps += 1
-
-        if total_timestamps > 0:
-            active_learning_percentage = round((active_timestamps / total_timestamps) * 100, 2)
-        else:
-            active_learning_percentage = 0.0
-
-        result[eval_id] = {
-            "studentTallies": student_tallies,
-            "teacherTallies": instructor_tallies,
-            "activeLearningPercentage": active_learning_percentage
-        }
-    return Response(result)
 
 
 ### STUDENTEVALUATION(QUESTION, FORM AND ANSWER CRUD) ###
