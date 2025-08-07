@@ -10,6 +10,8 @@ import {
 import { Bar } from "react-chartjs-2";
 import { LineElement, PointElement, LineController } from "chart.js";
 import { Line } from "react-chartjs-2";
+import React, {useEffect, useState} from "react";
+import api from "../../utils/api.ts";
 
 ChartJS.register(
 	CategoryScale,
@@ -36,6 +38,59 @@ interface ResourceGroupProps {
 }
 
 function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
+	const [copusData, setCopusData] = useState<any>(null);
+	const [copusLoading, setCopusLoading] = useState(false);
+	const [copusError, setCopusError] = useState<string | null>(null);
+
+	// Fetch copus summary data on mount
+	useEffect(() => {
+		const fetchCopusSummary = async () => {
+			setCopusLoading(true);
+			setCopusError(null);
+			try {
+				const token = localStorage.getItem("token");
+				const faculty_id = localStorage.getItem("faculty_id");
+				const isSuperuser = localStorage.getItem("is_superuser") === "true";
+				let endpoint = "";
+				let params: any = {};
+				if (isSuperuser) {
+					console.log("[DEBUG] User is superuser: showing all faculties");
+					endpoint = "/evaluation/evaluations/copus-summary-by-faculty/";
+				} else if (faculty_id) {
+					console.log(`[DEBUG] Fetching for faculty_id: ${faculty_id}`);
+					endpoint = "/evaluation/evaluations/copus-summary-by-faculty/";
+					params.faculty = faculty_id;
+				} else {
+					setCopusError("No faculty_id found for user");
+					return;
+				}
+				console.log("[DEBUG] API request:", {
+					url: (api.defaults?.baseURL || "") + endpoint,
+					params,
+					headers: {Authorization: `Bearer ${token ? token.substring(0, 8) + '...' : ''}`},
+				});
+				const response = await api.get(endpoint, {
+					params
+				});
+				console.log("[DEBUG] Copus summary API response:", response.data);
+				// Print Evaluation and Timestamp data if present
+				if (response.data && Array.isArray(response.data)) {
+					response.data.forEach((item: any, idx: number) => {
+						console.log(`[DEBUG] Evaluation #${idx}:`, item.evaluation);
+						console.log(`[DEBUG] Timestamp #${idx}:`, item.timestamp);
+					});
+				}
+				setCopusData(response.data);
+			} catch (e: any) {
+				console.error("[DEBUG] Error fetching copus summary:", e);
+				setCopusError(e?.message || "Unknown error");
+			} finally {
+				setCopusLoading(false);
+			}
+		};
+		fetchCopusSummary();
+	}, []);
+
 	const barData = {
 		labels: ["Quality", "Efficiency", "Accuracy", "Speed", "Satisfaction"],
 		datasets: [

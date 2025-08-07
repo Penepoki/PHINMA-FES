@@ -44,16 +44,6 @@ function Home() {
 
   // Fetch student's schedules and evaluation completion status
   useEffect(() => {
-    const cachedSubjects = sessionStorage.getItem("studentSubjects");
-    const cachedCompleted = sessionStorage.getItem("completedSubjects");
-
-    if (cachedSubjects && cachedCompleted) {
-      setSubjects(JSON.parse(cachedSubjects));
-      setCompletedSubjects(new Set(JSON.parse(cachedCompleted)));
-      setLoading(false);
-      return;
-    }
-
     const fetchStudentSchedulesAndProgress = async () => {
       setLoading(true);
       try {
@@ -69,17 +59,6 @@ function Home() {
           isCompleted: false,
         }));
 
-        const allResponses = await api.get('/studentevaluationresponse/studentevaluationresponse/');
-        const answersByEval: Record<number, Record<number, string>> = {};
-        const completed = new Set<string>();
-
-        allResponses.data.forEach((resp: any) => {
-          const evalId = resp.student_evaluation;
-          const questionId = resp.student_eval_question;
-          if (!answersByEval[evalId]) answersByEval[evalId] = {};
-          answersByEval[evalId][questionId] = resp.answer;
-        });
-
         // For each subject, fetch the evaluation and set isCompleted
         await Promise.all(subjectCards.map(async (subject) => {
           try {
@@ -90,10 +69,6 @@ function Home() {
           }
         }));
 
-        sessionStorage.setItem("studentSubjects", JSON.stringify(subjectCards));
-        sessionStorage.setItem("completedSubjects", JSON.stringify(Array.from(completed)));
-
-        setCompletedSubjects(completed);
         setSubjects(subjectCards);
       } catch (error) {
         console.error('Error fetching schedules or progress:', error);
@@ -103,6 +78,7 @@ function Home() {
     };
     fetchStudentSchedulesAndProgress();
   }, []);
+
   // Handle subject card click
   const handleSubjectClick = async (subjectName: string) => {
     const selectedSubject = subjects.find(s => s.name === subjectName);
