@@ -17,7 +17,7 @@ const SkeletonProgramCards = () => (
     <div className="flex flex-col items-center">
       <p className="mt-6 text-xl text-gray-300">Program List:</p>
       <div className="flex flex-wrap justify-center gap-6 px-6 py-6 md:mt-6 md:px-0">
-        {[1,2,3,4].map((i) => (
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="w-full sm:w-1/2 lg:w-1/4">
             <SkeletonBox height={96} />
           </div>
@@ -219,8 +219,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         if (!token) return;
         if (!selectedSchedule) return; // or handle the null case appropriately
         const res = await api.get(`/studentevaluation/studentevaluation/all-by-schedule/${selectedSchedule.id}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setSffData(res.data);
       } catch (e) {
         setSffData(null);
@@ -254,8 +254,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchStudents();
   }, [selectedSection]);
 
-    // Fetch responses for each student for the current evaluation (for table preview, not dialog)
-    useEffect(() => {
+  // Fetch responses for each student for the current evaluation (for table preview, not dialog)
+  useEffect(() => {
     if (!students.length || !sffData?.id) return;
     const fetchResponses = async () => {
       const token = localStorage.getItem("token");
@@ -282,7 +282,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
 
 
   // Fetch responses for the selected student when dialog opens
-    useEffect(() => {
+  useEffect(() => {
     const fetchStudentDialogResponses = async () => {
       const evaluationId = Array.isArray(sffData) && sffData.length > 0 ? sffData[0].id : sffData?.id;
       if (!viewingStudent || !evaluationId) return;
@@ -357,10 +357,10 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             }
             return null;
           })()}
-          {loading ? <SkeletonProgramCards /> : <ProgramCards programs={programs} onClick={(program) => {
+          <ProgramCards programs={programs} onClick={(program) => {
             console.log("Clicked program id:", program.id);
             setSelectedProgram(program);
-          }} />}
+          }} />
         </>
       )}
 
@@ -377,23 +377,20 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             Back to Programs
           </button>
           <h3 className="text-2xl font-semibold text-white mb-4">Professors for {selectedProgram.name}</h3>
-          {loading ? (
-            <SkeletonTable rows={4} cols={2} />
-          ) : (
-            <DataTable
-              data={professors}
-              columns={professorColumns}
-              getRowKey={(prof) => prof.id}
-              actions={(prof) => (
-                <button className="btn btn-sm btn-primary" onClick={() => {
-                  console.log("Clicked professor id:", prof.id);
-                  setSelectedProfessor(prof);
-                }}>
-                  View Schedules
-                </button>
-              )}
-            />
-          )}
+
+          <DataTable
+            data={professors}
+            columns={professorColumns}
+            getRowKey={(prof) => prof.id}
+            actions={(prof) => (
+              <button className="btn btn-sm btn-primary" onClick={() => {
+                console.log("Clicked professor id:", prof.id);
+                setSelectedProfessor(prof);
+              }}>
+                View Schedules
+              </button>
+            )}
+          />
         </>
       )}
 
