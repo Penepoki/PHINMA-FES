@@ -214,6 +214,8 @@ def get_copus_bulk_tallies_data(eval_ids):
     STUDENT_OPTIONS = [display for key, display in STUDENT_CHOICES]
     INSTRUCTOR_OPTIONS = [display for key, display in INSTRUCTOR_CHOICES]
 
+    total_active_timestamps = 0
+    total_timestamps_all = 0
     for eval_id in eval_ids:
         timestamps = Timestamp.objects.filter(evaluation_id=eval_id)
         student_tallies = {opt: {"count": 0, "percentage": 0.0} for opt in STUDENT_OPTIONS}
@@ -291,11 +293,20 @@ def get_copus_bulk_tallies_data(eval_ids):
         else:
             active_learning_percentage = 0.0
 
+        total_active_timestamps += active_timestamps
+        total_timestamps_all += total_timestamps
+
         result[eval_id] = {
             "studentTallies": student_tallies,
             "teacherTallies": instructor_tallies,
             "activeLearningPercentage": active_learning_percentage
         }
+    # Add total active learning percentage across all evaluations
+    if total_timestamps_all > 0:
+        total_active_learning_percentage = round((total_active_timestamps / total_timestamps_all) * 100, 2)
+    else:
+        total_active_learning_percentage = 0.0
+    result["totalActiveLearningPercentage"] = total_active_learning_percentage
     return result
 
 
