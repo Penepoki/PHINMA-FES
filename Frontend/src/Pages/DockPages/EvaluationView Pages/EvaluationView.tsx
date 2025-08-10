@@ -73,12 +73,12 @@ function Evaluation({ setActiveView }: EvalProps) {
   }>({});
   const [modalOpen, setModalOpen] = useState<string | null>(null);
   const [selectedProfessor, setSelectedProfessor] =
-    useState<Professor | null>(null);
-  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(
+      useState<Interfaces.Professor | null>(null);
+    const [selectedSchedule, setSelectedSchedule] = useState<Interfaces.Schedule | null>(
     null,
   );
   const [selectedEvaluation, setSelectedEvaluation] =
-    useState<Evaluation | null>(null);
+      useState<Interfaces.Evaluation | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchProfessor, setSearchProfessor] = useState("");
   const [searchSchedule, setSearchSchedule] = useState("");
@@ -114,7 +114,7 @@ function Evaluation({ setActiveView }: EvalProps) {
     }
   };
 
-  const createEvaluation = async (evaluationData: Partial<Evaluation>) => {
+    const createEvaluation = async (evaluationData: Partial<Interfaces.Evaluation>) => {
     try {
       const response = await api.post(
         "/evaluation/evaluations/",
@@ -127,7 +127,7 @@ function Evaluation({ setActiveView }: EvalProps) {
       throw error;
     }
   };
-  const handleOpenEvaluation = (evaluation: Evaluation) => {
+    const handleOpenEvaluation = (evaluation: Interfaces.Evaluation) => {
     setSelectedEvaluation(evaluation);
     const scheduleObj = schedules.find((s) => s.id === evaluation.schedule);
     console.log("Schedules:", schedules);
@@ -139,7 +139,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 
   const updateEvaluation = async (
     id: number,
-    evaluationData: Partial<Evaluation>,
+    evaluationData: Partial<Interfaces.Evaluation>,
   ) => {
     try {
       const response = await api.put(
@@ -201,9 +201,9 @@ function Evaluation({ setActiveView }: EvalProps) {
     ).values(),
   );
 
-  const getProfessorSchedules = (prof: Professor) =>
+    const getProfessorSchedules = (prof: Interfaces.Professor) =>
     schedules.filter((s) => s.instructor === prof.id);
-  const getProfessorEvaluations = (prof: Professor) => {
+    const getProfessorEvaluations = (prof: Interfaces.Professor) => {
     const profSchedules = getProfessorSchedules(prof).map((s) => s.id);
     return evaluations.filter((e) => profSchedules.includes(e.schedule));
   };
@@ -215,8 +215,7 @@ function Evaluation({ setActiveView }: EvalProps) {
   ];
 
 
-
-  const getEvaluationByType = (prof: Professor, copusType: string) => {
+    const getEvaluationByType = (prof: Interfaces.Professor, copusType: string) => {
     const profEvals = getProfessorEvaluations(prof);
     return profEvals.find((e) => e.evaluation_type === copusType);
   };

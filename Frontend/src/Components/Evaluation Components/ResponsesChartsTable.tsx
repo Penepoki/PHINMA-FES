@@ -8,6 +8,7 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
+    ChartOptions,
 } from "chart.js";
 import api from "../../utils/api";
 
@@ -319,7 +320,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                 ],
                               };
 
-                              const barOptions = {
+                                const barOptions: ChartOptions<'bar'> = {
                                 indexAxis: 'y', // Make the bar chart horizontal
                                 responsive: true,
                                 maintainAspectRatio: false,

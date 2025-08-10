@@ -133,7 +133,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     setSelectedSection(null);
     setSffData(null);
     const fetchProfessors = async () => {
-      setLoading(true);
+      setLoading(false);
       try {
         const token = localStorage.getItem("token");
         if (!token) return;

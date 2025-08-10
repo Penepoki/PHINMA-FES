@@ -87,7 +87,11 @@ const CopusSummaryTable: React.FC<CopusSummaryTableProps> = ({
     "teacherTallies"
   );
   const avgActiveLearning = averageActiveLearningPercentage(copusEvals, evaluationTallies);
-
+  // Decide gauge color based on avgActiveLearning
+  let avgGaugeColor = "";
+  if (avgActiveLearning < 40) avgGaugeColor = "#ef4444"; // red
+  else if (avgActiveLearning < 70) avgGaugeColor = "#facc15"; // yellow
+  else avgGaugeColor = "#22c55e"; // green
   return (
     <div>
 
@@ -95,19 +99,50 @@ const CopusSummaryTable: React.FC<CopusSummaryTableProps> = ({
       <div className="mb-6 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-lg border border-blue-500/30">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col items-center justify-center">
-            <GaugeChart value={avgActiveLearning} label="Active Learning % (Avg)" color="#4ECDC4"/>
+            <GaugeChart
+                value={avgActiveLearning}
+                label="Active Learning % (Avg)"
+                color={avgGaugeColor}
+            />
           </div>
           <div className="flex-1 flex flex-col items-center md:items-start justify-center">
             <h4 className="text-lg font-bold text-black mb-2">Active Learning Summary</h4>
             <p className="text-gray-800 text-md mb-1">
-              <span className="font-semibold">Active Learning % (Avg):</span> <span
-                className="text-2xl font-bold text-[#4ECDC4]">{avgActiveLearning.toFixed(2)}%</span>
+              <span className="font-semibold">Active Learning % (Avg):</span>
+              <span className={`text-2xl font-bold`} style={{color: avgGaugeColor}}>
+                {avgActiveLearning.toFixed(2)}%
+              </span>
             </p>
             <ul className="text-gray-700 text-sm list-disc pl-5">
               <li>Calculated as the % of timestamps with active teacher or student activities.</li>
               <li>Active learning includes: group work, discussions, questions, presentations, etc.</li>
             </ul>
           </div>
+        </div>
+      </div>
+      {/* Individual Copus Gauge Charts */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-lg border border-blue-500/30">
+        <h4 className="text-lg font-bold text-black mb-2">Active Learning Percentage (Avg) for Each COPUS
+          Evaluation</h4>
+        <div className="flex flex-row justify-center items-center gap-x-6 mt-6">
+          {copusEvals.map((copuseval, idx) => {
+            const perc = evaluationTallies[copuseval.id]?.activeLearningPercentage ?? 0;
+
+            // Pick a color based on percentage value
+            let gaugeColor = "";
+            if (perc < 40) gaugeColor = "#a53030"; // red
+            else if (perc < 70) gaugeColor = "#977603"; // yellow
+            else gaugeColor = "#239c51"; // green
+
+            return (
+                <GaugeChart
+                    key={copuseval.id}
+                    value={perc}
+                    label={`COPUS ${idx + 1}: ${perc.toFixed(2)}%`}
+                    color={gaugeColor}
+                />
+            );
+          })}
         </div>
       </div>
       {/* Student Activities Table */}

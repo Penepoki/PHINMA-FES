@@ -21,7 +21,7 @@ function DataTable<T>({
   getRowKey,
   actions,
   selectable = false,
-  loading = true,
+                        loading,
 }: DataTableProps<T>) {
   return (
     <div className="w-full overflow-x-auto text-white shadow-xl">
