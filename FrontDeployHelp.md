@@ -47,7 +47,7 @@ after running the command, a dist folder will be created at the root folder of F
 
 # Go inside the public_html
 # DO NOT DELETE THE default.php
-If the public_html contains a lot of files similarly inside the dist folder created delete it.
+If the public_html contains a lot of files similarly inside the dist folder created, delete the files currently inside the public_html folder.
 
 upload your dist folder, after the upload is complete move the files inside the dist folder in public_html.
 
