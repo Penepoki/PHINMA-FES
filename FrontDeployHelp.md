@@ -36,9 +36,9 @@ npm run build
 after running the command, a dist folder will be created at the root folder of Frontend
 
 # DEPLOYING IN HOSTINGER!
-## Visit your hoststinger dashboard!
-## Locate the websites at the sidebar of hostinger
-## Click and visit the file manager of your website!
+ Visit your hoststinger dashboard!
+ Locate the websites at the sidebar of hostinger
+ Click and visit the file manager of your website!
 
 # Go inside the public_html
 # DO NOT DELETE THE default.php
