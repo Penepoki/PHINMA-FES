@@ -1,23 +1,55 @@
-TODO Renzo:
+# PRODUCTION DEPLOYMENT TUTORIAL FOR FRONT-END IN HOSTSTINGER 
 
-3/28/25
+# PREPARE THE FRONT-END
+### Checklist:
+- [ ] Must be on the Frontend folder.
 
-- [/] Fix the mobile view of the landing page.
-- [/] Create the text animation of the landing page.
-- [/] Transfer the shadow from the header to the background in App.tsx. -- Not needed
-- [ ] Find a CITE logo with either a white background or one with text.
-- [/] Do some more work on the Dashboard,
-- [/] Map out the things needed in the sidebar.
+- [ ] Node modules are installed
 
-4/1/25
+- [ ] Frontend/ has no erros (errors like [declared but never read], [imported but never used] can be disregarded or ignored.).
 
-- [ ] Dock animation.
-- [ ] Dock hiding logic.
-- [ ] Dashboard default page.
-- [ ] Dashboard pages.
+- [ ] Configure the .env to point or call the base url endpoint correctly
 
-Scroll Bug
-Name BUg
-Scroll indication
+## 1. Locating the Front-end
+Note: must be cloned, already and up to date.
+```
+cd path/to/Frontend
+```
 
-Work on student modal after copus presentation
+## 2. Installing the node modules.
+Note: node.js must be installed and other, check other read.me's for the requirements
+```
+npm install dev
+```
+
+## 3. Clear out errors
+Note: Fix the errors(errors like [declared but never read], [imported but never used] can be disregarded or ignored. ).
+
+## 4. Point out the correct endpoint!
+in your .env and .end.production
+```
+EXAMPLE_API_URL="https://urloftheapi.com"
+```
+Don't forget to save your .env and .production!
+
+## 5. Run the command!
+```
+npm run build
+```
+after running the command, a dist folder will be created at the root folder of Frontend
+
+# DEPLOYING IN HOSTINGER!
+ Visit your hoststinger dashboard!
+ 
+ Locate the websites at the sidebar of hostinger
+ 
+ Click and visit the file manager of your website!
+
+# Go inside the public_html
+# DO NOT DELETE THE default.php
+If the public_html contains a lot of files similarly inside the dist folder created, delete the files currently inside the public_html folder.
+
+upload your dist folder, after the upload is complete move the files inside the dist folder in public_html.
+
+
+
