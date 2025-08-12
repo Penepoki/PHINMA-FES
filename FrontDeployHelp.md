@@ -1,4 +1,4 @@
-#PRODUCTION DEPLOYMENT TUTORIAL FOR FRONT-END IN HOSTSTINGER 
+# PRODUCTION DEPLOYMENT TUTORIAL FOR FRONT-END IN HOSTSTINGER 
 
 # PREPARE THE FRONT-END
 ### Checklist:
@@ -36,12 +36,12 @@ npm run build
 after running the command, a dist folder will be created at the root folder of Frontend
 
 # DEPLOYING IN HOSTINGER!
-##Visit your hoststinger dashboard!
-##Locate the websites at the sidebar of hostinger
-##Click and visit the file manager of your website!
+## Visit your hoststinger dashboard!
+## Locate the websites at the sidebar of hostinger
+## Click and visit the file manager of your website!
 
-#Go inside the public_html
-#DO NOT DELETE THE default.php
+# Go inside the public_html
+# DO NOT DELETE THE default.php
 If the public_html contains a lot of files similarly inside the dist folder created delete it.
 upload your dist folder, after the upload is complete move the files inside the dist folder in public_html.
 
