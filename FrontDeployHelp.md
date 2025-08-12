@@ -3,8 +3,11 @@
 # PREPARE THE FRONT-END
 ### Checklist:
 [] Must be on the Frontend folder.
+
 [] Node modules are installed
+
 [] Frontend/ has no erros (errors like [declared but never read], [imported but never used] can be disregarded or ignored.).
+
 [] Configure the .env to point or call the base url endpoint correctly
 
 ## 1. Locating the Front-end
@@ -37,12 +40,15 @@ after running the command, a dist folder will be created at the root folder of F
 
 # DEPLOYING IN HOSTINGER!
  Visit your hoststinger dashboard!
+ 
  Locate the websites at the sidebar of hostinger
+ 
  Click and visit the file manager of your website!
 
 # Go inside the public_html
 # DO NOT DELETE THE default.php
 If the public_html contains a lot of files similarly inside the dist folder created delete it.
+
 upload your dist folder, after the upload is complete move the files inside the dist folder in public_html.
 
 
