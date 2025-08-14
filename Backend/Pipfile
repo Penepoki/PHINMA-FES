@@ -18,10 +18,11 @@ pillow = "*"
 requests = "*"
 weasyprint = "*"
 cairocffi = "*"
-pyyaml = "*"
 python-dotenv = "*"
 gunicorn = "*"
-huggingface-hub = "*"
+torch = "*"
+transformers = { extras = ["torch"], version = "*" }
+pyyaml = "*"
 
 [dev-packages]
 
