@@ -12,6 +12,30 @@ context:
     relevance_to_copus: |
       COPUS codes can be used to identify and quantify active learning strategies in the classroom.
       Observing the frequency and variety of active learning activities helps educators assess and enhance student engagement and learning outcomes.
+  activity_categories:
+    student:
+      - Listening
+      - Individual Thinking
+      - Group
+      - Answer Question
+      - Ask Question
+      - Whole Class Discussion
+      - Student Presentation
+      - Test/Quiz
+      - Waiting
+      - Other
+    professor:
+      - Lecture
+      - Realtime Writing
+      - Moving/Guiding
+      - Answer Questions
+      - Pose Question
+      - Follow-up Question
+      - 1-on-1 Discussion
+      - Demonstrative
+      - Administrative
+      - Waiting
+      - Other
 
 prompts:
   copus_code_explanation:
