@@ -8,6 +8,7 @@ import DashboardAnimation from "../Components/Dashboard Components/Dashboard Ani
 import HomeViewDean from "./DockPages/HomeView Pages/HomeView Dean";
 import HomeViewHR from "./DockPages/HomeView Pages/HomeView HR";
 import HomeViewStudent from "./DockPages/HomeView Pages/HomeView Student";
+import HomeViewProfessor from "./DockPages/HomeView Pages/HomeView Professor.tsx"
 import Profile from "./DockPages/ProfileView";
 import Evaluation from "./DockPages/EvaluationView Pages/EvaluationView";
 import ResourceGroup from "./DockPages/ResourceGroup Pages/ResourceGroupView";
@@ -36,6 +37,8 @@ function Dashboard({ role }: { role: string }) {
         />
       ) : role === "HR" ? (
         <HomeViewHR />
+      ) : role === "Professor" ? (
+        <HomeViewProfessor />
       ) : role === "Student" ? (
         <HomeViewStudent />
       ) : (
@@ -100,10 +103,10 @@ function Dashboard({ role }: { role: string }) {
           {/* Main content that grows to fill available space */}
           <main
             className={`z-40 flex-1 overflow-y-auto px-3 pt-6 pb-6 transition-all duration-300 md:px-10 ${isDockVisible
-                ? isExpandedDock
-                  ? "pb-6 md:pb-6"
-                  : "pb-0 md:pb-0"
-                : "pb-0"
+              ? isExpandedDock
+                ? "pb-6 md:pb-6"
+                : "pb-0 md:pb-0"
+              : "pb-0"
               }`}
           >
             {viewComponents[activeView] || (
@@ -114,10 +117,10 @@ function Dashboard({ role }: { role: string }) {
           {/* Dock: height transition controlled */}
           <nav
             className={`z-41 transition-all duration-300 ${isDockVisible
-                ? isExpandedDock
-                  ? "h-[100px]"
-                  : "h-[50px]"
-                : "h-0"
+              ? isExpandedDock
+                ? "h-[100px]"
+                : "h-[50px]"
+              : "h-0"
               } overflow-hidden`}
           >
             {role === "Dean" || role === "Program Head" ? (

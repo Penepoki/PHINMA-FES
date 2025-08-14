@@ -3,22 +3,23 @@ import Dashboard from "./Pages/Dashboard";
 import Login from "./Pages/Login";
 
 function App() {
-	return (
-		<Router>
-			<Routes>
-				<Route path="/" element={<Login />} />
-				<Route
-					path="/Dashboard/dean"
-					element={<Dashboard role="Dean" />}
-				/>
-				<Route path="Dashboard/hr" element={<Dashboard role="HR" />} />
-				<Route
-					path="/Dashboard/student"
-					element={<Dashboard role="Student" />}
-				/>
-			</Routes>
-		</Router>
-	);
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route
+          path="/Dashboard/dean"
+          element={<Dashboard role="Dean" />}
+        />
+        <Route path="Dashboard/hr" element={<Dashboard role="HR" />} />
+        <Route path="Dashboard/professor" element={<Dashboard role="Professor" />} />
+        <Route
+          path="/Dashboard/student"
+          element={<Dashboard role="Student" />}
+        />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;
