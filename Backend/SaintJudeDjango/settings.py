@@ -29,7 +29,7 @@ print("RAW ENV HF_API_KEY:", os.environ.get("HF_API_KEY"))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', cast=bool)
 
-ALLOWED_HOSTS = ['merged-front-back.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['srv948362.hstgr.cloud:8000', 'localhost', '127.0.0.1']
 
 CSRF_TRUSTED_ORIGINS = [
     "https://Phinma-fes.com",
