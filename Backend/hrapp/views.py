@@ -514,6 +514,43 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             })
         return Response(data)
 
+    @action(detail=False, methods=["get"], url_path="latest-with-tallies")
+    def latest_with_tallies(self, request):
+        # Returns the latest evaluations with student & teacher tallies
+        # ready for the pie chart.
+        # Usage: /api/evaluation/evaluations/latest-with-tallies/?limit=3
+        from .models import Timestamp
+
+        # How many to return
+        limit = int(request.query_params.get("limit", 3))
+
+        # Fetch latest evaluations with related instructor
+        latest_evals = Evaluation.objects.filter(deleted_at__isnull=True) \
+                           .select_related("instructor") \
+                           .order_by("-created_at")[:limit]
+
+        if not latest_evals:
+            return Response([], status=200)
+
+        # Get tallies for these evaluations
+        eval_ids = [e.id for e in latest_evals]
+        tallies = get_copus_bulk_tallies_data(eval_ids)
+
+        # Build the response
+        data = []
+        student_options = [choice[1] for choice in Timestamp.STUDENT_ACTIVITY_CHOICES]
+        teacher_options = [choice[1] for choice in Timestamp.INSTRUCTOR_ACTIVITY_CHOICES]
+
+        for e in latest_evals:
+            data.append({
+                "evaluation_number": e.id,
+                "faculty_name": e.instructor.get_full_name() if e.instructor else "Unknown",
+                "faculty_image": getattr(e.instructor, "profile_image", None),
+                "student_tallies": [tallies[e.id]["studentTallies"][opt]["percentage"] for opt in student_options],
+                "teacher_tallies": [tallies[e.id]["teacherTallies"][opt]["percentage"] for opt in teacher_options]
+            })
+
+        return Response(data, status=200)
 
 # END OF CRUD EVALUATION -----------------------------------------
 # Define your activity options (should match frontend)
