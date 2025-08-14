@@ -222,6 +222,7 @@ html {
 
 .dock-label {
 	font-size: 1.1rem; /* Default font size for larger screens */
+  @apply px-0;
 }
 .dock {
 	@apply bg-[#102418];

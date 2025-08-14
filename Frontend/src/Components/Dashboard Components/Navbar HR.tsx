@@ -80,7 +80,7 @@ const NavbarHR: React.FC<NavbarProps> = ({
         relative h-8 w-10 !px-1 rounded-xl flex items-center justify-center 
         transition-all duration-300
         ${isActive ? "ring-2 ring-white scale-125" : ""}
-        ${!isActive && "hover:scale-[1.4] hover:mx-2"}
+        ${!isActive && "hover:scale-[1.4] hover:mx-6"}
         md:transition-all
       `}
       >

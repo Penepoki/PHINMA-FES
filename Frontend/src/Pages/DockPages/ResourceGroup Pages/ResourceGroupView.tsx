@@ -6,15 +6,16 @@ interface ResourceGroupProps {
 }
 
 function ResourceGroup({ setActiveView }: ResourceGroupProps) {
-
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [schedules, setSchedules] = useState([]);
 
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchAllData = async () => {
+      setIsLoading(true);
       try {
         const [programsRes, subjectsRes, roomsRes, schedulesRes] = await Promise.all([
           api.get("/program/programs"),
@@ -23,22 +24,31 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
           api.get("/schedule/schedules"),
         ]);
 
-        console.log("Courses:", programsRes.data);
-        console.log("Subjects:", subjectsRes.data);
-        console.log("Rooms:", roomsRes.data);
-        console.log("Schedules:", schedulesRes.data);
-
         setPrograms(programsRes.data);
         setSubjects(subjectsRes.data);
         setRooms(roomsRes.data);
         setSchedules(schedulesRes.data);
       } catch (error) {
         console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchAllData();
   }, []);
+
+  // Simple spinner component
+  const Spinner = () => (
+    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-white border-t-transparent"></div>
+  );
+
+  const renderCount = (count: number) => {
+    if (isLoading) {
+      return <Spinner />;
+    }
+    return <span>{count}</span>;
+  };
 
   return (
     <div className="custom-container">
@@ -60,28 +70,36 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
           <span className="text-xl text-gray-300">
             Number of current programs:
           </span>
-          <span className="text-8xl">{programs.length}</span>
+          <span className="text-8xl text-white">
+            {renderCount(programs.length)}
+          </span>
         </div>
         <div className="rg-container md:gap-y-6 md:p-6">
           <h2 className="mb-4 text-4xl font-bold">Subjects</h2>
           <span className="text-xl text-gray-300">
             Number of current subjects:
           </span>
-          <span className="text-8xl">{subjects.length}</span>
+          <span className="text-8xl text-white">
+            {renderCount(subjects.length)}
+          </span>
         </div>
         <div className="rg-container md:gap-y-6 md:p-6">
           <h2 className="mb-4 text-4xl font-bold">Rooms</h2>
           <span className="text-xl text-gray-300">
             Number of current rooms:
           </span>
-          <span className="text-8xl">{rooms.length}</span>
+          <span className="text-8xl text-white">
+            {renderCount(rooms.length)}
+          </span>
         </div>
         <div className="rg-container md:gap-y-6 md:p-6">
           <h2 className="mb-4 text-4xl font-bold">Schedules</h2>
           <span className="text-xl text-gray-300">
             Number of current schedules:
           </span>
-          <span className="text-8xl">{schedules.length}</span>
+          <span className="text-8xl text-white">
+            {renderCount(schedules.length)}
+          </span>
         </div>
       </div>
     </div>

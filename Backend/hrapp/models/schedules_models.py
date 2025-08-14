@@ -130,9 +130,6 @@ class Schedule(BaseModel):
         super().save(*args, **kwargs)
 
 
-
-
-
 # Faculty Assignments
 class FacultyAssignment(BaseModel):
     user = models.ForeignKey("User", on_delete=models.SET_NULL, null=True)

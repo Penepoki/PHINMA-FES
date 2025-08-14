@@ -328,12 +328,24 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        base_qs = super().get_queryset()
+        qs = super().get_queryset()
+        # Scope by role/faculty first
         if hasattr(user, "Dean") and user.Dean:
-            return base_qs
-        if hasattr(user, 'faculty') and user.faculty:
-            return base_qs.filter(schedule__program__faculty=user.faculty)
-        return base_qs
+            pass  # Dean can see all in qs
+        elif hasattr(user, 'faculty') and user.faculty:
+            qs = qs.filter(schedule__program__faculty=user.faculty)
+        # Optional filters by semester and year (from related Schedule)
+        semester = self.request.query_params.get('semester')
+        year = self.request.query_params.get('year')
+        if semester:
+            qs = qs.filter(schedule__semester=semester)
+        if year:
+            try:
+                qs = qs.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                # Ignore invalid year values
+                pass
+        return qs
 
     # AI SUMMARY GENERATOR
 
@@ -474,6 +486,71 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         result = get_copus_bulk_tallies_data(eval_ids)
         return Response(result)
 
+    @action(detail=False, methods=['get'], url_path='by-faculty')
+    def by_faculty(self, request):
+        """Return evaluations for a faculty with professor names for mapping.
+        Endpoint: /evaluation/evaluations/by-faculty?faculty=<faculty_id>
+        """
+        faculty_id = request.query_params.get('faculty')
+        if not faculty_id:
+            return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
+        evals = Evaluation.objects.filter(
+            schedule__program__faculty_id=faculty_id,
+            deleted_at__isnull=True
+        ).select_related('schedule__instructor')
+        data = []
+        for e in evals:
+            instructor = getattr(e.schedule, 'instructor', None)
+            if instructor:
+                first = getattr(instructor, 'first_name', '') or ''
+                last = getattr(instructor, 'last_name', '') or ''
+                name = (first + ' ' + last).strip() or 'Unknown Professor'
+            else:
+                name = 'Unknown Professor'
+            data.append({
+                'id': e.id,
+                'evaluation_id': e.id,
+                'professor_name': name,
+            })
+        return Response(data)
+
+    @action(detail=False, methods=["get"], url_path="latest-with-tallies")
+    def latest_with_tallies(self, request):
+        # Returns the latest evaluations with student & teacher tallies
+        # ready for the pie chart.
+        # Usage: /api/evaluation/evaluations/latest-with-tallies/?limit=3
+        from .models import Timestamp
+
+        # How many to return
+        limit = int(request.query_params.get("limit", 3))
+
+        # Fetch latest evaluations with related instructor
+        latest_evals = Evaluation.objects.filter(deleted_at__isnull=True) \
+                           .select_related("instructor") \
+                           .order_by("-created_at")[:limit]
+
+        if not latest_evals:
+            return Response([], status=200)
+
+        # Get tallies for these evaluations
+        eval_ids = [e.id for e in latest_evals]
+        tallies = get_copus_bulk_tallies_data(eval_ids)
+
+        # Build the response
+        data = []
+        student_options = [choice[1] for choice in Timestamp.STUDENT_ACTIVITY_CHOICES]
+        teacher_options = [choice[1] for choice in Timestamp.INSTRUCTOR_ACTIVITY_CHOICES]
+
+        for e in latest_evals:
+            data.append({
+                "evaluation_number": e.id,
+                "faculty_name": e.instructor.get_full_name() if e.instructor else "Unknown",
+                "faculty_image": getattr(e.instructor, "profile_image", None),
+                "student_tallies": [tallies[e.id]["studentTallies"][opt]["percentage"] for opt in student_options],
+                "teacher_tallies": [tallies[e.id]["teacherTallies"][opt]["percentage"] for opt in teacher_options]
+            })
+
+        return Response(data, status=200)
 
 # END OF CRUD EVALUATION -----------------------------------------
 # Define your activity options (should match frontend)
@@ -484,6 +561,19 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 class StudentEvaluationViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluation.objects.filter(deleted_at__isnull=True)
     serializer_class = StudentEvaluationSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        semester = self.request.query_params.get('semester')
+        year = self.request.query_params.get('year')
+        if semester:
+            qs = qs.filter(schedule__semester=semester)
+        if year:
+            try:
+                qs = qs.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
+        return qs
 
     @action(detail=False, methods=['GET'], url_path='by-schedule/(?P<schedule_id>[^/.]+)')
     def by_schedule(self, request, schedule_id=None):
@@ -579,6 +669,21 @@ class StudentEvaluationQuestionViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationQuestion.objects.all()
     serializer_class = StudentEvaluationQuestionSerializer
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        semester = self.request.query_params.get('semester')
+        year = self.request.query_params.get('year')
+        if semester:
+            qs = qs.filter(studentevaluation__schedule__semester=semester)
+        if year:
+            try:
+                qs = qs.filter(studentevaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
+        if semester or year:
+            qs = qs.distinct()
+        return qs
+
     @action(detail=False, methods=['get'], url_path='by-evaluation')
     def by_evaluation(self, request):
         """
@@ -599,6 +704,19 @@ class StudentEvaluationQuestionViewSet(viewsets.ModelViewSet):
 class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
     queryset = StudentEvaluationResponse.objects.all()
     serializer_class = StudentEvaluationResponseSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        semester = self.request.query_params.get('semester')
+        year = self.request.query_params.get('year')
+        if semester:
+            qs = qs.filter(student_evaluation__schedule__semester=semester)
+        if year:
+            try:
+                qs = qs.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
+        return qs
 
     # Add this to StudentEvaluationResponseViewSet class in views.py
 

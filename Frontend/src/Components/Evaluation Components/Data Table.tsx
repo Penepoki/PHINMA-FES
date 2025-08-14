@@ -21,7 +21,7 @@ function DataTable<T>({
   getRowKey,
   actions,
   selectable = false,
-                        loading,
+  loading,
 }: DataTableProps<T>) {
   return (
     <div className="w-full overflow-x-auto text-white shadow-xl">
@@ -51,17 +51,17 @@ function DataTable<T>({
               <tr key={`skeleton-${rowIndex}`} className="animate-pulse">
                 {selectable && (
                   <td>
-                    <div className="skeleton h-5 w-5 bg-primary/20"></div>
+                    <div className="skeleton h-5 w-5 bg-black/5"></div>
                   </td>
                 )}
                 {columns.map((_, colIndex) => (
                   <td key={colIndex}>
-                    <div className="skeleton h-6 w-full bg-primary/20"></div>
+                    <div className="skeleton h-6 w-full bg-black/5"></div>
                   </td>
                 ))}
                 {actions && (
                   <td>
-                    <div className="skeleton h-5 w-16 bg-primary/20"></div>
+                    <div className="skeleton h-5 w-16 bg-black/5"></div>
                   </td>
                 )}
               </tr>

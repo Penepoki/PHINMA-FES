@@ -87,9 +87,6 @@ class Evaluation(models.Model):
     ai_feedback = models.JSONField(null=True, blank=True)
     evaluator = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True,
                                   help_text = "THE USER WHO IS CONDUCTING THE EVALUATION")
-
-
-
     instructor = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True,
                                    related_name='primary_evaluations')
 
@@ -149,6 +146,11 @@ class StudentEvaluation(models.Model):
 
     objects = CustomStudentEvaluation()
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['schedule', 'import_questions'], name="unique_schedule_import_questions")
+        ]
+
     def save(self, *args, **kwargs):
         if self.title:
             if not self.title.startswith("Student Evaluation: "):
@@ -171,8 +173,6 @@ class StudentEvaluationQuestion(models.Model):
         ("TEXT", "Text Response"),
         ("RATING", "Rating Scale"),
     ]
-
-    #student_evaluation = models.ForeignKey(StudentEvaluation, on_delete=models.SET_NULL, null=True, blank=True)
     question = models.TextField()
     type = models.CharField(max_length=15, choices=TYPE_CHOICES)  # Limited choices
     options = models.JSONField(null=True, blank=True)
