@@ -9,7 +9,7 @@ import {
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 import { LineElement, PointElement, LineController } from "chart.js";
-import { Line } from "react-chartjs-2";
+import { Line, Scatter } from "react-chartjs-2";
 import {SankeyController, Flow} from "chartjs-chart-sankey";
 import {Chart} from "react-chartjs-2";
 import React, {useEffect, useMemo, useState} from "react";
@@ -175,6 +175,11 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 	const [avgActiveLearning, setAvgActiveLearning] = useState<number | null>(null);
 	const [maxActivityPoints, setMaxActivityPoints] = useState(0);
 	const [sankeyData, setSankeyData] = useState<any>(null);
+	// Retention vs Responses regression state
+	const [retentionPoints, setRetentionPoints] = useState<{x:number;y:number;label?:string}[] | null>(null);
+	const [regression, setRegression] = useState<{slope:number;intercept:number;r2:number;formula:string} | null>(null);
+	const [retentionLoading, setRetentionLoading] = useState(false);
+	const [retentionError, setRetentionError] = useState<string | null>(null);
 
 	const STUDENT_CODE_MAP: Record<string, string> = {
 		'Listening': 'L',
@@ -424,6 +429,89 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 		fetchSFF();
 	}, []);
 
+	// Fetch Retention vs Responses regression
+	useEffect(() => {
+		const run = async () => {
+			setRetentionLoading(true);
+			setRetentionError(null);
+			try {
+				const res = await api.get('/analytics/retention-regression/');
+				const pts = Array.isArray(res.data?.points) ? res.data.points : [];
+				const mapped = pts.map((p: any) => ({ x: Number(p.x), y: Number(p.y) }));
+				setRetentionPoints(mapped);
+				setRegression(res.data?.regression ?? null);
+			} catch (e: any) {
+				console.error('[DEBUG] Retention regression error:', e?.message || e);
+				setRetentionError(e?.message || 'Failed to load regression.');
+			} finally {
+				setRetentionLoading(false);
+			}
+		};
+		run();
+	}, []);
+
+	const scatterData = useMemo(() => {
+		if (!retentionPoints) return null;
+		const datasets: any[] = [
+			{
+				label: 'Retention vs Responses',
+				data: retentionPoints,
+				backgroundColor: 'rgba(59,130,246,0.7)',
+				pointRadius: 4,
+				pointHoverRadius: 6,
+			}
+		];
+		if (regression && retentionPoints.length) {
+			const xs = retentionPoints.map((p) => p.x);
+			const minX = Math.min(...xs);
+			const maxX = Math.max(...xs);
+			const a = regression.intercept;
+			const b = regression.slope;
+			datasets.push({
+				label: 'Regression Line',
+				data: [
+					{ x: minX, y: a + b * minX },
+					{ x: maxX, y: a + b * maxX },
+				],
+				showLine: true,
+				borderColor: 'rgba(34,197,94,1)',
+				backgroundColor: 'rgba(0,0,0,0)',
+				pointRadius: 0,
+				borderWidth: 2,
+			});
+		}
+		return { datasets };
+	}, [retentionPoints, regression]);
+
+	const scatterOptions: any = useMemo(() => ({
+		responsive: true,
+		plugins: {
+			legend: { labels: { color: '#fff' } },
+			title: {
+				display: true,
+				text: regression ? `Retention vs Responses — ${regression.formula} (R²=${regression.r2?.toFixed(3)})` : 'Retention vs Responses',
+				color: '#fff',
+			},
+			tooltip: {
+				callbacks: {
+					label: (ctx: any) => `x=${ctx.raw.x.toFixed(3)}, y=${ctx.raw.y.toFixed(2)}%`,
+				},
+			},
+		},
+		scales: {
+			x: {
+				title: { display: true, text: 'Average Response Points', color: '#fff' },
+				ticks: { color: '#fff' },
+				grid: { color: 'rgba(255,255,255,0.1)' },
+			},
+			y: {
+				title: { display: true, text: 'Retention Rate (%)', color: '#fff' },
+				ticks: { color: '#fff' },
+				grid: { color: 'rgba(255,255,255,0.1)' },
+			},
+		},
+	}), [regression]);
+
 	const sankeyOptions = {
 		responsive: true,
 		plugins: {
@@ -665,14 +753,20 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 							<p className="text-white">Loading chart...</p>
 						)}
 					</div>
-				</div>
-				<div className="mt-6 flex w-full items-center justify-center rounded-lg p-4 shadow-2xl backdrop-blur-lg">
-					<div className="w-full">
-						<Line data={lineData} options={lineOptions} />
-					</div>
-				</div>
-			</div>
-		</div>
+  		</div>
+  		<div className="mt-6 flex w-full items-center justify-center rounded-lg p-4 shadow-2xl backdrop-blur-lg">
+  			<div className="w-full">
+  				{retentionLoading && <p className="text-white">Loading regression...</p>}
+  				{retentionError && <p className="text-red-400">{retentionError}</p>}
+  				{scatterData ? (
+  					<Scatter data={scatterData as any} options={scatterOptions} />
+  				) : (
+  					<p className="text-white">No regression data available.</p>
+  				)}
+  			</div>
+  		</div>
+  	</div>
+  </div>
 	);
 }
 

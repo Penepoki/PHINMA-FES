@@ -24,6 +24,13 @@ from django.shortcuts import get_object_or_404
 # from rest_framework.filter import Search
 import pandas as pd
 from datetime import datetime, timedelta, time
+from hrapp.models.evaluation_models import StudentEvaluationResponse, StudentEvaluationQuestion
+# Optional import of scoring helpers; safe import even if heavy model is present.
+try:
+    from hrapp.utils.sentiment_analysis_test import score_mcq_answer, analyze_text_sentiment
+except Exception:
+    score_mcq_answer = None  # type: ignore
+    analyze_text_sentiment = None  # type: ignore
 
 User = get_user_model()
 
@@ -1483,3 +1490,138 @@ class SectionViewSet(viewsets.ModelViewSet):
             )
 
         return super().create(request, *args, **kwargs)
+
+# Retention vs Responses Regression API
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def retention_regression(request):
+    """
+    Returns scatter data and linear regression between student evaluation response points (independent variable)
+    and retention rate (dependent variable). Since no retention field is present in the DB, this endpoint computes
+    a proxy retention rate = ((avg_points + 1) / 2) * 100 where avg_points is the average points per response in an
+    evaluation (points in [-1,1]). When a real retention field becomes available, replace the proxy with actual values.
+
+    Response JSON example:
+    {
+      "points": [
+        {"evaluation_id": 12, "x": 0.35, "y": 67.5, "n": 20},
+        ...
+      ],
+      "regression": {"slope": b, "intercept": a, "r2": r2, "formula": "y = a + b x"},
+      "meta": {"uses_proxy_retention": true}
+    }
+    """
+    # Build per-evaluation aggregates
+    agg = {}
+    # Fetch all responses; optional filter by faculty/evaluation ids could be added later
+    responses = StudentEvaluationResponse.objects.all().select_related('student_eval_question', 'student_evaluation')
+
+    def _score_resp(resp):
+        q = resp.student_eval_question
+        qtype = (q.type or '').strip().upper() if q else ''
+        ans = resp.answer
+        # Prefer helper functions if available
+        if qtype == 'MCQ':
+            if callable(score_mcq_answer):
+                try:
+                    pts, _meta = score_mcq_answer(q, ans)
+                    return float(pts)
+                except Exception:
+                    pass
+            # Fallback simple letter mapping
+            letter_map = {'A': 1.0, 'B': 0.5, 'C': 0.0, 'D': -0.5, 'E': -1.0}
+            if isinstance(ans, str) and ans.strip().upper() in letter_map:
+                return letter_map[ans.strip().upper()]
+            return 0.0
+        elif qtype == 'TEXT':
+            if callable(analyze_text_sentiment):
+                try:
+                    text_input = f"Question: {q.question}\nAnswer: {ans}" if q and q.question else str(ans)
+                    res = analyze_text_sentiment(text_input) or {}
+                    return float(res.get('points', 0.0))
+                except Exception:
+                    pass
+            # Simple heuristic fallback
+            s = (ans or '').lower()
+            if any(k in s for k in ['excellent', 'good', 'satisfied', 'great', 'helpful']):
+                return 1.0
+            if any(k in s for k in ['bad', 'poor', 'unsatisfied', 'terrible', 'unhelpful']):
+                return -1.0
+            return 0.0
+        else:
+            # ignore rating/unknown
+            return 0.0
+
+    for resp in responses:
+        ev_id = getattr(resp.student_evaluation, 'id', None)
+        if not ev_id:
+            continue
+        pts = _score_resp(resp)
+        if ev_id not in agg:
+            agg[ev_id] = {'sum': 0.0, 'n': 0}
+        agg[ev_id]['sum'] += pts
+        agg[ev_id]['n'] += 1
+
+    # Build points array (x = avg_points, y = proxy retention)
+    points = []
+    for ev_id, v in agg.items():
+        n = v['n']
+        if n <= 0:
+            continue
+        avg_points = v['sum'] / n
+        y_proxy = (avg_points + 1.0) / 2.0 * 100.0
+        points.append({'evaluation_id': ev_id, 'x': avg_points, 'y': y_proxy, 'n': n})
+
+    # Compute linear regression y = a + b x
+    if len(points) < 2:
+        return Response({
+            'points': points,
+            'regression': None,
+            'meta': {
+                'uses_proxy_retention': True,
+                'note': 'Not enough data points to fit regression.'
+            }
+        }, status=status.HTTP_200_OK)
+
+    xs = [p['x'] for p in points]
+    ys = [p['y'] for p in points]
+    n = float(len(points))
+    mean_x = sum(xs) / n
+    mean_y = sum(ys) / n
+
+    # variance and covariance
+    var_x = sum((x - mean_x) ** 2 for x in xs)
+    if var_x == 0:
+        # vertical line; slope undefined, return None
+        return Response({
+            'points': points,
+            'regression': None,
+            'meta': {
+                'uses_proxy_retention': True,
+                'note': 'Variance of X is zero; cannot fit linear regression.'
+            }
+        }, status=status.HTTP_200_OK)
+
+    cov_xy = sum((xs[i] - mean_x) * (ys[i] - mean_y) for i in range(len(xs)))
+    b = cov_xy / var_x
+    a = mean_y - b * mean_x
+
+    # R^2
+    ss_tot = sum((y - mean_y) ** 2 for y in ys)
+    ss_res = sum((ys[i] - (a + b * xs[i])) ** 2 for i in range(len(xs)))
+    r2 = 1.0 - (ss_res / ss_tot) if ss_tot != 0 else 0.0
+
+    formula = f"y = {a:.4f} + {b:.4f} x"
+
+    return Response({
+        'points': points,
+        'regression': {
+            'slope': b,
+            'intercept': a,
+            'r2': r2,
+            'formula': formula,
+        },
+        'meta': {
+            'uses_proxy_retention': True,
+        }
+    }, status=status.HTTP_200_OK)

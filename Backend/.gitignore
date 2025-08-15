@@ -29,3 +29,5 @@ media/
 # OS-specific
 .DS_Store
 Thumbs.db
+# Local AI distilbert
+/hrapp/local_model/60554cbd7781b09d87f1ececbea8c064b94e49a7f03fd88e8775bfe6cc3d9f88
