@@ -29,13 +29,26 @@ print("RAW ENV HF_API_KEY:", os.environ.get("HF_API_KEY"))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', cast=bool)
 
-ALLOWED_HOSTS = ['merged-front-back.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['api.phinma-fes.com','www.phinma-fes.com','srv948362.hstgr.cloud','phinma-fes.com', 'localhost', '127.0.0.1']
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://Phinma-fes.com",
-    "http://localhost:5174",  # Your frontend running on Vite
-    "http://127.0.0.1:5174",  # You can add this as well if applicable (alternative forms)
+    "https://phinma-fes.com",
+	"https://api.phinma-fes.com",
+	"https://www.phinma-fes.com",
+	"https://srv948362.hstgr.cloud",
+    "http://localhost:5173",  # Your frontend running on Vite
+    "http://127.0.0.1:5173",  # You can add this as well if applicable (alternative forms)
 ]
+
+CORS_ALLOWED_ORIGINS = [
+	"https://phinma-fes.com",
+	"https://www.phinma-fes.com",
+	"https://api.phinma-fes.com",
+	"http://localhost:5173",
+	"http://127.0.0.1:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -168,8 +181,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-
+STATIC_URL = '/static/'
+STATIC_ROOT =  '/sites/merged-front-back/Backend/staticfiles'
 # Media Settings (Where to store Files, such as (IMAGE))
 MEDIA_URL = '/media/'
 
