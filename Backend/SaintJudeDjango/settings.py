@@ -29,6 +29,7 @@ print("RAW ENV HF_API_KEY:", os.environ.get("HF_API_KEY"))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', cast=bool)
 
+
 ALLOWED_HOSTS = ['api.phinma-fes.com','www.phinma-fes.com','srv948362.hstgr.cloud','phinma-fes.com', 'localhost', '127.0.0.1']
 
 CSRF_TRUSTED_ORIGINS = [
@@ -46,7 +47,6 @@ CORS_ALLOWED_ORIGINS = [
 	"https://api.phinma-fes.com",
 	"http://localhost:5173",
 	"http://127.0.0.1:5173",
-]
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -123,7 +123,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'SaintJudeDjango.wsgi.application'
 
-#CORS
+# CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
 # Database
@@ -182,7 +182,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT =  '/sites/merged-front-back/Backend/staticfiles'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Media Settings (Where to store Files, such as (IMAGE))
 MEDIA_URL = '/media/'
 
