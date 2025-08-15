@@ -24,7 +24,7 @@ from django.shortcuts import get_object_or_404
 # from rest_framework.filter import Search
 import pandas as pd
 from datetime import datetime, timedelta, time
-from hrapp.models.evaluation_models import StudentEvaluationResponse, StudentEvaluationQuestion
+from hrapp.models.evaluation_models import StudentEvaluationResponse, StudentEvaluationQuestion, ScatterPlotAnalytics
 # Optional import of scoring helpers; safe import even if heavy model is present.
 try:
     from hrapp.utils.sentiment_analysis_test import score_mcq_answer, analyze_text_sentiment
@@ -1491,137 +1491,208 @@ class SectionViewSet(viewsets.ModelViewSet):
 
         return super().create(request, *args, **kwargs)
 
-# Retention vs Responses Regression API
+# Retention vs Responses Regression API (multi-series using ScatterPlotAnalytics)
+import logging
+
+logger = logging.getLogger('hrapp.analytics')
+
+
+def _linear_regression(points_xy):
+    if len(points_xy) < 2:
+        return None
+    xs = [p['x'] for p in points_xy]
+    ys = [p['y'] for p in points_xy]
+    n = float(len(points_xy))
+    mean_x = sum(xs) / n
+    mean_y = sum(ys) / n
+    var_x = sum((x - mean_x) ** 2 for x in xs)
+    if var_x == 0:
+        return None
+    cov_xy = sum((xs[i] - mean_x) * (ys[i] - mean_y) for i in range(len(xs)))
+    b = cov_xy / var_x
+    a = mean_y - b * mean_x
+    ss_tot = sum((y - mean_y) ** 2 for y in ys)
+    ss_res = sum((ys[i] - (a + b * xs[i])) ** 2 for i in range(len(xs)))
+    r2 = 1.0 - (ss_res / ss_tot) if ss_tot != 0 else 0.0
+    return {
+        'slope': b,
+        'intercept': a,
+        'r2': r2,
+        'formula': f"y = {a:.4f} + {b:.4f} x",
+    }
+
+
+def _score_response_for_group(resp):
+    q = resp.student_eval_question
+    qtype = (q.type or '').strip().upper() if q else ''
+    ans = resp.answer
+    mode = 'unknown'
+    pts = 0.0
+    if qtype == 'MCQ':
+        if callable(score_mcq_answer):
+            try:
+                pts, meta = score_mcq_answer(q, ans)
+                mode = f"mcq:{meta.get('mode')}"
+            except Exception as e:
+                mode = 'mcq:error'
+        else:
+            letter_map = {'A': 1.0, 'B': 0.5, 'C': 0.0, 'D': -0.5, 'E': -1.0}
+            if isinstance(ans, str) and ans.strip().upper() in letter_map:
+                pts = letter_map[ans.strip().upper()]
+                mode = 'mcq:letter_fallback'
+    elif qtype == 'TEXT':
+        if callable(analyze_text_sentiment):
+            try:
+                text_input = f"Question: {q.question}\nAnswer: {ans}" if q and q.question else str(ans)
+                res = analyze_text_sentiment(text_input) or {}
+                pts = float(res.get('points', 0.0))
+                mode = f"text:{res.get('label')}"
+            except Exception as e:
+                mode = 'text:error'
+        else:
+            s = (ans or '').lower()
+            if any(k in s for k in ['excellent', 'good', 'satisfied', 'great', 'helpful']):
+                pts = 1.0
+                mode = 'text:heuristic_pos'
+            elif any(k in s for k in ['bad', 'poor', 'unsatisfied', 'terrible', 'unhelpful']):
+                pts = -1.0
+                mode = 'text:heuristic_neg'
+            else:
+                pts = 0.0
+                mode = 'text:heuristic_neu'
+    return float(pts), mode
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def scatterplot_analytics_save(request):
+    """
+    Create a ScatterPlotAnalytics row with year, semester, retention_rate.
+    Body: {"year":"1st","semester":"1st","retention_rate": 72.5}
+    """
+    data = request.data if isinstance(request.data, dict) else {}
+    year = data.get('year')
+    semester = data.get('semester')
+    retention_rate = data.get('retention_rate')
+    if year not in dict(ScatterPlotAnalytics.YEAR_CHOICES):
+        return Response({"error": "Invalid year"}, status=status.HTTP_400_BAD_REQUEST)
+    if semester not in dict(ScatterPlotAnalytics.SEMESTER_CHOICES):
+        return Response({"error": "Invalid semester"}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        rr = float(retention_rate)
+    except Exception:
+        return Response({"error": "retention_rate must be a number"}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        obj = ScatterPlotAnalytics.objects.create(year=year, semester=semester, retention_rate=rr)
+    except Exception as e:
+        # If created_at column is missing (migration not applied), attempt to patch table then retry
+        msg = str(e)
+        if 'created_at' in msg or 'Unknown column' in msg or '1054' in msg:
+            from django.db import connection
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "ALTER TABLE hrapp_scatterplotanalytics ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
+                    )
+                obj = ScatterPlotAnalytics.objects.create(year=year, semester=semester, retention_rate=rr)
+            except Exception as e2:
+                return Response({"error": f"Failed to save retention entry: {e2}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            return Response({"error": f"Failed to save retention entry: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response({
+        "id": obj.id,
+        "year": obj.year,
+        "semester": obj.semester,
+        "retention_rate": obj.retention_rate,
+        "created_at": getattr(obj, 'created_at', None),
+    }, status=status.HTTP_201_CREATED)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def retention_regression(request):
     """
-    Returns scatter data and linear regression between student evaluation response points (independent variable)
-    and retention rate (dependent variable). Since no retention field is present in the DB, this endpoint computes
-    a proxy retention rate = ((avg_points + 1) / 2) * 100 where avg_points is the average points per response in an
-    evaluation (points in [-1,1]). When a real retention field becomes available, replace the proxy with actual values.
-
-    Response JSON example:
+    Build multi-series scatter using saved ScatterPlotAnalytics rows for Y (retention),
+    and average StudentEvaluation response points for X per (year_level, semester).
+    Returns:
     {
-      "points": [
-        {"evaluation_id": 12, "x": 0.35, "y": 67.5, "n": 20},
+      series: [
+        { label: "1st - 1st", key: {year:"1st", semester:"1st"}, points: [{x, y, t}], regression: {...} },
         ...
       ],
-      "regression": {"slope": b, "intercept": a, "r2": r2, "formula": "y = a + b x"},
-      "meta": {"uses_proxy_retention": true}
+      meta: { grouped_by: ["year","semester"], logging: true }
     }
     """
-    # Build per-evaluation aggregates
-    agg = {}
-    # Fetch all responses; optional filter by faculty/evaluation ids could be added later
-    responses = StudentEvaluationResponse.objects.all().select_related('student_eval_question', 'student_evaluation')
-
-    def _score_resp(resp):
-        q = resp.student_eval_question
-        qtype = (q.type or '').strip().upper() if q else ''
-        ans = resp.answer
-        # Prefer helper functions if available
-        if qtype == 'MCQ':
-            if callable(score_mcq_answer):
-                try:
-                    pts, _meta = score_mcq_answer(q, ans)
-                    return float(pts)
-                except Exception:
-                    pass
-            # Fallback simple letter mapping
-            letter_map = {'A': 1.0, 'B': 0.5, 'C': 0.0, 'D': -0.5, 'E': -1.0}
-            if isinstance(ans, str) and ans.strip().upper() in letter_map:
-                return letter_map[ans.strip().upper()]
-            return 0.0
-        elif qtype == 'TEXT':
-            if callable(analyze_text_sentiment):
-                try:
-                    text_input = f"Question: {q.question}\nAnswer: {ans}" if q and q.question else str(ans)
-                    res = analyze_text_sentiment(text_input) or {}
-                    return float(res.get('points', 0.0))
-                except Exception:
-                    pass
-            # Simple heuristic fallback
-            s = (ans or '').lower()
-            if any(k in s for k in ['excellent', 'good', 'satisfied', 'great', 'helpful']):
-                return 1.0
-            if any(k in s for k in ['bad', 'poor', 'unsatisfied', 'terrible', 'unhelpful']):
-                return -1.0
-            return 0.0
-        else:
-            # ignore rating/unknown
-            return 0.0
+    # Aggregate X by group (year_level, semester) from StudentEvaluationResponse
+    responses = StudentEvaluationResponse.objects.select_related(
+        'student_eval_question', 'student_evaluation__schedule__section', 'student_evaluation__schedule'
+    )
+    group_stats = {}  # (year, semester) -> {sum, n}
+    mode_counts = defaultdict(int)
 
     for resp in responses:
-        ev_id = getattr(resp.student_evaluation, 'id', None)
-        if not ev_id:
+        sched = getattr(resp.student_evaluation, 'schedule', None)
+        if not sched or not sched.section:
             continue
-        pts = _score_resp(resp)
-        if ev_id not in agg:
-            agg[ev_id] = {'sum': 0.0, 'n': 0}
-        agg[ev_id]['sum'] += pts
-        agg[ev_id]['n'] += 1
-
-    # Build points array (x = avg_points, y = proxy retention)
-    points = []
-    for ev_id, v in agg.items():
-        n = v['n']
-        if n <= 0:
+        # Map Schedule/Section to ScatterPlotAnalytics choice values
+        year_level = getattr(sched.section, 'year_level', None)  # e.g., '1','2','3','4'
+        if year_level not in ('1','2','3','4'):
             continue
-        avg_points = v['sum'] / n
-        y_proxy = (avg_points + 1.0) / 2.0 * 100.0
-        points.append({'evaluation_id': ev_id, 'x': avg_points, 'y': y_proxy, 'n': n})
+        year_key = { '1':'1st','2':'2nd','3':'3rd','4':'4th' }[year_level]
+        sem_sched = getattr(sched, 'semester', None)  # 'First','Second','Summer'
+        if sem_sched not in ('First','Second','Summer'):
+            continue
+        sem_key = {'First':'1st','Second':'2nd','Summer':'Summer'}[sem_sched]
 
-    # Compute linear regression y = a + b x
-    if len(points) < 2:
-        return Response({
-            'points': points,
-            'regression': None,
-            'meta': {
-                'uses_proxy_retention': True,
-                'note': 'Not enough data points to fit regression.'
-            }
-        }, status=status.HTTP_200_OK)
+        pts, mode = _score_response_for_group(resp)
+        mode_counts[mode] += 1
+        key = (year_key, sem_key)
+        if key not in group_stats:
+            group_stats[key] = {'sum': 0.0, 'n': 0}
+        group_stats[key]['sum'] += pts
+        group_stats[key]['n'] += 1
 
-    xs = [p['x'] for p in points]
-    ys = [p['y'] for p in points]
-    n = float(len(points))
-    mean_x = sum(xs) / n
-    mean_y = sum(ys) / n
+    # Log scoring distribution
+    try:
+        logger.info("Sentiment/MCQ scoring modes: %s", dict(mode_counts))
+    except Exception:
+        pass
 
-    # variance and covariance
-    var_x = sum((x - mean_x) ** 2 for x in xs)
-    if var_x == 0:
-        # vertical line; slope undefined, return None
-        return Response({
-            'points': points,
-            'regression': None,
-            'meta': {
-                'uses_proxy_retention': True,
-                'note': 'Variance of X is zero; cannot fit linear regression.'
-            }
-        }, status=status.HTTP_200_OK)
+    # Prepare series using saved ScatterPlotAnalytics entries
+    entries = ScatterPlotAnalytics.objects.all().order_by('created_at')
+    series_map = {}  # (year, semester) -> list of points
+    for e in entries:
+        key = (e.year, e.semester)
+        stats = group_stats.get(key, None)
+        if not stats or stats['n'] == 0:
+            # If we have no responses for this group, skip plotting X for now
+            continue
+        avg_x = stats['sum'] / stats['n']
+        try:
+            t_iso = (e.created_at or timezone.now()).isoformat()
+        except Exception:
+            t_iso = str(timezone.now())
+        pt = {'x': avg_x, 'y': float(e.retention_rate or 0.0), 't': t_iso}
+        if key not in series_map:
+            series_map[key] = []
+        series_map[key].append(pt)
 
-    cov_xy = sum((xs[i] - mean_x) * (ys[i] - mean_y) for i in range(len(xs)))
-    b = cov_xy / var_x
-    a = mean_y - b * mean_x
-
-    # R^2
-    ss_tot = sum((y - mean_y) ** 2 for y in ys)
-    ss_res = sum((ys[i] - (a + b * xs[i])) ** 2 for i in range(len(xs)))
-    r2 = 1.0 - (ss_res / ss_tot) if ss_tot != 0 else 0.0
-
-    formula = f"y = {a:.4f} + {b:.4f} x"
+    # Build response structure
+    series = []
+    for (y, s), pts in series_map.items():
+        reg = _linear_regression(pts) if len(pts) >= 2 else None
+        series.append({
+            'label': f"{y} - {s}",
+            'key': {'year': y, 'semester': s},
+            'points': pts,
+            'regression': reg,
+        })
 
     return Response({
-        'points': points,
-        'regression': {
-            'slope': b,
-            'intercept': a,
-            'r2': r2,
-            'formula': formula,
-        },
+        'series': series,
         'meta': {
-            'uses_proxy_retention': True,
+            'grouped_by': ['year', 'semester'],
+            'uses_scatterplot_analytics': True,
+            'scoring_logged': True,
         }
     }, status=status.HTTP_200_OK)

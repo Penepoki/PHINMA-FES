@@ -46,6 +46,7 @@ urlpatterns = [
     path('subject/', include(subject_router.urls)),
     path('room/', include(room_router.urls)),
     path('analytics/retention-regression/', retention_regression, name='retention-regression'),
+    path('analytics/scatterplot-analytics/', scatterplot_analytics_save, name='scatterplot-analytics-save'),
     path('program/', include(program_router.urls)),
     path('program-professor/', include(program_professor_router.urls)),
     path('schedule/', include(schedule_router.urls)),

@@ -166,6 +166,10 @@ const fetchEvaluationProfessorMapByFaculty = async (facultyId: string): Promise<
 };
 
 function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
+	const [showRetentionDialog, setShowRetentionDialog] = useState(false);
+	const [formYear, setFormYear] = useState<'1st'|'2nd'|'3rd'|'4th'>('1st');
+	const [formSemester, setFormSemester] = useState<'1st'|'2nd'|'Summer'>('1st');
+	const [formRetention, setFormRetention] = useState<string>("");
 	const [copusData, setCopusData] = useState<any>(null);
 	const [copusLoading, setCopusLoading] = useState(false);
 	const [copusError, setCopusError] = useState<string | null>(null);
@@ -176,8 +180,8 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 	const [maxActivityPoints, setMaxActivityPoints] = useState(0);
 	const [sankeyData, setSankeyData] = useState<any>(null);
 	// Retention vs Responses regression state
-	const [retentionPoints, setRetentionPoints] = useState<{x:number;y:number;label?:string}[] | null>(null);
-	const [regression, setRegression] = useState<{slope:number;intercept:number;r2:number;formula:string} | null>(null);
+	const [retentionPoints, setRetentionPoints] = useState<any[] | null>(null);
+	const [regression, setRegression] = useState<any | null>(null);
 	const [retentionLoading, setRetentionLoading] = useState(false);
 	const [retentionError, setRetentionError] = useState<string | null>(null);
 
@@ -429,17 +433,17 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 		fetchSFF();
 	}, []);
 
-	// Fetch Retention vs Responses regression
+	// Fetch Retention vs Responses regression (multi-series)
 	useEffect(() => {
 		const run = async () => {
 			setRetentionLoading(true);
 			setRetentionError(null);
 			try {
 				const res = await api.get('/analytics/retention-regression/');
-				const pts = Array.isArray(res.data?.points) ? res.data.points : [];
-				const mapped = pts.map((p: any) => ({ x: Number(p.x), y: Number(p.y) }));
-				setRetentionPoints(mapped);
-				setRegression(res.data?.regression ?? null);
+				const series = Array.isArray(res.data?.series) ? res.data.series : [];
+				// Flatten points for quick checks but keep full series for chart build
+				setRetentionPoints(series);
+				setRegression(null); // regression handled per-series now
 			} catch (e: any) {
 				console.error('[DEBUG] Retention regression error:', e?.message || e);
 				setRetentionError(e?.message || 'Failed to load regression.');
@@ -450,38 +454,46 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 		run();
 	}, []);
 
+	const colorPool = [
+		'rgba(59,130,246,0.8)', // blue
+		'rgba(34,197,94,0.8)',  // green
+		'rgba(234,179,8,0.8)',  // amber
+		'rgba(244,63,94,0.8)',  // rose
+		'rgba(168,85,247,0.8)', // purple
+		'rgba(20,184,166,0.8)', // teal
+	];
+
 	const scatterData = useMemo(() => {
-		if (!retentionPoints) return null;
-		const datasets: any[] = [
-			{
-				label: 'Retention vs Responses',
-				data: retentionPoints,
-				backgroundColor: 'rgba(59,130,246,0.7)',
+		if (!Array.isArray(retentionPoints)) return null;
+		const datasets: any[] = [];
+		(retentionPoints as any[]).forEach((series: any, idx: number) => {
+			const color = colorPool[idx % colorPool.length];
+			datasets.push({
+				label: series?.label || `Series ${idx+1}`,
+				data: (series?.points || []).map((p: any) => ({ x: Number(p.x), y: Number(p.y) })),
+				backgroundColor: color,
 				pointRadius: 4,
 				pointHoverRadius: 6,
-			}
-		];
-		if (regression && retentionPoints.length) {
-			const xs = retentionPoints.map((p) => p.x);
-			const minX = Math.min(...xs);
-			const maxX = Math.max(...xs);
-			const a = regression.intercept;
-			const b = regression.slope;
-			datasets.push({
-				label: 'Regression Line',
-				data: [
-					{ x: minX, y: a + b * minX },
-					{ x: maxX, y: a + b * maxX },
-				],
-				showLine: true,
-				borderColor: 'rgba(34,197,94,1)',
-				backgroundColor: 'rgba(0,0,0,0)',
-				pointRadius: 0,
-				borderWidth: 2,
 			});
-		}
+			if (series?.regression && (series?.points || []).length) {
+				const xs = series.points.map((p: any) => Number(p.x));
+				const minX = Math.min(...xs);
+				const maxX = Math.max(...xs);
+				const a = series.regression.intercept;
+				const b = series.regression.slope;
+				datasets.push({
+					label: `${series.label} — Regression`,
+					data: [ { x: minX, y: a + b * minX }, { x: maxX, y: a + b * maxX } ],
+					showLine: true,
+					borderColor: color.replace('0.8', '1'),
+					backgroundColor: 'rgba(0,0,0,0)',
+					pointRadius: 0,
+					borderWidth: 2,
+				});
+			}
+		});
 		return { datasets };
-	}, [retentionPoints, regression]);
+	}, [retentionPoints]);
 
 	const scatterOptions: any = useMemo(() => ({
 		responsive: true,
@@ -489,7 +501,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 			legend: { labels: { color: '#fff' } },
 			title: {
 				display: true,
-				text: regression ? `Retention vs Responses — ${regression.formula} (R²=${regression.r2?.toFixed(3)})` : 'Retention vs Responses',
+				text: 'Retention vs Responses — per Year & Semester',
 				color: '#fff',
 			},
 			tooltip: {
@@ -510,7 +522,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 				grid: { color: 'rgba(255,255,255,0.1)' },
 			},
 		},
-	}), [regression]);
+	}), []);
 
 	const sankeyOptions = {
 		responsive: true,
@@ -597,9 +609,8 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 				Filter:
 				<button className="btn btn-primary text-white">College</button>
 				<button className="btn btn-primary text-white">Semester</button>
-				<button className="btn btn-primary text-white">
-					School Year
-				</button>
+				<button className="btn btn-primary text-white">School Year</button>
+				<button className="btn btn-secondary text-white" onClick={() => setShowRetentionDialog(true)}>Add Retention</button>
 			</div>
 			<div className="mt-6 flex h-full w-full flex-col gap-6 overflow-y-auto px-6">
 				<div className="stats shrink-0 bg-[#1c402a]/20 p-0 shadow-2xl">
@@ -765,8 +776,64 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   				)}
   			</div>
   		</div>
-  	</div>
-  </div>
+   		</div>
+			{/* Retention Input Dialog */}
+			{showRetentionDialog && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+					<div className="w-full max-w-md rounded-lg bg-[#1f2937] p-6 text-white shadow-2xl">
+						<h3 className="mb-4 text-xl font-semibold">Add Retention Entry</h3>
+						<div className="mb-3">
+							<label className="mb-1 block text-sm text-gray-300">Year</label>
+							<select className="select select-bordered w-full"
+								value={formYear}
+								onChange={(e) => setFormYear(e.target.value as any)}>
+								<option value="1st">1st Year</option>
+								<option value="2nd">2nd Year</option>
+								<option value="3rd">3rd Year</option>
+								<option value="4th">4th Year</option>
+							</select>
+						</div>
+						<div className="mb-3">
+							<label className="mb-1 block text-sm text-gray-300">Semester</label>
+							<select className="select select-bordered w-full"
+								value={formSemester}
+								onChange={(e) => setFormSemester(e.target.value as any)}>
+								<option value="1st">1st Semester</option>
+								<option value="2nd">2nd Semester</option>
+								<option value="Summer">Summer</option>
+							</select>
+						</div>
+						<div className="mb-4">
+							<label className="mb-1 block text-sm text-gray-300">Retention Rate (%)</label>
+							<input
+								type="number"
+								className="input input-bordered w-full"
+								placeholder="e.g., 75"
+								value={formRetention}
+								onChange={(e) => setFormRetention(e.target.value)}
+							/>
+						</div>
+						<div className="flex justify-end gap-2">
+							<button className="btn" onClick={() => setShowRetentionDialog(false)}>Cancel</button>
+							<button className="btn btn-primary" onClick={async () => {
+								try {
+									const payload = { year: formYear, semester: formSemester, retention_rate: Number(formRetention) };
+									await api.post('/analytics/scatterplot-analytics/', payload);
+									// Reload series
+									const res = await api.get('/analytics/retention-regression/');
+									const series = Array.isArray(res.data?.series) ? res.data.series : [];
+									setRetentionPoints(series);
+									setShowRetentionDialog(false);
+									setFormRetention("");
+								} catch (e: any) {
+									alert(e?.response?.data?.error || e?.message || 'Failed to save');
+								}
+							}}>Save</button>
+						</div>
+					</div>
+				</div>
+			)}
+		</div>
 	);
 }
 
