@@ -185,6 +185,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 	const [retentionLoading, setRetentionLoading] = useState(false);
 	const [retentionError, setRetentionError] = useState<string | null>(null);
 
+	// Sentiment Analysis Summary state
+	const [sentimentSummary, setSentimentSummary] = useState<any>(null);
+	const [sentimentLoading, setSentimentLoading] = useState(false);
+	const [sentimentError, setSentimentError] = useState<string | null>(null);
+	const [sentimentBySemester, setSentimentBySemester] = useState<any>(null);
+	const [sentimentByYear, setSentimentByYear] = useState<any>(null);
+
 	const STUDENT_CODE_MAP: Record<string, string> = {
 		'Listening': 'L',
 		'Individual Thinking': 'Ind',
@@ -454,6 +461,48 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 		run();
 	}, []);
 
+	// Fetch Sentiment Analysis Summary
+	useEffect(() => {
+		const fetchSentimentSummary = async () => {
+			setSentimentLoading(true);
+			setSentimentError(null);
+			try {
+				const token = localStorage.getItem("token");
+				const faculty_id = localStorage.getItem("faculty_id");
+				const isSuperuser = localStorage.getItem("is_superuser") === "true";
+
+				let params: any = {};
+				if (!isSuperuser && faculty_id) {
+					params.faculty = faculty_id;
+				}
+
+				console.log("[DEBUG] Fetching sentiment summary with params:", params);
+
+				// Fetch overall sentiment summary
+				const summaryRes = await api.get('/studentevaluationresponse/studentevaluationresponse/sentiment-summary', { params });
+				setSentimentSummary(summaryRes.data);
+				console.log("[DEBUG] Sentiment summary:", summaryRes.data);
+
+				// Fetch sentiment summary by semester
+				const semesterRes = await api.get('/studentevaluationresponse/studentevaluationresponse/sentiment-summary-by-semester', { params });
+				setSentimentBySemester(semesterRes.data);
+				console.log("[DEBUG] Sentiment by semester:", semesterRes.data);
+
+				// Fetch sentiment summary by year
+				const yearRes = await api.get('/studentevaluationresponse/studentevaluationresponse/sentiment-summary-by-year', { params });
+				setSentimentByYear(yearRes.data);
+				console.log("[DEBUG] Sentiment by year:", yearRes.data);
+
+			} catch (e: any) {
+				console.error('[DEBUG] Sentiment summary error:', e?.message || e);
+				setSentimentError(e?.message || 'Failed to load sentiment summary.');
+			} finally {
+				setSentimentLoading(false);
+			}
+		};
+		fetchSentimentSummary();
+	}, []);
+
 	const colorPool = [
 		'rgba(59,130,246,0.8)', // blue
 		'rgba(34,197,94,0.8)',  // green
@@ -679,6 +728,45 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 						</div>
 						<div className="stat-value">{maxActivityPoints}</div>
 					</div>
+
+					<div className="stat">
+						<div className="stat-figure text-gray-400">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								className="inline-block h-8 w-8 stroke-current"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+								></path>
+							</svg>
+						</div>
+						<div className="stat-title text-gray-400">
+							Average Sentiment Score
+						</div>
+						<div className="stat-value">
+							{sentimentLoading ? (
+								<span className="loading loading-spinner loading-sm"></span>
+							) : sentimentError ? (
+								<span className="text-red-400">Error</span>
+							) : sentimentSummary ? (
+								<span className={`${
+									sentimentSummary.average_sentiment_score > 0 ? 'text-green-400' : 
+									sentimentSummary.average_sentiment_score < 0 ? 'text-red-400' : 
+									'text-yellow-400'
+								}`}>
+									{sentimentSummary.average_sentiment_score > 0 ? '+' : ''}{sentimentSummary.average_sentiment_score}
+								</span>
+							) : '—'}
+						</div>
+						<div className="stat-desc text-gray-500">
+							{sentimentSummary && `${sentimentSummary.total_responses} responses analyzed`}
+						</div>
+					</div>
 				</div>
 				<div className="flex flex-row items-center justify-center gap-4 border-t border-gray-600 pt-4 text-white">
 					Observation Summary:
@@ -776,6 +864,141 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   				)}
   			</div>
   		</div>
+
+		{/* Sentiment Analysis Summary Section */}
+		<div className="mt-6 flex w-full flex-col gap-6">
+			<div className="flex flex-row items-center justify-center gap-4 border-t border-gray-600 pt-4 text-white">
+				<h3 className="text-xl font-semibold">Student Evaluation Sentiment Analysis</h3>
+			</div>
+
+			{sentimentLoading ? (
+				<div className="flex justify-center items-center p-8">
+					<span className="loading loading-spinner loading-lg text-white"></span>
+					<span className="ml-2 text-white">Loading sentiment analysis...</span>
+				</div>
+			) : sentimentError ? (
+				<div className="alert alert-error">
+					<span>Error loading sentiment data: {sentimentError}</span>
+				</div>
+			) : (
+				<div className="flex flex-col gap-6">
+					{/* Overall Sentiment Distribution */}
+					{sentimentSummary && (
+						<div className="rounded-lg bg-black/20 p-6 shadow-2xl backdrop-blur-lg">
+							<h4 className="mb-4 text-lg font-semibold text-white">Overall Sentiment Distribution</h4>
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+								<div className="stat bg-green-900/20 rounded-lg">
+									<div className="stat-title text-green-300">Positive</div>
+									<div className="stat-value text-green-400">{sentimentSummary.sentiment_distribution?.POSITIVE || 0}</div>
+									<div className="stat-desc text-green-200">
+										{sentimentSummary.total_responses > 0 ? 
+											Math.round((sentimentSummary.sentiment_distribution?.POSITIVE || 0) / sentimentSummary.total_responses * 100) : 0}%
+									</div>
+								</div>
+								<div className="stat bg-yellow-900/20 rounded-lg">
+									<div className="stat-title text-yellow-300">Neutral</div>
+									<div className="stat-value text-yellow-400">{sentimentSummary.sentiment_distribution?.NEUTRAL || 0}</div>
+									<div className="stat-desc text-yellow-200">
+										{sentimentSummary.total_responses > 0 ? 
+											Math.round((sentimentSummary.sentiment_distribution?.NEUTRAL || 0) / sentimentSummary.total_responses * 100) : 0}%
+									</div>
+								</div>
+								<div className="stat bg-red-900/20 rounded-lg">
+									<div className="stat-title text-red-300">Negative</div>
+									<div className="stat-value text-red-400">{sentimentSummary.sentiment_distribution?.NEGATIVE || 0}</div>
+									<div className="stat-desc text-red-200">
+										{sentimentSummary.total_responses > 0 ? 
+											Math.round((sentimentSummary.sentiment_distribution?.NEGATIVE || 0) / sentimentSummary.total_responses * 100) : 0}%
+									</div>
+								</div>
+							</div>
+							<div className="mt-4 text-sm text-gray-300">
+								<p>Question Types: MCQ ({sentimentSummary.question_type_breakdown?.mcq || 0}), 
+								Text ({sentimentSummary.question_type_breakdown?.text || 0}), 
+								Rating ({sentimentSummary.question_type_breakdown?.rating || 0})</p>
+							</div>
+						</div>
+					)}
+
+					{/* Sentiment by Semester and Year */}
+					<div className="flex flex-col lg:flex-row gap-6">
+						{/* By Semester */}
+						{sentimentBySemester && (
+							<div className="flex-1 rounded-lg bg-black/20 p-6 shadow-2xl backdrop-blur-lg">
+								<h4 className="mb-4 text-lg font-semibold text-white">Sentiment by Semester</h4>
+								<div className="overflow-x-auto">
+									<table className="table w-full text-white">
+										<thead>
+											<tr className="border-gray-600">
+												<th className="text-gray-300">Semester</th>
+												<th className="text-gray-300">Avg Score</th>
+												<th className="text-gray-300">Responses</th>
+												<th className="text-gray-300">Positive</th>
+												<th className="text-gray-300">Negative</th>
+											</tr>
+										</thead>
+										<tbody>
+											{Object.entries(sentimentBySemester.semester_summary || {}).map(([semester, data]: [string, any]) => (
+												<tr key={semester} className="border-gray-600">
+													<td className="font-medium">{semester}</td>
+													<td className={`font-bold ${
+														data.average_sentiment_score > 0 ? 'text-green-400' : 
+														data.average_sentiment_score < 0 ? 'text-red-400' : 
+														'text-yellow-400'
+													}`}>
+														{data.average_sentiment_score > 0 ? '+' : ''}{data.average_sentiment_score}
+													</td>
+													<td>{data.total_responses}</td>
+													<td className="text-green-400">{data.sentiment_distribution?.POSITIVE || 0}</td>
+													<td className="text-red-400">{data.sentiment_distribution?.NEGATIVE || 0}</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						)}
+
+						{/* By Year */}
+						{sentimentByYear && (
+							<div className="flex-1 rounded-lg bg-black/20 p-6 shadow-2xl backdrop-blur-lg">
+								<h4 className="mb-4 text-lg font-semibold text-white">Sentiment by Year</h4>
+								<div className="overflow-x-auto">
+									<table className="table w-full text-white">
+										<thead>
+											<tr className="border-gray-600">
+												<th className="text-gray-300">Year</th>
+												<th className="text-gray-300">Avg Score</th>
+												<th className="text-gray-300">Responses</th>
+												<th className="text-gray-300">Positive</th>
+												<th className="text-gray-300">Negative</th>
+											</tr>
+										</thead>
+										<tbody>
+											{Object.entries(sentimentByYear.year_summary || {}).map(([year, data]: [string, any]) => (
+												<tr key={year} className="border-gray-600">
+													<td className="font-medium">{year}</td>
+													<td className={`font-bold ${
+														data.average_sentiment_score > 0 ? 'text-green-400' : 
+														data.average_sentiment_score < 0 ? 'text-red-400' : 
+														'text-yellow-400'
+													}`}>
+														{data.average_sentiment_score > 0 ? '+' : ''}{data.average_sentiment_score}
+													</td>
+													<td>{data.total_responses}</td>
+													<td className="text-green-400">{data.sentiment_distribution?.POSITIVE || 0}</td>
+													<td className="text-red-400">{data.sentiment_distribution?.NEGATIVE || 0}</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						)}
+					</div>
+				</div>
+			)}
+		</div>
    		</div>
 			{/* Retention Input Dialog */}
 			{showRetentionDialog && (

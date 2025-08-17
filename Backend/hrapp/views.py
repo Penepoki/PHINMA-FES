@@ -756,19 +756,62 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Create responses
+            # Create responses with sentiment analysis
             response_objects = []
             for response_data in responses:
+                question_id = response_data.get('question_id')
+                answer = response_data.get('answer')
+
+                # Get the question to determine type and context
+                try:
+                    question = StudentEvaluationQuestion.objects.get(id=question_id)
+                except StudentEvaluationQuestion.DoesNotExist:
+                    question = None
+
+                # Perform sentiment analysis based on question type
+                sentiment_score = None
+                if question and answer:
+                    question_type = question.type.upper() if question.type else ""
+
+                    if question_type == "MCQ":
+                        # Score MCQ answer
+                        points, meta = score_mcq_answer(question, answer)
+                        sentiment_score = {
+                            "type": "mcq",
+                            "points": points,
+                            "meta": meta,
+                            "label": "POSITIVE" if points > 0 else "NEGATIVE" if points < 0 else "NEUTRAL"
+                        }
+                    elif question_type == "TEXT":
+                        # Analyze text sentiment with question context
+                        question_text = question.question if question.question else ""
+                        text_input = f"Question: {question_text}\nAnswer: {answer}" if question_text else str(answer)
+                        sentiment_result = analyze_text_sentiment(text_input)
+                        sentiment_score = {
+                            "type": "text",
+                            "label": sentiment_result.get("label"),
+                            "score": sentiment_result.get("score"),
+                            "points": sentiment_result.get("points")
+                        }
+                    else:
+                        # For RATING or other types, set neutral
+                        sentiment_score = {
+                            "type": question_type.lower(),
+                            "label": "NEUTRAL",
+                            "score": 0.0,
+                            "points": 0
+                        }
+
+                # Create and save response with sentiment score
                 response_obj = StudentEvaluationResponse(
                     student_evaluation_id=student_evaluation_id,
-                    student_eval_question_id=response_data.get('question_id'),
+                    student_eval_question_id=question_id,
                     user=user,
-                    answer=response_data.get('answer')
+                    answer=answer,
+                    sentiment_score=sentiment_score
                 )
+                response_obj.save()
                 response_objects.append(response_obj)
-
-            # Bulk create responses
-            StudentEvaluationResponse.objects.bulk_create(response_objects)
 
             return Response(
                 {'message': 'Responses submitted successfully'},
@@ -801,7 +844,7 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': 'program is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         unique_pairs = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__program_id=program_id
         ).values(
@@ -818,7 +861,7 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         professor_id = request.query_params.get('professor')
         if not professor_id:
             return Response({'error': 'professor is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         unique_pairs = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__instructor_id=professor_id
         ).values(
@@ -835,7 +878,7 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         faculty_id = request.query_params.get('faculty')
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         unique_pairs = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__program__faculty_id=faculty_id
         ).values(
@@ -931,6 +974,241 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
             student_evaluation__schedule__program__faculty_id=faculty_id)
         serializer = self.get_serializer(responses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='sentiment-summary')
+    def sentiment_summary(self, request):
+        """RETURNS SENTIMENT SCORE SUMMARY WITH FILTERING OPTIONS
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/sentiment-summary?semester=<semester>&year=<year>&program=<program_id>&faculty=<faculty_id>&professor=<professor_id>"""
+
+        # Get filter parameters
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
+        program_id = request.query_params.get('program')
+        faculty_id = request.query_params.get('faculty')
+        professor_id = request.query_params.get('professor')
+
+        # Start with all responses that have sentiment scores
+        responses = StudentEvaluationResponse.objects.filter(
+            sentiment_score__isnull=False
+        ).select_related(
+            'student_evaluation__schedule__section',
+            'student_evaluation__schedule__program',
+            'student_evaluation__schedule__instructor',
+            'student_eval_question'
+        )
+
+        # Apply filters
+        if semester:
+            responses = responses.filter(student_evaluation__schedule__semester=semester)
+        if year:
+            try:
+                responses = responses.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
+        if program_id:
+            responses = responses.filter(student_evaluation__schedule__program_id=program_id)
+        if faculty_id:
+            responses = responses.filter(student_evaluation__schedule__program__faculty_id=faculty_id)
+        if professor_id:
+            responses = responses.filter(student_evaluation__schedule__instructor_id=professor_id)
+
+        # Calculate summary statistics
+        total_responses = responses.count()
+        if total_responses == 0:
+            return Response({
+                'total_responses': 0,
+                'average_sentiment_score': 0,
+                'sentiment_distribution': {'POSITIVE': 0, 'NEGATIVE': 0, 'NEUTRAL': 0},
+                'question_type_breakdown': {},
+                'filters_applied': {
+                    'semester': semester,
+                    'year': year,
+                    'program': program_id,
+                    'faculty': faculty_id,
+                    'professor': professor_id
+                }
+            }, status=status.HTTP_200_OK)
+
+        # Aggregate sentiment data
+        sentiment_scores = []
+        sentiment_labels = {'POSITIVE': 0, 'NEGATIVE': 0, 'NEUTRAL': 0}
+        question_types = {'mcq': 0, 'text': 0, 'rating': 0}
+
+        for response in responses:
+            if response.sentiment_score and isinstance(response.sentiment_score, dict):
+                points = response.sentiment_score.get('points', 0)
+                label = response.sentiment_score.get('label', 'NEUTRAL')
+                q_type = response.sentiment_score.get('type', 'unknown')
+
+                sentiment_scores.append(float(points))
+                sentiment_labels[label] = sentiment_labels.get(label, 0) + 1
+                question_types[q_type] = question_types.get(q_type, 0) + 1
+
+        average_score = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0
+
+        return Response({
+            'total_responses': total_responses,
+            'average_sentiment_score': round(average_score, 3),
+            'sentiment_distribution': sentiment_labels,
+            'question_type_breakdown': question_types,
+            'filters_applied': {
+                'semester': semester,
+                'year': year,
+                'program': program_id,
+                'faculty': faculty_id,
+                'professor': professor_id
+            }
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='sentiment-summary-by-semester')
+    def sentiment_summary_by_semester(self, request):
+        """RETURNS SENTIMENT SCORE SUMMARY GROUPED BY SEMESTER
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/sentiment-summary-by-semester?year=<year>&program=<program_id>&faculty=<faculty_id>&professor=<professor_id>"""
+
+        # Get filter parameters (excluding semester since we're grouping by it)
+        year = request.query_params.get('year')
+        program_id = request.query_params.get('program')
+        faculty_id = request.query_params.get('faculty')
+        professor_id = request.query_params.get('professor')
+
+        # Start with all responses that have sentiment scores
+        responses = StudentEvaluationResponse.objects.filter(
+            sentiment_score__isnull=False
+        ).select_related(
+            'student_evaluation__schedule__section',
+            'student_evaluation__schedule__program',
+            'student_evaluation__schedule__instructor'
+        )
+
+        # Apply filters
+        if year:
+            try:
+                responses = responses.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
+        if program_id:
+            responses = responses.filter(student_evaluation__schedule__program_id=program_id)
+        if faculty_id:
+            responses = responses.filter(student_evaluation__schedule__program__faculty_id=faculty_id)
+        if professor_id:
+            responses = responses.filter(student_evaluation__schedule__instructor_id=professor_id)
+
+        # Group by semester
+        semester_data = {}
+        for response in responses:
+            semester = response.student_evaluation.schedule.semester if response.student_evaluation.schedule else 'Unknown'
+
+            if semester not in semester_data:
+                semester_data[semester] = {
+                    'responses': [],
+                    'sentiment_labels': {'POSITIVE': 0, 'NEGATIVE': 0, 'NEUTRAL': 0},
+                    'question_types': {'mcq': 0, 'text': 0, 'rating': 0}
+                }
+
+            if response.sentiment_score and isinstance(response.sentiment_score, dict):
+                points = response.sentiment_score.get('points', 0)
+                label = response.sentiment_score.get('label', 'NEUTRAL')
+                q_type = response.sentiment_score.get('type', 'unknown')
+
+                semester_data[semester]['responses'].append(float(points))
+                semester_data[semester]['sentiment_labels'][label] += 1
+                semester_data[semester]['question_types'][q_type] = semester_data[semester]['question_types'].get(q_type, 0) + 1
+
+        # Calculate averages for each semester
+        summary = {}
+        for semester, data in semester_data.items():
+            scores = data['responses']
+            avg_score = sum(scores) / len(scores) if scores else 0
+            summary[semester] = {
+                'total_responses': len(scores),
+                'average_sentiment_score': round(avg_score, 3),
+                'sentiment_distribution': data['sentiment_labels'],
+                'question_type_breakdown': data['question_types']
+            }
+
+        return Response({
+            'semester_summary': summary,
+            'filters_applied': {
+                'year': year,
+                'program': program_id,
+                'faculty': faculty_id,
+                'professor': professor_id
+            }
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='sentiment-summary-by-year')
+    def sentiment_summary_by_year(self, request):
+        """RETURNS SENTIMENT SCORE SUMMARY GROUPED BY YEAR
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/sentiment-summary-by-year?semester=<semester>&program=<program_id>&faculty=<faculty_id>&professor=<professor_id>"""
+
+        # Get filter parameters (excluding year since we're grouping by it)
+        semester = request.query_params.get('semester')
+        program_id = request.query_params.get('program')
+        faculty_id = request.query_params.get('faculty')
+        professor_id = request.query_params.get('professor')
+
+        # Start with all responses that have sentiment scores
+        responses = StudentEvaluationResponse.objects.filter(
+            sentiment_score__isnull=False
+        ).select_related(
+            'student_evaluation__schedule__section',
+            'student_evaluation__schedule__program',
+            'student_evaluation__schedule__instructor'
+        )
+
+        # Apply filters
+        if semester:
+            responses = responses.filter(student_evaluation__schedule__semester=semester)
+        if program_id:
+            responses = responses.filter(student_evaluation__schedule__program_id=program_id)
+        if faculty_id:
+            responses = responses.filter(student_evaluation__schedule__program__faculty_id=faculty_id)
+        if professor_id:
+            responses = responses.filter(student_evaluation__schedule__instructor_id=professor_id)
+
+        # Group by year
+        year_data = {}
+        for response in responses:
+            year = response.student_evaluation.schedule.year.year if response.student_evaluation.schedule and response.student_evaluation.schedule.year else 'Unknown'
+
+            if year not in year_data:
+                year_data[year] = {
+                    'responses': [],
+                    'sentiment_labels': {'POSITIVE': 0, 'NEGATIVE': 0, 'NEUTRAL': 0},
+                    'question_types': {'mcq': 0, 'text': 0, 'rating': 0}
+                }
+
+            if response.sentiment_score and isinstance(response.sentiment_score, dict):
+                points = response.sentiment_score.get('points', 0)
+                label = response.sentiment_score.get('label', 'NEUTRAL')
+                q_type = response.sentiment_score.get('type', 'unknown')
+
+                year_data[year]['responses'].append(float(points))
+                year_data[year]['sentiment_labels'][label] += 1
+                year_data[year]['question_types'][q_type] = year_data[year]['question_types'].get(q_type, 0) + 1
+
+        # Calculate averages for each year
+        summary = {}
+        for year, data in year_data.items():
+            scores = data['responses']
+            avg_score = sum(scores) / len(scores) if scores else 0
+            summary[year] = {
+                'total_responses': len(scores),
+                'average_sentiment_score': round(avg_score, 3),
+                'sentiment_distribution': data['sentiment_labels'],
+                'question_type_breakdown': data['question_types']
+            }
+
+        return Response({
+            'year_summary': summary,
+            'filters_applied': {
+                'semester': semester,
+                'program': program_id,
+                'faculty': faculty_id,
+                'professor': professor_id
+            }
+        }, status=status.HTTP_200_OK)
+
 ### END OF STUDENTEVALUATION VIEW ###
 """-------------------------------------------------------------"""
 
@@ -1523,11 +1801,31 @@ def _linear_regression(points_xy):
 
 
 def _score_response_for_group(resp):
+    """
+    Score a response for retention regression analysis.
+    First tries to use stored sentiment_score, falls back to real-time analysis if needed.
+    """
     q = resp.student_eval_question
     qtype = (q.type or '').strip().upper() if q else ''
     ans = resp.answer
     mode = 'unknown'
     pts = 0.0
+
+    # First, try to use stored sentiment score if available
+    if hasattr(resp, 'sentiment_score') and resp.sentiment_score:
+        try:
+            sentiment_data = resp.sentiment_score
+            if isinstance(sentiment_data, dict):
+                pts = float(sentiment_data.get('points', 0.0))
+                label = sentiment_data.get('label', 'UNKNOWN')
+                score_type = sentiment_data.get('type', qtype.lower())
+                mode = f"{score_type}:stored_{label.lower()}"
+                return float(pts), mode
+        except Exception as e:
+            # If stored sentiment score is corrupted, fall back to real-time analysis
+            pass
+
+    # Fallback to real-time analysis if no stored sentiment score
     if qtype == 'MCQ':
         if callable(score_mcq_answer):
             try:
