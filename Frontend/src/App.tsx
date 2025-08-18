@@ -16,6 +16,8 @@ function App() {
 					path="/Dashboard/student"
 					element={<Dashboard role="Student" />}
 				/>
+				<Route path="/Dashboard/professor"
+					   element={<Dashboard role="Professor" />} />"
 			</Routes>
 		</Router>
 	);
