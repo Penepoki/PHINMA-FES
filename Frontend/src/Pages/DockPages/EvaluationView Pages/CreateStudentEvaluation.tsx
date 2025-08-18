@@ -3,6 +3,7 @@ import api from "../../../utils/api";
 import CreateStudentQuestion, { QuestionData, mapTypeToBackend, mapTypeToFrontend } from "../../../Components/Evaluation Components/CreateStudentQuestion";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx"
 
 interface CreateStudentEvalProps {
   setActiveView: (view: string) => void;
@@ -275,15 +276,18 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
   return (
     <div className="custom-container gap-y-6">
-      <div className="breadcrumbs">
-        <ul>
-          <li><a onClick={() => setActiveView("home")}>Home</a></li>
-          <li><a onClick={() => setActiveView("evaluation")}>Evaluation</a></li>
-          <li>Create Student Evaluations</li>
-        </ul>
-      </div>
+      <BreadAndLogout
+        setActiveView={setActiveView}
+        breadcrumbs={[
+          { label: "Home", view: "home" },
+          { label: "Profile View" },
+        ]}
+      />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Create Student Evaluation</h2>
+      <span className="font-thin text-[#888888] block mb-2">
+        This is where you can design and publish evaluation forms that follow the Student Feedback Framework (SFF), ensuring feedback is clear, consistent, and aligned with standards.
+      </span>
 
       <div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl md:justify-start">
         <button

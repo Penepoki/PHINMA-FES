@@ -10,6 +10,7 @@ import CopusSummaryTable from "../../../Components/Evaluation Components/CopusSu
 import { generateAIFeedback } from "../../../utils/api";
 import * as Fetcher from "../../../utils/fetcher.ts"
 import * as Interfaces from "../../../Types/Interfaces.ts";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 
 interface EvalProps {
   setActiveView: (view: string) => void;
@@ -73,12 +74,12 @@ function Evaluation({ setActiveView }: EvalProps) {
   }>({});
   const [modalOpen, setModalOpen] = useState<string | null>(null);
   const [selectedProfessor, setSelectedProfessor] =
-      useState<Interfaces.Professor | null>(null);
-    const [selectedSchedule, setSelectedSchedule] = useState<Interfaces.Schedule | null>(
+    useState<Interfaces.Professor | null>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState<Interfaces.Schedule | null>(
     null,
   );
   const [selectedEvaluation, setSelectedEvaluation] =
-      useState<Interfaces.Evaluation | null>(null);
+    useState<Interfaces.Evaluation | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchProfessor, setSearchProfessor] = useState("");
   const [searchSchedule, setSearchSchedule] = useState("");
@@ -114,7 +115,7 @@ function Evaluation({ setActiveView }: EvalProps) {
     }
   };
 
-    const createEvaluation = async (evaluationData: Partial<Interfaces.Evaluation>) => {
+  const createEvaluation = async (evaluationData: Partial<Interfaces.Evaluation>) => {
     try {
       const response = await api.post(
         "/evaluation/evaluations/",
@@ -127,7 +128,7 @@ function Evaluation({ setActiveView }: EvalProps) {
       throw error;
     }
   };
-    const handleOpenEvaluation = (evaluation: Interfaces.Evaluation) => {
+  const handleOpenEvaluation = (evaluation: Interfaces.Evaluation) => {
     setSelectedEvaluation(evaluation);
     const scheduleObj = schedules.find((s) => s.id === evaluation.schedule);
     console.log("Schedules:", schedules);
@@ -201,9 +202,9 @@ function Evaluation({ setActiveView }: EvalProps) {
     ).values(),
   );
 
-    const getProfessorSchedules = (prof: Interfaces.Professor) =>
+  const getProfessorSchedules = (prof: Interfaces.Professor) =>
     schedules.filter((s) => s.instructor === prof.id);
-    const getProfessorEvaluations = (prof: Interfaces.Professor) => {
+  const getProfessorEvaluations = (prof: Interfaces.Professor) => {
     const profSchedules = getProfessorSchedules(prof).map((s) => s.id);
     return evaluations.filter((e) => profSchedules.includes(e.schedule));
   };
@@ -215,7 +216,7 @@ function Evaluation({ setActiveView }: EvalProps) {
   ];
 
 
-    const getEvaluationByType = (prof: Interfaces.Professor, copusType: string) => {
+  const getEvaluationByType = (prof: Interfaces.Professor, copusType: string) => {
     const profEvals = getProfessorEvaluations(prof);
     return profEvals.find((e) => e.evaluation_type === copusType);
   };
@@ -274,17 +275,19 @@ function Evaluation({ setActiveView }: EvalProps) {
 
   return (
     <div className="custom-container gap-y-6">
-      <div className="breadcrumbs text-md text-white">
-        <ul>
-          <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
-          </li>
-          <li>Evaluation</li>
-        </ul>
-      </div>
+      <BreadAndLogout
+        setActiveView={setActiveView}
+        breadcrumbs={[
+          { label: "Home", view: "home" },
+          { label: "Evaluation" },
+        ]}
+      />
       <h2 className="mt-4 text-3xl font-bold text-white">
         Copus Evaluation Forms
       </h2>
+      <span className="font-thin text-[#888888] block mb-2">
+        This is where you can manage and review evaluations. You’ll be able to check active and past submissions, explore results with AI-driven sentiment analysis and NLP insights, and make sure all feedback is properly addressed.
+      </span>
 
 
       {/* Search Filters */}

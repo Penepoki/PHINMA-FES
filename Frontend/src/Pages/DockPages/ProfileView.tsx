@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import ProfilePic from "../../assets/Dashboard Page Assets/Renzo_Picture no background.png";
+import BreadAndLogout from "../../Components/Bread and Logout";
 
 interface ProfileProps {
   setActiveView: (view: string) => void;
@@ -56,21 +57,18 @@ function Profile({ setActiveView }: ProfileProps) {
 
   return (
     <div className="custom-container">
-      <div className="breadcrumbs text-white">
-        <ul>
-          <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
-          </li>
-          <li>
-            <a>Profile View</a>
-          </li>
-        </ul>
-      </div>
+      <BreadAndLogout
+        setActiveView={setActiveView}
+        breadcrumbs={[
+          { label: "Home", view: "home" },
+          { label: "Profile View" },
+        ]}
+      />
       <div className="profile-page z-10 flex h-full w-full flex-col items-center justify-center gap-6 p-4 md:flex-row md:p-8">
         {/* Profile Card Section */}
         <div className="flex h-1/2 w-full flex-col items-center justify-center rounded-xl p-6 text-white shadow-2xl backdrop-blur-lg md:h-full md:w-1/2">
           <div className="avatar">
-            <div className="ring-primary ring-offset-base-100 w-20 rounded-full ring ring-offset-2 md:w-72">
+            <div className="ring-primary ring-offset-base-100 w-40 rounded-full ring ring-offset-2 md:w-72">
               <img src={ProfilePic} alt="User Avatar" />
             </div>
           </div>
@@ -85,10 +83,13 @@ function Profile({ setActiveView }: ProfileProps) {
         </div>
 
         {/* Profile Details Section */}
-        <div className="h-full w-full overflow-x-clip overflow-y-auto rounded-xl px-12 text-white shadow-2xl backdrop-blur-lg md:w-1/2">
+        <div className="h-full w-full overflow-x-clip overflow-y-auto rounded-xl p-12 text-white shadow-2xl backdrop-blur-lg md:w-1/2">
           <h3 className="mb-4 text-2xl font-bold">
             Profile Information
           </h3>
+          <span className="font-thin text-[#888888] block mb-6">
+            This is where you can manage your personal details, update your information, and adjust your preferences so everything in the system stays accurate and tailored to you.
+          </span>
           <form onSubmit={handleSave} className="space-y-4 text-lg">
             <div>
               <label className="mb-1 block text-sm">Email</label>

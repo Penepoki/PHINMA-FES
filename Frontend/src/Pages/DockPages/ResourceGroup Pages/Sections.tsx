@@ -9,6 +9,7 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 
 interface SectionsProps {
   setActiveView: (view: string) => void;
@@ -255,19 +256,18 @@ function Sections({ setActiveView }: SectionsProps) {
 
   return (
     <div className="custom-container gap-y-6">
-      <div className="breadcrumbs">
-        <ul>
-          <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
-          </li>
-          <li>
-            <a onClick={() => setActiveView("resourceGroup")}>Resource Group</a>
-          </li>
-          <li>Sections</li>
-        </ul>
-      </div>
+      <BreadAndLogout
+        setActiveView={setActiveView}
+        breadcrumbs={[
+          { label: "Home", view: "home" },
+          { label: "Profile View" },
+        ]}
+      />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Sections</h2>
+      <span className="font-thin text-[#888888] block mb-6">
+        This is where you can organize student sections or cohorts, making sure evaluations are tied to the right groups.
+      </span>
 
       <div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
         {/* New Section Button */}
