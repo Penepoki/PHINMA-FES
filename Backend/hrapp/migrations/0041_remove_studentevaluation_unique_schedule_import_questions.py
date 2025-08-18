@@ -8,10 +8,3 @@ class Migration(migrations.Migration):
     dependencies = [
         ('hrapp', '0040_scatterplotanalytics_and_more'),
     ]
-
-    operations = [
-        migrations.RemoveConstraint(
-            model_name='studentevaluation',
-            name='unique_schedule_import_questions',
-        ),
-    ]

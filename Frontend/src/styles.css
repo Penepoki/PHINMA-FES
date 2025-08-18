@@ -217,7 +217,7 @@ html {
 .breadcrumbs {
 	color: #d1d5db; /* Equivalent to Tailwind's text-gray-300 */
 	@apply overflow-clip;
-	@apply text-sm;
+	@apply text-lg;
 }
 
 .dock-label {

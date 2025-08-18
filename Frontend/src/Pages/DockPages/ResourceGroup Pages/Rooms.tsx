@@ -191,6 +191,8 @@ function Rooms({ setActiveView }: RoomsProps) {
             </a>
           </li>
           <li>Rooms</li>
+          ||
+          Logout
         </ul>
       </div>
 
