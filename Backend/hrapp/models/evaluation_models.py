@@ -196,6 +196,7 @@ class StudentEvaluationResponse(models.Model):
                                               on_delete=models.CASCADE, null=True)  # Links response to question
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Student who provided the response
     answer = models.TextField()
+    sentiment_score = models.JSONField(null=True, blank=True, help_text="DistilBERT sentiment analysis results: {label, score, points}")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
