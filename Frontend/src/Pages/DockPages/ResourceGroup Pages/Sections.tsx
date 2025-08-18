@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
 
 // Option type for comboboxes
 interface Option {
   id: number | string;
   name: string;
 }
+
+import React, {useState, useEffect, useRef} from "react";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import api from "../../../utils/api";
 import DataTable, {
@@ -29,7 +30,19 @@ function Sections({ setActiveView }: SectionsProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [newSectionName, setNewSectionName] = useState("");
+  const [studentSearchTerm, setStudentSearchTerm] = useState("");
+  const [availableStudents, setAvailableStudents] = useState<Option[]>([]);
+  const [isStudentDropdownOpen, setIsStudentDropdownOpen] = useState(false);
+  const studentInputRef = useRef<HTMLInputElement>(null);
+  const studentDropdownRef = useRef<HTMLDivElement>(null);
+  // Single current pick from the combobox
   const [selectedStudent, setSelectedStudent] = useState<Option | null>(null);
+
+  // The batch list to add in one go
+  const [selectedStudents, setSelectedStudents] = useState<Option[]>([]);
+
+  // Section we’re adding to
+  const [currentSectionId, setCurrentSectionId] = useState<number | null>(null);
 
   const fetchSections = async () => {
     setLoading(true);
@@ -433,6 +446,7 @@ function Sections({ setActiveView }: SectionsProps) {
                 Cancel
               </button>
             </div>
+
           </form>
         </div>
       </dialog>
@@ -446,6 +460,7 @@ function Sections({ setActiveView }: SectionsProps) {
         selectable
         loading={loading}
       />
+
     </div>
   );
 }

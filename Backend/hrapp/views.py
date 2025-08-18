@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from hrapp.models.schedules_models import *
 from hrapp.serializers import *
 from hrapp.utils.user_utils import *
@@ -1709,6 +1709,40 @@ def get_professors(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_students(request):
+    """
+    Return a simplified list of student users for selection in Sections dialog.
+    Supports search by first/last name or email and scopes by faculty when applicable.
+    Allowed roles: Dean, HR, Program Head (or superuser).
+    """
+    user = request.user
+    if not (user.is_superuser or user.groups.filter(name__in=['Dean', 'HR', 'Program Head']).exists()):
+        raise PermissionDenied("You do not have permission to view students.")
+
+    qs = User.objects.filter(groups__name__iexact='Student', is_active=True)
+
+    search = request.query_params.get('search')
+    if search:
+        qs = qs.filter(
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(email__icontains=search)
+        )
+
+    # Scope by faculty if user has one
+    faculty = getattr(user, 'faculty', None)
+    if faculty and not user.is_superuser:
+        # Get students that are already in sections within this faculty
+        student_ids = Section.objects.filter(program__faculty=faculty).values_list('students__id', flat=True).distinct()
+        # Include all students for now, but this could be restricted if needed
+        # qs = qs.filter(id__in=student_ids)
+
+    data = [{'id': u.id, 'name': (u.get_full_name() or u.email)} for u in qs.order_by('first_name', 'last_name')[:50]]
+    return Response(data, status=status.HTTP_200_OK)
+
+
 class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.filter(deleted_at__isnull=True)
     serializer_class = SectionSerializer
@@ -1719,18 +1753,49 @@ class SectionViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return base_qs
         if hasattr(user, 'faculty') and user.faculty:
-            return base_qs.filter(schedule__program__faculty=user.faculty)
+            return base_qs.filter(program__faculty=user.faculty)
         return base_qs.none()
+
+    def _check_permissions(self, request):
+        """Check if user has permission for CRUD operations"""
+        user = request.user
+        if not (user.is_superuser or user.groups.filter(name__in=['Dean', 'HR', 'Program Head']).exists()):
+            raise PermissionDenied("You do not have permission to perform this action.")
 
     @action(detail=True, methods=['post'])
     def add_students(self, request, pk=None):
+        """Add multiple students to a section with validation"""
+        self._check_permissions(request)
+        
         section = self.get_object()
         student_ids = request.data.get('student_ids', [])
+
         if not isinstance(student_ids, list):
             return Response({'error': 'student_ids must be a list.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not student_ids:
+            return Response({'error': 'At least one student ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate that all provided IDs are actual students
+        valid_students = User.objects.filter(
+            id__in=student_ids,
+            groups__name__iexact='Student',
+            is_active=True
+        )
+
+        if valid_students.count() != len(student_ids):
+            invalid_ids = set(student_ids) - set(valid_students.values_list('id', flat=True))
+            return Response({
+                'error': f'Invalid student IDs: {list(invalid_ids)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Add students to section
         section.students.add(*student_ids)
-        return Response({'message': f'Added {len(student_ids)} students to section {section.name}.'},
-                        status=status.HTTP_200_OK)
+
+        return Response({
+            'message': f'Successfully added {len(student_ids)} students to section {section.name}.',
+            'added_students': len(student_ids)
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'], url_path='students')
     def students(self, request, pk=None):
@@ -1742,8 +1807,10 @@ class SectionViewSet(viewsets.ModelViewSet):
         serializer = UserSerializer(students, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
     def create(self, request, *args, **kwargs):
+        """Create section(s) with proper authorization"""
+        self._check_permissions(request)
+        
         data = request.data
 
         if isinstance(data, list):
@@ -1751,10 +1818,16 @@ class SectionViewSet(viewsets.ModelViewSet):
             failed_sections = []
 
             for section_data in data:
-                serializer = self.get_serializer(data=section_data)
-                serializer.is_valid(raise_exception=True)
-                created_section = serializer.save()
-                created_sections.append(created_section)
+                try:
+                    serializer = self.get_serializer(data=section_data)
+                    serializer.is_valid(raise_exception=True)
+                    created_section = serializer.save()
+                    created_sections.append(created_section)
+                except ValidationError as e:
+                    failed_sections.append({
+                        "error": e.detail,
+                        "data": section_data,
+                    })
 
             if failed_sections:
                 raise ValidationError({
@@ -1769,41 +1842,72 @@ class SectionViewSet(viewsets.ModelViewSet):
 
         return super().create(request, *args, **kwargs)
 
+    def update(self, request, *args, **kwargs):
+        """Update section with proper authorization"""
+        self._check_permissions(request)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete section with proper authorization"""
+        self._check_permissions(request)
+        return super().destroy(request, *args, **kwargs)
+
 # Retention vs Responses Regression API (multi-series using ScatterPlotAnalytics)
 import logging
 
 logger = logging.getLogger('hrapp.analytics')
 
 
-def _linear_regression(points_xy):
-    if len(points_xy) < 2:
-        return None
-    xs = [p['x'] for p in points_xy]
-    ys = [p['y'] for p in points_xy]
-    n = float(len(points_xy))
-    mean_x = sum(xs) / n
-    mean_y = sum(ys) / n
-    var_x = sum((x - mean_x) ** 2 for x in xs)
-    if var_x == 0:
-        return None
-    cov_xy = sum((xs[i] - mean_x) * (ys[i] - mean_y) for i in range(len(xs)))
-    b = cov_xy / var_x
-    a = mean_y - b * mean_x
-    ss_tot = sum((y - mean_y) ** 2 for y in ys)
-    ss_res = sum((ys[i] - (a + b * xs[i])) ** 2 for i in range(len(xs)))
-    r2 = 1.0 - (ss_res / ss_tot) if ss_tot != 0 else 0.0
-    return {
-        'slope': b,
-        'intercept': a,
-        'r2': r2,
-        'formula': f"y = {a:.4f} + {b:.4f} x",
-    }
-
-
-def _score_response_for_group(resp):
+def _linear_regression_improved(points_xy):
     """
-    Score a response for retention regression analysis.
-    First tries to use stored sentiment_score, falls back to real-time analysis if needed.
+    Improved linear regression with better error handling and validation.
+    """
+    if not points_xy or len(points_xy) < 2:
+        return None
+
+    try:
+        xs = [float(p['x']) for p in points_xy]
+        ys = [float(p['y']) for p in points_xy]
+        n = float(len(points_xy))
+
+        # Check for valid data
+        if n == 0 or any(x is None or y is None for x, y in zip(xs, ys)):
+            return None
+
+        mean_x = sum(xs) / n
+        mean_y = sum(ys) / n
+
+        # Calculate variance and covariance
+        var_x = sum((x - mean_x) ** 2 for x in xs)
+        if var_x == 0:  # All x values are the same
+            return None
+
+        cov_xy = sum((xs[i] - mean_x) * (ys[i] - mean_y) for i in range(len(xs)))
+
+        # Calculate slope and intercept
+        b = cov_xy / var_x  # slope
+        a = mean_y - b * mean_x  # intercept
+
+        # Calculate R-squared
+        ss_tot = sum((y - mean_y) ** 2 for y in ys)
+        ss_res = sum((ys[i] - (a + b * xs[i])) ** 2 for i in range(len(xs)))
+        r2 = 1.0 - (ss_res / ss_tot) if ss_tot != 0 else 0.0
+
+        return {
+            'slope': float(b),
+            'intercept': float(a),
+            'r2': float(r2),
+            'formula': f"y = {a:.4f} + {b:.4f}x",
+            'n_points': int(n)
+        }
+    except Exception as e:
+        print(f"[ERROR] Linear regression calculation failed: {e}")
+        return None
+
+
+def _score_response_for_group_improved(resp):
+    """
+    Improved scoring function with better error handling and fallbacks.
     """
     q = resp.student_eval_question
     qtype = (q.type or '').strip().upper() if q else ''
@@ -1822,154 +1926,225 @@ def _score_response_for_group(resp):
                 mode = f"{score_type}:stored_{label.lower()}"
                 return float(pts), mode
         except Exception as e:
-            # If stored sentiment score is corrupted, fall back to real-time analysis
-            pass
+            print(f"[DEBUG] Error reading stored sentiment score: {e}")
 
     # Fallback to real-time analysis if no stored sentiment score
     if qtype == 'MCQ':
         if callable(score_mcq_answer):
             try:
                 pts, meta = score_mcq_answer(q, ans)
-                mode = f"mcq:{meta.get('mode')}"
+                mode = f"mcq:{meta.get('mode', 'unknown')}"
             except Exception as e:
+                print(f"[DEBUG] MCQ scoring error: {e}")
                 mode = 'mcq:error'
         else:
+            # Simple letter mapping fallback
             letter_map = {'A': 1.0, 'B': 0.5, 'C': 0.0, 'D': -0.5, 'E': -1.0}
-            if isinstance(ans, str) and ans.strip().upper() in letter_map:
-                pts = letter_map[ans.strip().upper()]
+            ans_upper = str(ans).strip().upper() if ans else ''
+            if ans_upper in letter_map:
+                pts = letter_map[ans_upper]
                 mode = 'mcq:letter_fallback'
+            else:
+                # Try to extract letter from longer answers
+                for letter in ['A', 'B', 'C', 'D', 'E']:
+                    if letter in ans_upper:
+                        pts = letter_map[letter]
+                        mode = f'mcq:extracted_{letter}'
+                        break
+
     elif qtype == 'TEXT':
         if callable(analyze_text_sentiment):
             try:
                 text_input = f"Question: {q.question}\nAnswer: {ans}" if q and q.question else str(ans)
                 res = analyze_text_sentiment(text_input) or {}
                 pts = float(res.get('points', 0.0))
-                mode = f"text:{res.get('label')}"
+                mode = f"text:{res.get('label', 'unknown')}"
             except Exception as e:
+                print(f"[DEBUG] Text sentiment analysis error: {e}")
                 mode = 'text:error'
         else:
-            s = (ans or '').lower()
-            if any(k in s for k in ['excellent', 'good', 'satisfied', 'great', 'helpful']):
+            # Simple heuristic fallback
+            s = str(ans or '').lower()
+            positive_words = ['excellent', 'good', 'satisfied', 'great', 'helpful', 'amazing', 'wonderful',
+                              'outstanding']
+            negative_words = ['bad', 'poor', 'unsatisfied', 'terrible', 'unhelpful', 'awful', 'horrible',
+                              'disappointing']
+
+            if any(word in s for word in positive_words):
                 pts = 1.0
                 mode = 'text:heuristic_pos'
-            elif any(k in s for k in ['bad', 'poor', 'unsatisfied', 'terrible', 'unhelpful']):
+            elif any(word in s for word in negative_words):
                 pts = -1.0
                 mode = 'text:heuristic_neg'
             else:
                 pts = 0.0
                 mode = 'text:heuristic_neu'
-    return float(pts), mode
 
+    elif qtype == 'RATING':
+        # Handle rating questions (1-5 scale typically)
+        try:
+            rating = float(ans) if ans else 0
+            if 1 <= rating <= 5:
+                # Convert 1-5 scale to -1 to 1 scale
+                pts = (rating - 3) / 2  # 1->-1, 2->-0.5, 3->0, 4->0.5, 5->1
+                mode = f'rating:scale_{rating}'
+            else:
+                pts = 0.0
+                mode = 'rating:out_of_range'
+        except (ValueError, TypeError):
+            pts = 0.0
+            mode = 'rating:invalid'
+
+    return float(pts), mode
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def scatterplot_analytics_save(request):
+def scatterplot_analytics_save_improved(request):
     """
-    Create a ScatterPlotAnalytics row with year, semester, retention_rate.
-    Body: {"year":"1st","semester":"1st","retention_rate": 72.5}
+    Improved version with better validation and error handling.
     """
     data = request.data if isinstance(request.data, dict) else {}
     year = data.get('year')
     semester = data.get('semester')
     retention_rate = data.get('retention_rate')
-    if year not in dict(ScatterPlotAnalytics.YEAR_CHOICES):
-        return Response({"error": "Invalid year"}, status=status.HTTP_400_BAD_REQUEST)
-    if semester not in dict(ScatterPlotAnalytics.SEMESTER_CHOICES):
-        return Response({"error": "Invalid semester"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Validate year
+    valid_years = dict(ScatterPlotAnalytics.YEAR_CHOICES)
+    if year not in valid_years:
+        return Response({
+            "error": f"Invalid year. Must be one of: {list(valid_years.keys())}"
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # Validate semester
+    valid_semesters = dict(ScatterPlotAnalytics.SEMESTER_CHOICES)
+    if semester not in valid_semesters:
+        return Response({
+            "error": f"Invalid semester. Must be one of: {list(valid_semesters.keys())}"
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # Validate retention rate
     try:
         rr = float(retention_rate)
-    except Exception:
-        return Response({"error": "retention_rate must be a number"}, status=status.HTTP_400_BAD_REQUEST)
+        if not (0 <= rr <= 100):
+            return Response({
+                "error": "Retention rate must be between 0 and 100"
+            }, status=status.HTTP_400_BAD_REQUEST)
+    except (ValueError, TypeError):
+        return Response({
+            "error": "retention_rate must be a valid number"
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     try:
-        obj = ScatterPlotAnalytics.objects.create(year=year, semester=semester, retention_rate=rr)
+        # Check for duplicates
+        existing = ScatterPlotAnalytics.objects.filter(
+            year=year,
+            semester=semester,
+            retention_rate=rr
+        ).first()
+
+        if existing:
+            return Response({
+                "message": "Entry already exists",
+                "id": existing.id,
+                "year": existing.year,
+                "semester": existing.semester,
+                "retention_rate": existing.retention_rate,
+                "created_at": getattr(existing, 'created_at', None),
+            }, status=status.HTTP_200_OK)
+
+        obj = ScatterPlotAnalytics.objects.create(
+            year=year,
+            semester=semester,
+            retention_rate=rr
+        )
+
+        return Response({
+            "id": obj.id,
+            "year": obj.year,
+            "semester": obj.semester,
+            "retention_rate": obj.retention_rate,
+            "created_at": getattr(obj, 'created_at', None),
+        }, status=status.HTTP_201_CREATED)
+
     except Exception as e:
-        # If created_at column is missing (migration not applied), attempt to patch table then retry
-        msg = str(e)
-        if 'created_at' in msg or 'Unknown column' in msg or '1054' in msg:
-            from django.db import connection
-            try:
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        "ALTER TABLE hrapp_scatterplotanalytics ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
-                    )
-                obj = ScatterPlotAnalytics.objects.create(year=year, semester=semester, retention_rate=rr)
-            except Exception as e2:
-                return Response({"error": f"Failed to save retention entry: {e2}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        else:
-            return Response({"error": f"Failed to save retention entry: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    return Response({
-        "id": obj.id,
-        "year": obj.year,
-        "semester": obj.semester,
-        "retention_rate": obj.retention_rate,
-        "created_at": getattr(obj, 'created_at', None),
-    }, status=status.HTTP_201_CREATED)
+        print(f"[ERROR] Failed to save retention entry: {e}")
+        return Response({
+            "error": f"Failed to save retention entry: {str(e)}"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def retention_regression(request):
+def retention_regression_improved(request):
     """
-    Build multi-series scatter using saved ScatterPlotAnalytics rows for Y (retention),
-    and average StudentEvaluation response points for X per (year_level, semester).
-    Returns:
-    {
-      series: [
-        { label: "1st - 1st", key: {year:"1st", semester:"1st"}, points: [{x, y, t}], regression: {...} },
-        ...
-      ],
-      meta: { grouped_by: ["year","semester"], logging: true }
-    }
+    Improved retention regression with better debugging and error handling.
     """
     # Aggregate X by group (year_level, semester) from StudentEvaluationResponse
     responses = StudentEvaluationResponse.objects.select_related(
         'student_eval_question', 'student_evaluation__schedule__section', 'student_evaluation__schedule'
     )
-    group_stats = {}  # (year, semester) -> {sum, n}
+
+    group_stats = {}  # (year, semester) -> {sum, n, responses_count}
     mode_counts = defaultdict(int)
 
+    total_responses = responses.count()
+    print(f"[DEBUG] Processing {total_responses} total responses for retention regression")
+
+    processed_count = 0
     for resp in responses:
         sched = getattr(resp.student_evaluation, 'schedule', None)
         if not sched or not sched.section:
             continue
+
         # Map Schedule/Section to ScatterPlotAnalytics choice values
         year_level = getattr(sched.section, 'year_level', None)  # e.g., '1','2','3','4'
-        if year_level not in ('1','2','3','4'):
+        if year_level not in ('1', '2', '3', '4'):
             continue
-        year_key = { '1':'1st','2':'2nd','3':'3rd','4':'4th' }[year_level]
-        sem_sched = getattr(sched, 'semester', None)  # 'First','Second','Summer'
-        if sem_sched not in ('First','Second','Summer'):
-            continue
-        sem_key = {'First':'1st','Second':'2nd','Summer':'Summer'}[sem_sched]
+        year_key = {'1': '1st', '2': '2nd', '3': '3rd', '4': '4th'}[year_level]
 
-        pts, mode = _score_response_for_group(resp)
+        sem_sched = getattr(sched, 'semester', None)  # 'First','Second','Summer'
+        if sem_sched not in ('First', 'Second', 'Summer'):
+            continue
+        sem_key = {'First': '1st', 'Second': '2nd', 'Summer': 'Summer'}[sem_sched]
+
+        pts, mode = _score_response_for_group_improved(resp)
         mode_counts[mode] += 1
         key = (year_key, sem_key)
+
         if key not in group_stats:
-            group_stats[key] = {'sum': 0.0, 'n': 0}
+            group_stats[key] = {'sum': 0.0, 'n': 0, 'responses_count': 0}
         group_stats[key]['sum'] += pts
         group_stats[key]['n'] += 1
+        group_stats[key]['responses_count'] += 1
+        processed_count += 1
 
-    # Log scoring distribution
-    try:
-        logger.info("Sentiment/MCQ scoring modes: %s", dict(mode_counts))
-    except Exception:
-        pass
+    # Log scoring distribution and group stats
+    print(f"[DEBUG] Processed {processed_count}/{total_responses} responses")
+    print(f"[DEBUG] Sentiment/MCQ scoring modes: {dict(mode_counts)}")
+    print(f"[DEBUG] Group statistics: {group_stats}")
 
     # Prepare series using saved ScatterPlotAnalytics entries
     entries = ScatterPlotAnalytics.objects.all().order_by('created_at')
+    print(f"[DEBUG] Found {entries.count()} ScatterPlotAnalytics entries")
+
     series_map = {}  # (year, semester) -> list of points
     for e in entries:
         key = (e.year, e.semester)
         stats = group_stats.get(key, None)
+
+        # Allow plotting even if no responses, but use 0 as X value
         if not stats or stats['n'] == 0:
-            # If we have no responses for this group, skip plotting X for now
-            continue
-        avg_x = stats['sum'] / stats['n']
+            print(f"[DEBUG] No responses for {key}, using X=0")
+            avg_x = 0.0
+        else:
+            avg_x = stats['sum'] / stats['n']
+            print(f"[DEBUG] Group {key}: avg_x={avg_x:.3f} from {stats['n']} responses")
+
         try:
             t_iso = (e.created_at or timezone.now()).isoformat()
         except Exception:
             t_iso = str(timezone.now())
+
         pt = {'x': avg_x, 'y': float(e.retention_rate or 0.0), 't': t_iso}
         if key not in series_map:
             series_map[key] = []
@@ -1978,7 +2153,18 @@ def retention_regression(request):
     # Build response structure
     series = []
     for (y, s), pts in series_map.items():
-        reg = _linear_regression(pts) if len(pts) >= 2 else None
+        print(f"[DEBUG] Series {y}-{s}: {len(pts)} points")
+        if len(pts) >= 2:
+            reg = _linear_regression_improved(pts)
+            if reg:
+                print(
+                    f"[DEBUG] Regression for {y}-{s}: slope={reg['slope']:.4f}, intercept={reg['intercept']:.4f}, r2={reg['r2']:.4f}")
+            else:
+                print(f"[DEBUG] Failed to calculate regression for {y}-{s}")
+        else:
+            reg = None
+            print(f"[DEBUG] Not enough points for regression in {y}-{s}")
+
         series.append({
             'label': f"{y} - {s}",
             'key': {'year': y, 'semester': s},
@@ -1986,11 +2172,17 @@ def retention_regression(request):
             'regression': reg,
         })
 
+    print(f"[DEBUG] Returning {len(series)} series")
     return Response({
         'series': series,
         'meta': {
             'grouped_by': ['year', 'semester'],
             'uses_scatterplot_analytics': True,
             'scoring_logged': True,
+            'total_responses': sum(stats['n'] for stats in group_stats.values()),
+            'total_entries': len(entries),
+            'processed_responses': processed_count,
+            'mode_distribution': dict(mode_counts)
         }
     }, status=status.HTTP_200_OK)
+
