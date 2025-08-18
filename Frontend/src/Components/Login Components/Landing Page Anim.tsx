@@ -35,7 +35,7 @@ const BackgroundAnimation = () => {
   );
 };
 
-const words: string[] = ["HR", "Deans", "Program Heads", "Students"];
+const words: string[] = ["HR", "Deans", "Program Heads", "Professors", "Students"];
 
 export function AnimatedHeading() {
   const [index, setIndex] = useState<number>(0);
@@ -48,7 +48,7 @@ export function AnimatedHeading() {
         setIndex((prevIndex) => (prevIndex + 1) % words.length);
         setAnimatingOut(false); // After word change, reset animation
       }, 500); // Wait for fadeOut to complete before changing the word
-    }, 3000); // Change every 2 seconds
+    }, 4000); // Change every 2 seconds
 
     return () => clearInterval(interval); // Cleanup on unmount
   }, []);
@@ -60,7 +60,7 @@ export function AnimatedHeading() {
       </span>
       <br />
       <span
-        className={`text-[90px] font-extralight text-[#C4C4C4] transition-all ${animatingOut ? "word-exit" : "word"
+        className={`text-[90px] font-extralight text-[#C4C4C4] transition-all duration-[9000ms] ease-in-out ${animatingOut ? "word-exit" : "word"
           }`}
       >
         {words[index]}

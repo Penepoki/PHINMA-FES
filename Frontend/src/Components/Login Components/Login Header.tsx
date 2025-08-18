@@ -1,6 +1,5 @@
 import Plogo from "../../assets/Landing Page Assets/PHINMA-Ed-Logodm.png";
 import Plogo2 from "../../assets/Landing Page Assets/phinma-icon.png";
-import Clogo from "../../assets/Landing Page Assets/CITE_Logo1.png";
 
 function LoginHeader() {
   return (
