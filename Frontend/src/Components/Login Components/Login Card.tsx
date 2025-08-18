@@ -95,6 +95,9 @@ function LoginCard() {
         case "Student":
           navigate("/Dashboard/student");
           break;
+        case "Professor":
+          navigate("/Dashboard/professor");
+          break;
         default:
           setError("Invalid user role.");
       }

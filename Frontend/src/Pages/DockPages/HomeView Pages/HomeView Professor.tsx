@@ -1,468 +1,157 @@
-import React, { useEffect, useState } from "react";
-import SubjectCards from "../../../Components/Dashboard Components/Student Components/Subject Cards";
-import SemesterCard from "../../../Components/Dashboard Components/HR Components/Semester Cards";
+import { useEffect, useState } from "react";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import api from "../../../utils/api";
-import { mapTypeToFrontend } from "../../../Components/Evaluation Components/CreateStudentQuestion";
 
-interface Schedule {
-  id: number;
-  subject_name: string;
-  instructor_name: string;
-  section_name: string;
-  semester: string;
-  year: string;
-  room_name: string;
-}
-
-interface StudentEvaluation {
-  id: number;
-  title: string;
-  description: string;
-  import_questions: any[];
-}
-
-interface Subject {
+interface EvaluationCard {
   id: number;
   name: string;
-  teacher: string;
-  section: string;
-  scheduleId: number;
-  questions: any[];
+  fullname: string;
   image?: string | null;
-  isCompleted?: boolean;
 }
 
 function Home() {
-  const [openAnswerDialog, setOpenAnswerDialog] = useState(false);
-  const [openViewDialog, setOpenViewDialog] = useState(false);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [currentEvaluation, setCurrentEvaluation] = useState<StudentEvaluation | null>(null);
-  const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [viewAnswers, setViewAnswers] = useState<Record<number, string>>({});
+  const [currentEvaluation, setCurrentEvaluation] = useState<EvaluationCard | null>(null);
+  const [currentProfessor, setCurrentProfessor] = useState<any>(null);
+  const [selectedEvaluation, setSelectedEvaluation] = useState<{
+    id: number;
+    evaluation_type: string;
+    observation_date: string;
+  } | null>(null);
+  const [appearModal, setAppearModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [copusData, setCopusData] = useState<any>({});
+  const [evaluations, setEvaluations] = useState<EvaluationCard[]>([]);
 
-  // Fetch student's schedules and evaluation completion status
+  // Fetch logged-in professor
   useEffect(() => {
-    const fetchStudentSchedulesAndProgress = async () => {
-      setLoading(true);
+    const fetchProfessor = async () => {
       try {
-        const response = await api.get('/schedule/schedules/my-schedules/');
-        const subjectCards: Subject[] = response.data.map((schedule: Schedule) => ({
-          id: schedule.id,
-          name: schedule.subject_name,
-          teacher: schedule.instructor_name,
-          section: schedule.section_name,
-          scheduleId: schedule.id,
-          questions: [],
-          image: null,
-          isCompleted: false,
-        }));
-
-        // For each subject, fetch the evaluation and set isCompleted
-        await Promise.all(subjectCards.map(async (subject) => {
-          try {
-            const evalRes = await api.get(`/studentevaluation/studentevaluation/by-schedule/${subject.scheduleId}/`);
-            subject.isCompleted = !!evalRes.data.is_completed;
-          } catch (e) {
-            subject.isCompleted = false;
-          }
-        }));
-
-        setSubjects(subjectCards);
-      } catch (error) {
-        console.error('Error fetching schedules or progress:', error);
-      } finally {
-        setLoading(false);
+        const res = await api.get("/users/me/");
+        setCurrentProfessor(res.data);
+      } catch (err) {
+        console.error("Error fetching logged-in professor", err);
       }
     };
-    fetchStudentSchedulesAndProgress();
+    fetchProfessor();
   }, []);
 
-  // Handle subject card click
-  const handleSubjectClick = async (subjectName: string) => {
-    const selectedSubject = subjects.find(s => s.name === subjectName);
-    if (!selectedSubject) return;
+  // Fetch evaluations dynamically for logged-in professor
+  useEffect(() => {
+    const fetchEvaluations = async () => {
+      if (!currentProfessor) return;
+      try {
+        const res = await api.get("/hrapp/evaluation/?professor=${currentProfessor.id}");
+        // Map backend evaluations to your EvaluationCard format
+        const evalCards: EvaluationCard[] = res.data.map((evalItem: any) => ({
+          id: evalItem.id,
+          name: evalItem.evaluation_type,
+          fullname: evalItem.schedule?.name || "N/A",
+        }));
+        setEvaluations(evalCards);
+      } catch (err) {
+        console.error("Error fetching evaluations", err);
+      }
+    };
+    fetchEvaluations();
+  }, [currentProfessor]);
+
+  const handleEvalClick = async (evaluation: EvaluationCard) => {
+    if (!currentProfessor) return;
+
+    setCurrentEvaluation(evaluation);
+    setSelectedEvaluation({
+      id: evaluation.id,
+      evaluation_type: evaluation.name,
+      observation_date: new Date().toISOString().slice(0, 10),
+    });
+
+    setLoading(true);
 
     try {
-      const evalResponse = await api.get(`/studentevaluation/studentevaluation/by-schedule/${selectedSubject.scheduleId}/`);
-      const importQuestions = evalResponse.data.import_questions || [];
-      let mappedQuestions: any[] = [];
+      const tsResponse = await api.get("/timestamp/timestamps/?evaluation=${evaluation.id}");
+      const timestamps = tsResponse.data || [];
 
-      if (importQuestions.length > 0) {
-        if (typeof importQuestions[0] === 'number') {
-          const allQuestionsResponse = await api.get('/studentevaluationquestion/studentevaluationquestion/');
-          mappedQuestions = allQuestionsResponse.data
-            .filter((q: any) => importQuestions.includes(q.id))
-            .map((q: any) => ({
-              id: q.id,
-              question: q.question,
-              type: mapTypeToFrontend(q.type),
-              choices: q.options || [],
-            }));
-        } else {
-          mappedQuestions = importQuestions.map((q: any) => ({
-            id: q.id,
-            question: q.question,
-            type: mapTypeToFrontend(q.type),
-            choices: q.options || [],
-          }));
-        }
-      }
+      const studentTallies: Record<string, { count: number; percentage: number }> = {};
+      const teacherTallies: Record<string, { count: number; percentage: number }> = {};
+      let totalStudent = 0, totalTeacher = 0;
 
-      setCurrentEvaluation({
-        ...evalResponse.data,
-        import_questions: mappedQuestions
-      });
-      setCurrentSubject(selectedSubject);
-
-      // Use is_completed from backend
-      if (evalResponse.data.is_completed) {
-        // Fetch only answers for this evaluation
-        const answers: Record<number, string> = {};
-        try {
-          const prevResponse = await api.get(`/studentevaluationresponse/studentevaluationresponse/?student_evaluation=${evalResponse.data.id}&user=current`);
-          if (prevResponse.data && prevResponse.data.length > 0) {
-            prevResponse.data.forEach((resp: any) => {
-              answers[resp.student_eval_question] = resp.answer;
-            });
+      timestamps.forEach((ts: any) => {
+        Object.entries(ts.student_activities || {}).forEach(([key, value]) => {
+          if (!studentTallies[key]) studentTallies[key] = { count: 0, percentage: 0 };
+          if (value) {
+            studentTallies[key].count++;
+            totalStudent++;
           }
-        } catch (err) { }
-        setViewAnswers(answers);
-        setOpenViewDialog(true);
-      } else {
-        setOpenAnswerDialog(true);
-      }
-    } catch (error) {
-      console.error('Error fetching evaluation:', error);
-      alert('No evaluation found for this subject');
-    }
-  };
-
-  // Handle evaluation submission
-  const handleSubmitEvaluation = async (formData: FormData) => {
-    if (!currentEvaluation || !currentSubject) return;
-
-    try {
-      const responses = currentEvaluation.import_questions.map((question, index) => ({
-        question_id: question.id,
-        answer: formData.get(`question-${index}`) as string
-      }));
-
-      await api.post('/studentevaluationresponse/studentevaluationresponse/submit-responses/', {
-        student_evaluation_id: currentEvaluation.id,
-        responses: responses
+        });
+        Object.entries(ts.instructor_activities || {}).forEach(([key, value]) => {
+          if (!teacherTallies[key]) teacherTallies[key] = { count: 0, percentage: 0 };
+          if (value) {
+            teacherTallies[key].count++;
+            totalTeacher++;
+          }
+        });
       });
 
-      // Update isCompleted for the subject
-      setSubjects(prevSubjects =>
-        prevSubjects.map(subject =>
-          subject.id === currentSubject.id
-            ? { ...subject, isCompleted: true }
-            : subject
-        )
-      );
-      setOpenAnswerDialog(false);
-      alert(`${currentSubject.name} evaluation submitted successfully!`);
-    } catch (error: any) {
-      console.error('Error submitting evaluation:', error);
-      if (error.response?.data?.error) {
-        alert(error.response.data.error);
-      } else {
-        alert('Error submitting evaluation. Please try again.');
-      }
+      Object.keys(studentTallies).forEach((key) => {
+        studentTallies[key].percentage = totalStudent ? (studentTallies[key].count / totalStudent) * 100 : 0;
+      });
+      Object.keys(teacherTallies).forEach((key) => {
+        teacherTallies[key].percentage = totalTeacher ? (teacherTallies[key].count / totalTeacher) * 100 : 0;
+      });
+
+      setCopusData({ [evaluation.id]: { studentTallies, teacherTallies } });
+      setAppearModal(true);
+    } catch (err) {
+      console.error("Error fetching timestamps", err);
+      setCopusData({});
+      setAppearModal(true);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const totalSubjects = subjects.length;
-  const completedCount = subjects.filter(subject => subject.isCompleted).length;
-  const ratio = `${completedCount}/${totalSubjects}`;
-
-  const semesterData = [
-    {
-      semester: "1st",
-      ratio: ratio,
-    },
-    {
-      semester: "2nd",
-      ratio: ratio,
-    },
-  ];
-
-  if (loading) {
-    return (
-      <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center">
-        <div className="loading loading-spinner loading-lg"></div>
-        <p className="mt-4 text-white">Loading your subjects...</p>
-      </div>
-    );
-  }
-
-  const unfinishedSubjects = subjects.filter(subject => !subject.isCompleted);
-  const finishedSubjects = subjects.filter(subject => subject.isCompleted);
 
   return (
     <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
-      {/* Header */}
       <DashboardHeader />
 
-      {/* Content */}
-      <div className="mt-35 ml-3 flex h-auto w-auto flex-col-reverse items-start justify-center gap-4 overflow-y-auto md:mr-103 md:flex-row">
-        {/* Subject Lists Split into Unfinished and Finished */}
-        <div className="flex flex-col gap-6">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Unfinished Subjects</h2>
-            <SubjectCards
-              subjects={unfinishedSubjects}
-              onClick={handleSubjectClick}
-              completedSubjects={new Set()} // Not used anymore, but required by prop
-            />
+      <div className="mt-34 flex h-full w-full flex-col items-center justify-start overflow-auto bg-black/20">
+        {evaluations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center mt-10">
+            <div className="loading loading-spinner loading-lg"></div>
+            <p className="mt-4 text-white">Loading evaluations...</p>
           </div>
-          <div>
-            <h2 className="text-xl font-semibold text-white">Finished Subjects</h2>
-            <SubjectCards
-              subjects={finishedSubjects}
-              onClick={handleSubjectClick}
-              completedSubjects={new Set()} // Not used anymore, but required by prop
-            />
-          </div>
-        </div>
-
-        {/* Progress */}
-        <div className="flex w-full flex-row items-center justify-center gap-6 md:absolute md:right-20 md:mt-26 md:w-auto md:flex-col">
-          {semesterData.map(({ semester, ratio }) => (
-            <SemesterCard
-              key={semester}
-              semester={semester}
-              ratio={ratio}
-            />
-          ))}
-        </div>
-        {/* Progress Bar */}
-        <div className="flex w-full flex-row items-center justify-center gap-6 md:absolute md:right-20 md:mt-26 md:w-auto md:flex-col">
-          {semesterData.map(({ semester, ratio }) => (
-            <SemesterCard
-              key={semester}
-              semester={semester}
-              ratio={ratio}
-            />
-          ))}
-        </div>
+        ) : (
+          <EvalCards evaluations={evaluations} onEvalClick={handleEvalClick} />
+        )}
       </div>
 
-      {/* Answer Dialog */}
-      {openAnswerDialog && currentEvaluation && currentSubject && (
-        <div className="modal modal-open" id="answer_modal">
-          <div className="modal-box flex h-[80%] w-[90%] max-w-5xl flex-col text-black md:w-11/12">
-            {/* Sticky Header */}
-            <div className="sticky top-0 z-10 flex items-start justify-between px-6 py-3">
-              <div className="text-left">
-                <h3 className="text-2xl font-bold">{currentSubject.name}</h3>
-                <p className="text-md text-gray-400">
-                  Teacher: <strong>{currentSubject.teacher}</strong>
-                </p>
-                <p className="text-md text-gray-400">
-                  Section: <strong>{currentSubject.section}</strong>
-                </p>
-                <p className="text-md text-gray-600 mt-2">
-                  {currentEvaluation.title}
-                </p>
-                {currentEvaluation.description && (
-                  <p className="text-sm text-gray-500">
-                    {currentEvaluation.description}
-                  </p>
-                )}
-              </div>
+      {/* Read-only COPUS modal */}
+      {appearModal && currentEvaluation && currentProfessor && (
+        <div className="modal modal-open">
+          <div className="modal-box max-h-full w-full max-w-5xl text-black">
+            <div className="flex justify-between items-start">
+              <h3 className="mt-2 mb-6 text-xl font-bold">
+                {currentProfessor.first_name} {currentProfessor.last_name} - COPUS - {currentEvaluation.name}
+              </h3>
               <button
-                type="button"
-                className="btn btn-sm btn-error mt-2 h-9 text-white"
-                onClick={() => setOpenAnswerDialog(false)}
-              >
-                Cancel
-              </button>
-            </div>
-
-            {/* Scrollable Questions */}
-            <form
-              method="dialog"
-              className="mb-6 flex-1 overflow-y-scroll border-t-3 px-6 shadow-[inset_0_30px_20px_-20px_rgba(0,0,0,0.35)]"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                handleSubmitEvaluation(formData);
-              }}
-            >
-              <div className="flex flex-col gap-12">
-                {currentEvaluation.import_questions.map((question, index) => (
-                  <div key={question.id} className="flex flex-col gap-2 md:items-start">
-                    <label className="w-full pt-2 text-lg font-semibold">
-                      {index + 1}. {question.question}
-                    </label>
-                    {question.type === "mcq" && question.choices && question.choices.length > 0 && (
-                      <div className="flex flex-col gap-2">
-                        {question.choices.map((choice: string, choiceIndex: number) => (
-                          <label key={choiceIndex} className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name={`question-${index}`}
-                              value={choice}
-                              className="radio"
-                              required
-                            />
-                            {choice}
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                    {question.type === "rating" && (
-                      <div className="flex flex-col gap-2">
-                        {[1, 2, 3, 4, 5].map((rating) => (
-                          <label key={rating} className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name={`question-${index}`}
-                              value={rating.toString()}
-                              className="radio"
-                              required
-                            />
-                            {rating} - {
-                              rating === 1 ? "Poor/Strongly Disagree" :
-                                rating === 2 ? "Below Average/Disagree" :
-                                  rating === 3 ? "Average/Neutral" :
-                                    rating === 4 ? "Good/Agree" :
-                                      "Excellent/Strongly Agree"
-                            }
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                    {question.type === "comment" && (
-                      <textarea
-                        name={`question-${index}`}
-                        className="textarea textarea-bordered w-full"
-                        placeholder="Enter your response..."
-                        rows={3}
-                        required
-                        defaultValue=""
-                      />
-                    )}
-
-                  </div>
-                ))}
-              </div>
-              <div className="modal-action bottom-0 pt-3">
-                <button
-                  type="submit"
-                  className="btn btn-success text-white"
-                >
-                  Submit Evaluation
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* View-Only Dialog */}
-      {openViewDialog && currentEvaluation && currentSubject && (
-        <div className="modal modal-open" id="view_modal">
-          <div className="modal-box flex h-[80%] w-[90%] max-w-5xl flex-col text-black md:w-11/12">
-            <div className="sticky top-0 z-10 flex items-start justify-between px-6 py-3">
-              <div className="text-left">
-                <h3 className="text-2xl font-bold">{currentSubject.name}</h3>
-                <p className="text-md text-gray-400">
-                  Teacher: <strong>{currentSubject.teacher}</strong>
-                </p>
-                <p className="text-md text-gray-400">
-                  Section: <strong>{currentSubject.section}</strong>
-                </p>
-                <p className="text-md text-gray-600 mt-2">
-                  {currentEvaluation.title}
-                </p>
-                {currentEvaluation.description && (
-                  <p className="text-sm text-gray-500">
-                    {currentEvaluation.description}
-                  </p>
-                )}
-                <p className="text-green-600 font-semibold mt-2">
-                  You have already submitted this evaluation. Answers are view-only.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="btn btn-sm btn-error mt-2 h-9 text-white"
-                onClick={() => setOpenViewDialog(false)}
+                className="btn btn-sm btn-error"
+                onClick={() => setAppearModal(false)}
               >
                 Close
               </button>
             </div>
-            <div className="mb-6 flex-1 overflow-y-scroll border-t-3 px-6 shadow-[inset_0_30px_20px_-20px_rgba(0,0,0,0.35)]">
-              <div className="flex flex-col gap-12">
-                {currentEvaluation.import_questions.map((question, index) => {
-                  const prevAnswer = viewAnswers[question.id] || "";
-                  return (
-                    <div key={question.id} className="flex flex-col gap-2 md:items-start">
-                      <label className="w-full pt-2 text-lg font-semibold">
-                        {index + 1}. {question.question}
-                      </label>
-                      {question.type === "mcq" && question.choices && question.choices.length > 0 && (
-                        <div className="flex flex-col gap-2">
-                          {question.choices.map((choice: string, choiceIndex: number) => (
-                            <label key={choiceIndex} className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                name={`question-${index}`}
-                                value={choice}
-                                className="radio"
-                                disabled
-                                checked={prevAnswer === choice}
-                                readOnly
-                              />
-                              {choice}
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                      {question.type === "rating" && (
-                        <div className="flex flex-col gap-2">
-                          {[1, 2, 3, 4, 5].map((rating) => (
-                            <label key={rating} className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                name={`question-${index}`}
-                                value={rating.toString()}
-                                className="radio"
-                                disabled
-                                checked={prevAnswer === rating.toString()}
-                                readOnly
-                              />
-                              {rating} - {
-                                rating === 1 ? "Poor/Strongly Disagree" :
-                                  rating === 2 ? "Below Average/Disagree" :
-                                    rating === 3 ? "Average/Neutral" :
-                                      rating === 4 ? "Good/Agree" :
-                                        "Excellent/Strongly Agree"
-                              }
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                      {question.type === "comment" && (
-                        <textarea
-                          name={`question-${index}`}
-                          className="textarea textarea-bordered w-full"
-                          placeholder="Enter your response..."
-                          rows={3}
-                          value={prevAnswer}
-                          disabled
-                          readOnly
-                        />
-                      )}
-                    </div>
-                  );
-                })}
+
+            {loading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="loading loading-spinner loading-lg"></div>
+                <span className="ml-3">Loading COPUS data...</span>
               </div>
-            </div>
+            ) : (
+              <CopusMatrixReadOnly
+                evaluationId={currentEvaluation.id}
+                tallyData={copusData[currentEvaluation.id]}
+              />
+            )}
           </div>
         </div>
       )}

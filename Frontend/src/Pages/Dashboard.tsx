@@ -8,6 +8,7 @@ import DashboardAnimation from "../Components/Dashboard Components/Dashboard Ani
 import HomeViewDean from "./DockPages/HomeView Pages/HomeView Dean";
 import HomeViewHR from "./DockPages/HomeView Pages/HomeView HR";
 import HomeViewStudent from "./DockPages/HomeView Pages/HomeView Student";
+
 import Profile from "./DockPages/ProfileView";
 import Evaluation from "./DockPages/EvaluationView Pages/EvaluationView";
 import ResourceGroup from "./DockPages/ResourceGroup Pages/ResourceGroupView";
@@ -22,6 +23,7 @@ import Schedules from "./DockPages/ResourceGroup Pages/Schedules";
 import Subject from "./DockPages/ResourceGroup Pages/Subjects";
 import Sections from "./DockPages/ResourceGroup Pages/Sections";
 import LeanSixSigma from "./DockPages/Lean Six Sigma";
+import HomeViewProfessor from "./DockPages/HomeView Pages/HomeView Professor.tsx";
 
 function Dashboard({ role }: { role: string }) {
   // Default view is "home"
@@ -38,6 +40,8 @@ function Dashboard({ role }: { role: string }) {
         <HomeViewHR />
       ) : role === "Student" ? (
         <HomeViewStudent />
+      ) : role === "Professor" ? (
+          <HomeViewProfessor/>
       ) : (
         <div>Home</div>
       ),
