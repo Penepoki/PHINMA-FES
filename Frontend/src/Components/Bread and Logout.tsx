@@ -40,11 +40,12 @@ export default function BreadAndLogout({ setActiveView, breadcrumbs }: BreadAndL
         <div className="absolute left-1/2 -translate-x-1/2">
           <div className="breadcrumbs text-white">
             <ul>
-              {breadcrumbs.map((b, i) => (
-                <li key={`${i}-${b.label}`}>
-                  <a onClick={() => b.view && setActiveView(b.view)}>{b.label}</a>
-                </li>
-              ))}
+              <li>
+                <a onClick={() => setActiveView("home")}>Home</a>
+              </li>
+              <li>
+                <a>Profile View</a>
+              </li>
             </ul>
           </div>
         </div>
