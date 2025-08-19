@@ -8,7 +8,7 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-    ChartOptions,
+  ChartOptions,
 } from "chart.js";
 import api from "../../utils/api";
 
@@ -20,6 +20,62 @@ interface ResponsesChartsTableProps {
   filterType: FilterType;
   filterId: number;
 }
+
+/** ============================
+ *  THEME HELPERS (Primary Color)
+ *  ============================ */
+// System primary
+const PRIMARY_HEX = "#1c402a";
+
+// Convert #rrggbb to rgba(r,g,b,a)
+function hexToRgba(hex: string, alpha = 1): string {
+  const raw = hex.replace("#", "");
+  const bigint = parseInt(raw, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Shades based on primary with varying alpha for multi-segment visuals
+const primaryAlphaScale = (count: number): string[] => {
+  const start = 0.25; // faint
+  const end = 0.95;   // almost solid
+  const step = count > 1 ? (end - start) / (count - 1) : 0;
+  return Array.from({ length: count }, (_, i) => hexToRgba(PRIMARY_HEX, start + step * i));
+};
+
+// Common chart options fragment for dark UI + primary accents
+const baseDarkOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      labels: {
+        color: "#ffffff",
+        usePointStyle: true,
+        padding: 16,
+      },
+    },
+    tooltip: {
+      backgroundColor: hexToRgba(PRIMARY_HEX, 0.92),
+      titleColor: "#ffffff",
+      bodyColor: "#ffffff",
+      borderColor: hexToRgba("#ffffff", 0.25),
+      borderWidth: 1,
+    },
+  },
+  scales: {
+    x: {
+      ticks: { color: "#ffffff" },
+      grid: { color: "rgba(255,255,255,0.10)" },
+    },
+    y: {
+      ticks: { color: "#ffffff" },
+      grid: { color: "rgba(255,255,255,0.10)" },
+    },
+  },
+} as const;
 
 // Helper to group responses by question and answer
 function groupBy<T, K extends keyof any>(array: T[], getKey: (item: T) => K) {
@@ -55,45 +111,40 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
       setLoading(true);
       setError(null);
       try {
-        // For section, use the old logic
         if (filterType === "section") {
           const [resResponses, resQuestions] = await Promise.all([
             api.get(endpointMap[filterType](evaluationId, filterId)),
             api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${evaluationId}`)
-
           ]);
           if (!isMounted) return;
           setResponses(resResponses.data);
           setQuestions(resQuestions.data);
         } else {
-  // For program/professor/faculty: fetch all evaluations for the context
-  let evalsRes;
-  if (filterType === "program") {
-    evalsRes = await api.get(`/studentevaluation/studentevaluation/by-program?program=${filterId}`);
-  } else if (filterType === "professor") {
-    evalsRes = await api.get(`/studentevaluation/studentevaluation/by-professor?professor=${filterId}`);
-  } else if (filterType === "faculty") {
-    evalsRes = await api.get(`/studentevaluation/studentevaluation/by-faculty?faculty=${filterId}`);
-  }
-  let evaluationIds: number[] = [];
-  if (Array.isArray(evalsRes?.data)) {
-    evaluationIds = evalsRes.data.map((e: any) => e.id);
-  } else if (evalsRes?.data?.id) {
-    evaluationIds = [evalsRes.data.id];
-  }
-  // Always fetch all questions for all evaluationIds
-  const allQuestions = await Promise.all(
-    evaluationIds.map(eid =>
-      api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${eid}`)
-    )
-  );
-  const questions = allQuestions.flatMap(res => res.data);
-  // Fetch all responses for the context
-  const resResponses = await api.get(endpointMap[filterType](evaluationId, filterId));
-  if (!isMounted) return;
-  setResponses(resResponses.data);
-  setQuestions(questions);
-}
+          let evalsRes;
+          if (filterType === "program") {
+            evalsRes = await api.get(`/studentevaluation/studentevaluation/by-program?program=${filterId}`);
+          } else if (filterType === "professor") {
+            evalsRes = await api.get(`/studentevaluation/studentevaluation/by-professor?professor=${filterId}`);
+          } else if (filterType === "faculty") {
+            evalsRes = await api.get(`/studentevaluation/studentevaluation/by-faculty?faculty=${filterId}`);
+          }
+          let evaluationIds: number[] = [];
+          if (Array.isArray(evalsRes?.data)) {
+            evaluationIds = evalsRes.data.map((e: any) => e.id);
+          } else if (evalsRes?.data?.id) {
+            evaluationIds = [evalsRes.data.id];
+          }
+          const allQuestions = await Promise.all(
+            evaluationIds.map(eid =>
+              api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${eid}`)
+            )
+          );
+          const questions = allQuestions.flatMap(res => res.data);
+          const resResponses = await api.get(endpointMap[filterType](evaluationId, filterId));
+          if (!isMounted) return;
+          setResponses(resResponses.data);
+          setQuestions(questions);
+        }
       } catch (e) {
         if (!isMounted) return;
         setError("Failed to fetch responses or questions");
@@ -111,34 +162,28 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
       setUniqueCountLoading(true);
       try {
         let endpoint = '';
-        
+
         if (filterType === "section") {
-          // For section, use the evaluationId directly
           endpoint = `/studentevaluationresponse/studentevaluationresponse/unique-count-by-evaluation?student_evaluation=${evaluationId}`;
         } else if (filterType === "program") {
-          // For program, get unique count across all evaluations in the program
           endpoint = `/studentevaluationresponse/studentevaluationresponse/unique-count-by-program?program=${filterId}`;
         } else if (filterType === "professor") {
-          // For professor, get unique count across all evaluations by the professor
           endpoint = `/studentevaluationresponse/studentevaluationresponse/unique-count-by-professor?professor=${filterId}`;
         } else if (filterType === "faculty") {
-          // For faculty, get unique count across all evaluations in the faculty
           endpoint = `/studentevaluationresponse/studentevaluationresponse/unique-count-by-faculty?faculty=${filterId}`;
         }
-        
+
         if (endpoint) {
           const res = await api.get(endpoint);
-          console.log("Unique (student, canonical question) response count from API:", res.data.unique_response_count);
           setUniqueStudentCount(res.data.unique_response_count);
         }
       } catch (e) {
-        console.log("Failed to fetch unique response count");
         setUniqueStudentCount(null);
       } finally {
         setUniqueCountLoading(false);
       }
     }
-    
+
     if (!filterId) return;
     fetchUniqueCount();
   }, [evaluationId, filterType, filterId, responses, questions]);
@@ -157,7 +202,6 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
   // Group responses by question type
   const groupedByQuestion = groupBy(enrichedResponses, (r) => r.student_eval_question);
 
-  // Pie chart for rating scale (aggregate all rating answers)
   const ratingQuestions = Object.values(groupedByQuestion).filter(
     (arr) => arr[0]?.question_type?.toUpperCase() === "RATING"
   );
@@ -165,7 +209,6 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
     (arr) => arr[0]?.question_type?.toUpperCase() === "MCQ"
   );
 
-  // Title for the table
   const tableTitle = {
     section: "Section Response Charts",
     professor: "Professor Response Charts",
@@ -195,13 +238,13 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                     <div className="max-h-[500px] overflow-y-auto p-2">
                       {loading && <div>Loading charts...</div>}
                       {error && <div className="text-red-500">{error}</div>}
-                      
+
                       {/* Student Response Count Display */}
-                      <div className="mb-6 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-lg border border-blue-500/30">
+                      <div className="mb-6 p-4 bg-[rgba(28,64,42,0.18)] rounded-lg border border-[rgba(28,64,42,0.35)]">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-blue-500/20 rounded-full">
-                              <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="p-2 rounded-full" style={{ backgroundColor: hexToRgba(PRIMARY_HEX, 0.25) }}>
+                              <svg className="w-6 h-6" style={{ color: hexToRgba(PRIMARY_HEX, 0.9) }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                               </svg>
                             </div>
@@ -223,11 +266,11 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                           <div className="text-right">
                             {uniqueCountLoading ? (
                               <div className="flex items-center space-x-2">
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2" style={{ borderColor: hexToRgba(PRIMARY_HEX, 0.9) }}></div>
                                 <span className="text-gray-300">Loading...</span>
                               </div>
                             ) : (
-                              <div className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
+                              <div className="backdrop-blur-sm rounded-lg px-4 py-2 border" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.20)" }}>
                                 <div className="text-3xl font-bold text-white">
                                   {uniqueStudentCount !== null ? uniqueStudentCount : '—'}
                                 </div>
@@ -238,17 +281,16 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                             )}
                           </div>
                         </div>
-                        
-                        {/* Additional info */}
+
                         {uniqueStudentCount !== null && uniqueStudentCount > 0 && (
                           <div className="mt-3 pt-3 border-t border-white/10">
                             <div className="flex items-center space-x-4 text-sm text-gray-300">
                               <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: hexToRgba(PRIMARY_HEX, 0.85) }}></div>
                                 <span>Active Responses</span>
                               </div>
                               <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: hexToRgba(PRIMARY_HEX, 0.55) }}></div>
                                 <span>
                                   {filterType === "section" && "Section Level"}
                                   {filterType === "program" && "Program Level"}
@@ -259,7 +301,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                             </div>
                           </div>
                         )}
-                        
+
                         {uniqueStudentCount === 0 && !uniqueCountLoading && (
                           <div className="mt-3 pt-3 border-t border-white/10">
                             <div className="flex items-center space-x-2 text-sm text-yellow-300">
@@ -271,7 +313,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Bar chart for each rating question */}
                       {ratingQuestions.length > 0 && (
                         <div className="mb-6">
@@ -282,91 +324,50 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                               responses.forEach((r) => {
                                 answerCounts[r.answer] = (answerCounts[r.answer] || 0) + 1;
                               });
-                              
+
                               const labels = Object.keys(answerCounts);
                               const values = Object.values(answerCounts);
-                              
-                              // Generate different colors for each bar
-                              const backgroundColors = labels.map((_, index) => {
-                                const colors = [
-                                  "#FF6B6B", // Red
-                                  "#4ECDC4", // Teal
-                                  "#45B7D1", // Blue
-                                  "#96CEB4", // Green
-                                  "#FFEAA7", // Yellow
-                                  "#DDA0DD", // Plum
-                                  "#98D8C8", // Mint
-                                  "#F7DC6F", // Light Yellow
-                                  "#BB8FCE", // Light Purple
-                                  "#85C1E9", // Light Blue
-                                  "#F8C471", // Orange
-                                  "#82E0AA"  // Light Green
-                                ];
-                                return colors[index % colors.length];
-                              });
+
+                              // Single-hue (primary) palette with varied alpha per bar
+                              const backgroundColors = primaryAlphaScale(labels.length);
+                              const borderColors = labels.map(() => hexToRgba(PRIMARY_HEX, 0.95));
 
                               const barData = {
-                                labels: labels,
+                                labels,
                                 datasets: [
                                   {
                                     label: "Number of Responses",
                                     data: values,
                                     backgroundColor: backgroundColors,
-                                    borderColor: backgroundColors.map(color => color.replace('0.8', '1')),
+                                    borderColor: borderColors,
                                     borderWidth: 2,
-                                    borderRadius: 4,
+                                    borderRadius: 6,
                                     borderSkipped: false,
+                                    hoverBackgroundColor: labels.map(() => hexToRgba(PRIMARY_HEX, 0.85)),
+                                    hoverBorderColor: labels.map(() => hexToRgba(PRIMARY_HEX, 1)),
                                   },
                                 ],
                               };
 
-                                const barOptions: ChartOptions<'bar'> = {
-                                indexAxis: 'y', // Make the bar chart horizontal
-                                responsive: true,
-                                maintainAspectRatio: false,
+                              const barOptions: ChartOptions<'bar'> = {
+                                ...baseDarkOptions,
+                                indexAxis: "y",
                                 plugins: {
-                                  legend: {
-                                    display: false, // Hide legend since each bar has different colors
-                                  },
+                                  ...baseDarkOptions.plugins,
+                                  legend: { display: false },
                                   tooltip: {
-                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                    titleColor: '#ffffff',
-                                    bodyColor: '#ffffff',
-                                    borderColor: '#ffffff',
-                                    borderWidth: 1,
+                                    ...baseDarkOptions.plugins.tooltip,
                                     callbacks: {
                                       label: function(context: any) {
                                         const label = context.label || '';
-                                        const value = context.parsed.x || 0; // Use x for horizontal bar
+                                        const value = context.parsed.x || 0;
                                         const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
                                         const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
                                         return `${label}: ${value} responses (${percentage}%)`;
-                                      }
-                                    }
-                                  }
-                                },
-                                scales: {
-                                  x: {
-                                    beginAtZero: true,
-                                    ticks: {
-                                      color: '#ffffff',
-                                      stepSize: 1,
+                                      },
                                     },
-                                    grid: {
-                                      color: 'rgba(255, 255, 255, 0.1)',
-                                    }
                                   },
-                                  y: {
-                                    ticks: {
-                                      color: '#ffffff',
-                                      maxRotation: 45,
-                                      minRotation: 0,
-                                    },
-                                    grid: {
-                                      color: 'rgba(255, 255, 255, 0.1)',
-                                    }
-                                  }
-                                }
+                                },
                               };
 
                               return (
@@ -374,15 +375,15 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                   <div className="mb-2 font-medium text-center">
                                     Q{responses[0].student_eval_question}: {responses[0].question_text || "Rating Question"}
                                   </div>
-                                  
+
                                   {/* Rating scale legend */}
-                                  <div className="mb-3 p-2 bg-gray-800/50 rounded-lg w-full max-w-sm">
+                                  <div className="mb-3 p-2 rounded-lg w-full max-w-sm" style={{ backgroundColor: "rgba(17,17,17,0.5)" }}>
                                     <div className="text-xs font-semibold text-gray-300 mb-1">Rating Scale:</div>
                                     <div className="text-xs text-gray-400 space-y-1">
                                       {labels.map((rating, ratingIdx) => (
                                         <div key={ratingIdx} className="flex items-center justify-between">
                                           <div className="flex items-center">
-                                            <div 
+                                            <div
                                               className="w-3 h-3 rounded mr-2 flex-shrink-0"
                                               style={{ backgroundColor: backgroundColors[ratingIdx] }}
                                             ></div>
@@ -405,66 +406,46 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                           </div>
                         </div>
                       )}
+
                       {/* Pie chart for each MCQ question */}
                       {mcqQuestions.length > 0 && (
                         <div>
                           <h6 className="font-bold mb-2">MCQ Results</h6>
                           <div className="flex flex-wrap -mx-2">
                             {mcqQuestions.map((responses, idx) => {
-                              // Get all possible choices from the question
                               const choices: string[] = responses[0]?.choices || [];
                               const answerCounts: Record<string, number> = {};
-                              choices.forEach((choice) => {
-                                answerCounts[choice] = 0;
-                              });
-                              responses.forEach((r) => {
-                                answerCounts[r.answer] = (answerCounts[r.answer] || 0) + 1;
-                              });
+                              choices.forEach((choice) => { answerCounts[choice] = 0; });
+                              responses.forEach((r) => { answerCounts[r.answer] = (answerCounts[r.answer] || 0) + 1; });
+
+                              // Build a monochrome (primary) palette across choices
+                              const pieBg = primaryAlphaScale(Math.max(choices.length, 1));
+                              const pieBorder = pieBg.map(() => hexToRgba(PRIMARY_HEX, 0.95));
 
                               const pieData = {
                                 labels: choices,
                                 datasets: [
                                   {
                                     data: choices.map((c) => answerCounts[c] || 0),
-                                    backgroundColor: [
-                                      "#36A2EB",
-                                      "#FF6384",
-                                      "#FFCE56",
-                                      "#4BC0C0",
-                                      "#9966FF",
-                                      "#FF9F40",
-                                      "#FF8A80",
-                                      "#82B1FF",
-                                      "#B9F6CA",
-                                      "#FFD54F"
-                                    ],
+                                    backgroundColor: pieBg,
                                     borderWidth: 2,
-                                    borderColor: "#ffffff",
+                                    borderColor: pieBorder,
+                                    hoverBackgroundColor: choices.map((_, i) => hexToRgba(PRIMARY_HEX, Math.min(1, 0.35 + (i * 0.08)))),
+                                    hoverBorderColor: pieBorder,
                                   },
                                 ],
                               };
 
-                              const pieOptions = {
-                                responsive: true,
-                                maintainAspectRatio: false,
+                              const pieOptions: ChartOptions<"pie"> = {
+                                ...baseDarkOptions,
                                 plugins: {
+                                  ...baseDarkOptions.plugins,
                                   legend: {
-                                    position: 'bottom' as const,
-                                    labels: {
-                                      color: '#ffffff',
-                                      font: {
-                                        size: 12
-                                      },
-                                      padding: 10,
-                                      usePointStyle: true,
-                                    }
+                                    ...baseDarkOptions.plugins.legend,
+                                    position: "bottom",
                                   },
                                   tooltip: {
-                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                    titleColor: '#ffffff',
-                                    bodyColor: '#ffffff',
-                                    borderColor: '#ffffff',
-                                    borderWidth: 1,
+                                    ...baseDarkOptions.plugins.tooltip,
                                     callbacks: {
                                       label: function(context: any) {
                                         const label = context.label || '';
@@ -472,10 +453,11 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                         const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
                                         const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
                                         return `${label}: ${value} responses (${percentage}%)`;
-                                      }
-                                    }
-                                  }
-                                }
+                                      },
+                                    },
+                                  },
+                                },
+                                scales: undefined, // pies don’t use scales
                               };
 
                               return (
@@ -485,16 +467,14 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                   </div>
 
                                   {/* Available choices display */}
-                                  <div className="mb-3 p-2 bg-gray-800/50 rounded-lg w-full max-w-xs">
+                                  <div className="mb-3 p-2 rounded-lg w-full max-w-xs" style={{ backgroundColor: "rgba(17,17,17,0.5)" }}>
                                     <div className="text-xs font-semibold text-gray-300 mb-1">Available Choices:</div>
                                     <div className="text-xs text-gray-400 space-y-1">
                                       {choices.map((choice, choiceIdx) => (
                                         <div key={choiceIdx} className="flex items-center">
                                           <div
                                             className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
-                                            style={{
-                                              backgroundColor: pieData.datasets[0].backgroundColor[choiceIdx % pieData.datasets[0].backgroundColor.length]
-                                            }}
+                                            style={{ backgroundColor: pieBg[choiceIdx % pieBg.length] }}
                                           ></div>
                                           <span className="truncate">{choice}</span>
                                         </div>
@@ -511,6 +491,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                           </div>
                         </div>
                       )}
+
                       {ratingQuestions.length === 0 && mcqQuestions.length === 0 && !loading && (
                         <div>No rating or MCQ responses found for this {filterType}.</div>
                       )}

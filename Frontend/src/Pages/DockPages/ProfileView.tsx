@@ -61,7 +61,7 @@ function Profile({ setActiveView }: ProfileProps) {
         setActiveView={setActiveView}
         breadcrumbs={[
           { label: "Home", view: "home" },
-          { label: "Profile View" },
+          { label: "Profile" },
         ]}
       />
       <div className="profile-page z-10 flex h-full w-full flex-col items-center justify-center gap-6 p-4 md:flex-row md:p-8">

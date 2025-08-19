@@ -48,7 +48,7 @@ function CreateStudentQuestion({
   const [questionText, setQuestionText] = useState("");
   const [questionType, setQuestionType] = useState<"mcq" | "rating" | "comment">("mcq");
   const [choices, setChoices] = useState<string[]>(["", ""]);
-  const [errors, setErrors] = useState<{question?: string; choices?: string}>({});
+  const [errors, setErrors] = useState<{ question?: string; choices?: string }>({});
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   // Dialog control
@@ -69,7 +69,7 @@ function CreateStudentQuestion({
   };
 
   const validateForm = (): boolean => {
-    const newErrors: {question?: string; choices?: string} = {};
+    const newErrors: { question?: string; choices?: string } = {};
 
     if (!questionText.trim()) {
       newErrors.question = "Question text is required";
@@ -248,7 +248,7 @@ function CreateStudentQuestion({
           >
             {questionToEdit ? "Update Question" : "Add Question"}
           </button>
-          <button className="btn" onClick={handleClose}>
+          <button className="btn btn-cancel" onClick={handleClose}>
             Cancel
           </button>
         </div>

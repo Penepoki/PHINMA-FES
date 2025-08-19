@@ -425,7 +425,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                             if (hasAllCopus) {
                               return (
                                 <label
-                                  className="btn mx-1 cursor-pointer bg-blue-500 text-white hover:bg-blue-700"
+                                  className="btn mx-1 cursor-pointer bg-[#1b2e3e] text-white hover:bg-[#4e6e88]"
                                 >
                                   <button
                                     type="button"
@@ -442,6 +442,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                             return null;
                           })()}
                           {/* COPUS Type Buttons */}
+                          <div className="divider divider-horizontal divider-accent mx-2"></div>
                           {(() => {
                             // Find the first missing COPUS type for this professor
                             const firstMissingType =
