@@ -111,15 +111,18 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
       setLoading(true);
       setError(null);
       try {
+        // For section, use the old logic
         if (filterType === "section") {
           const [resResponses, resQuestions] = await Promise.all([
             api.get(endpointMap[filterType](evaluationId, filterId)),
             api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${evaluationId}`)
+
           ]);
           if (!isMounted) return;
           setResponses(resResponses.data);
           setQuestions(resQuestions.data);
         } else {
+          // For program/professor/faculty: fetch all evaluations for the context
           let evalsRes;
           if (filterType === "program") {
             evalsRes = await api.get(`/studentevaluation/studentevaluation/by-program?program=${filterId}`);
@@ -134,12 +137,14 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
           } else if (evalsRes?.data?.id) {
             evaluationIds = [evalsRes.data.id];
           }
+          // Always fetch all questions for all evaluationIds
           const allQuestions = await Promise.all(
-            evaluationIds.map(eid =>
-              api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${eid}`)
-            )
+              evaluationIds.map(eid =>
+                  api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${eid}`)
+              )
           );
           const questions = allQuestions.flatMap(res => res.data);
+          // Fetch all responses for the context
           const resResponses = await api.get(endpointMap[filterType](evaluationId, filterId));
           if (!isMounted) return;
           setResponses(resResponses.data);

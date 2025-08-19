@@ -83,6 +83,4 @@ urlpatterns = [
 
     path('copus/bulk-tallies/', copus_bulk_tallies, name='copus-bulk-tallies'),
 
-
-
 ]

@@ -559,6 +559,45 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
         return Response(data, status=200)
 
+    ### EVALUATION CUSTOMS FOR PROFESSOR VIEW BELOW
+    @action(detail=False, methods=["get"], url_path='my-evaluations', permission_classes=[IsAuthenticated])
+    def my_evaluations(self, request):
+        """
+        RETURN EVALUATIONS(COPUS) FOR THE LOGGED-IN USER
+        """
+        evals = Evaluation.objects.filter(
+            instructor=request.user, deleted_at__isnull=True
+        ).select_related('schedule')
+        serializers = self.get_serializer(evals, many=True)
+        return Response(serializers.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='copus-summary-by-program', permission_classes=[IsAuthenticated])
+    def copus_summary_by_professor(self, request):
+        """
+        RETURN TALLIES WITH AALP OF ALL EVALUATION(COPUS) FOR THE LOGGED-IN USER
+        """
+        prof_id = request.query_params.get('professor') or request.user.id
+        evals = Evaluation.objects.filter(
+            instructor_id=prof_id, deleted_at__isnull=True
+        )
+        ids = [e.id for e in evals]
+        if not ids:
+            return Response({"data": {}, "totalActiveLearningPercentage": 0}, status=status.HTTP_200_OK)
+        data = get_copus_bulk_tallies_data(ids)
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='bulk-tallies', permission_classes=[IsAuthenticated])
+    def bulk_tallies(self, request):
+        """FALLBACK UTIL to request tallies by specific ids:
+        /api/evaluation/evaluations/bulk-tallies?evaluation_ids=?,?,?"""
+        eval_ids = request.query_params.get('evaluation_ids', '')
+        ids = [int(x) for x in eval_ids.split(',') if x.strip().isdigit()]
+        if not ids:
+            return Response({"error": "evaluation_ids required"}, status=400)
+        data = get_copus_bulk_tallies_data(ids)
+        return Response(data, status=status.HTTP_200_OK)
+    ### EVALUATION CUSTOMS FOR PROFESSOR VIEW ABOVE
+
 # END OF CRUD EVALUATION -----------------------------------------
 # Define your activity options (should match frontend)
 
