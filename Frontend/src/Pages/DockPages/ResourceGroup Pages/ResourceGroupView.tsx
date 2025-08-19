@@ -58,14 +58,14 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
         setActiveView={setActiveView}
         breadcrumbs={[
           { label: "Home", view: "home" },
-          { label: "Profile View" },
+          { label: "Response Group" },
         ]}
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">
         Resource Group Overview
       </h2>
-      <span className="font-thin text-[#888888] block mb-6">
+      <span className="font-thin text-[#888888] block my-6">
         This is where you can access and organize your institution’s resources—programs, subjects, rooms, sections, and schedules—so that evaluation and classroom management run smoothly.
       </span>
       <div className="z-10 flex h-full w-full flex-col items-center justify-center gap-6 p-0 md:flex-row md:p-6">
