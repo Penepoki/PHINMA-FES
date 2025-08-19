@@ -44,19 +44,17 @@ const iconMap: Record<string, JSX.Element> = {
 };
 
 // ---- DRY child groups ----
-// Evaluation secondary buttons (unchanged)
 const EVAL_CHILDREN = [
   "createStudentEval",
   "studentEval",
   //"evalSummary",
 ] as const;
 
-// Resources secondary buttons (SWAPPED: sections comes before schedules)
 const RESOURCE_CHILDREN = [
   "programs",
   "subjects",
   "rooms",
-  "sections",   // <- moved before schedules
+  "sections", // <- moved before schedules
   "schedules",
 ] as const;
 
@@ -93,6 +91,8 @@ const NavbarHR: React.FC<NavbarProps> = ({
     setActiveView(page);
   };
 
+  // ✅ Mobile fix: icons are hidden on mobile; text always visible on mobile.
+  // Animations apply only on md+.
   const renderAnimatedButton = (key: string, label: string) => {
     const isActive = activeView === key;
     const isHovering = hoveredButton === key;
@@ -100,43 +100,45 @@ const NavbarHR: React.FC<NavbarProps> = ({
     return (
       <button
         key={key}
+        aria-label={label}
         onClick={() => handleClick(key)}
         onMouseEnter={() => setHoveredButton(key)}
         onMouseLeave={() => setHoveredButton(null)}
         className={`
-          group relative h-8 w-10 !px-1 rounded-xl flex items-center justify-center 
-          transition-all duration-300
-          ${isActive ? "ring-2 ring-white scale-125" : ""}
-          ${!isActive ? "hover:scale-[1.4] hover:mx-6" : ""}
-        `}
+        group relative h-8 w-10 !px-1 rounded-xl flex items-center justify-center 
+        transition-all duration-300
+        ${isActive ? "ring-2 ring-white scale-125" : ""}
+        ${!isActive ? "hover:scale-[1.4] hover:mx-6" : ""}
+      `}
       >
-        {/* Icon for desktop only */}
+        {/* Icon: hidden on mobile; same desktop animation as before */}
         <span
           className={`
-            absolute md:block hidden
-            transition-all duration-300 transform
-            ${isActive || isHovering ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"}
-          `}
+          absolute hidden md:block
+          transition-all duration-300 transform
+          ${isActive || isHovering ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"}
+        `}
         >
           {iconMap[key]}
         </span>
 
-        {/* Always show text on mobile, animate on desktop */}
+        {/* Text: ALWAYS visible on mobile; desktop animates like before */}
         <span
           className={`
-            text-white text-xs font-medium text-center px-1 transition-all transform
-            ${isActive || isHovering ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
-            md:absolute md:transition-all md:duration-300
-            md:group-hover:opacity-100 md:group-hover:translate-y-0
-            block md:inline
-          `}
+          text-white text-xs font-medium text-center px-1
+          /* mobile: visible, no animation */
+          block opacity-100 translate-y-0
+          /* desktop: same animation as before */
+          md:absolute md:transition-all md:duration-300 md:transform
+          ${isActive || isHovering ? "md:opacity-100 md:translate-y-0" : "md:opacity-0 md:translate-y-4"}
+          md:group-hover:opacity-100 md:group-hover:translate-y-0
+        `}
         >
           {label}
         </span>
       </button>
     );
   };
-
   // Map all possible active views to the same child arrays (DRY)
   const secondaryDockMap: Record<string, string[]> = {
     // Evaluation cluster
@@ -145,7 +147,7 @@ const NavbarHR: React.FC<NavbarProps> = ({
     studentEval: [...EVAL_CHILDREN],
     //evalSummary: [...EVAL_CHILDREN],
 
-    // Resources cluster (note the swapped order via RESOURCE_CHILDREN)
+    // Resources cluster (using RESOURCE_CHILDREN order)
     resourceGroup: [...RESOURCE_CHILDREN],
     programs: [...RESOURCE_CHILDREN],
     subjects: [...RESOURCE_CHILDREN],
@@ -168,9 +170,15 @@ const NavbarHR: React.FC<NavbarProps> = ({
           }`}
       >
         <div className="tooltip tooltip-left">
+          <span className="tooltip-content whitespace-pre-line text-sm p-2 rounded-xl">
+            {isDockVisible
+              ? "Hide Dock\nKeyboard Shortcut (Space)"
+              : "Show Dock\nKeyboard Shortcut (Space)"}
+          </span>
           <button
-            className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-400 bg-[#102418] text-white shadow-2xl hover:scale-110 transition-transform duration-300"
+            className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#102418] text-white shadow-2xl hover:scale-110 transition-transform duration-300"
             onClick={() => setIsDockVisible(!isDockVisible)}
+            aria-label={isDockVisible ? "Hide dock" : "Show dock"}
           >
             {isDockVisible ? (
               <ChevronDownIcon className="h-6 w-6" />
@@ -184,8 +192,12 @@ const NavbarHR: React.FC<NavbarProps> = ({
       <nav data-theme="SJC" className="flex flex-col items-center">
         {/* Primary Dock */}
         <div
-          className={`dock dock-xs bottom-0 w-full flex justify-center items-end transition-transform duration-300 ease-in-out ${isDockVisible ? "translate-y-0" : "translate-y-[100%]"
-            }`}
+          className={`
+            dock dock-xs bottom-0 w-full flex justify-center items-end
+            transition-transform duration-300 ease-in-out
+            ${isDockVisible ? "translate-y-0" : "translate-y-[100%]"}
+            motion-reduce:transition-none
+          `}
         >
           {[
             ["home", "Home"],
@@ -199,8 +211,13 @@ const NavbarHR: React.FC<NavbarProps> = ({
         {/* Secondary Dock */}
         {secondaryDockVisible && (
           <div
-            className={`dock dock-xs bottom-12 z-2 w-full flex justify-center items-end gap-6 border-b border-b-[#0e4925] transition-all duration-300 ease-in-out ${isDockVisible ? "translate-y-0" : "translate-y-[200%]"
-              }`}
+            className={`
+              dock dock-xs bottom-12 z-2 w-full flex justify-center items-end gap-6
+              border-b border-b-[#0e4925]
+              transition-all duration-300 ease-in-out
+              ${isDockVisible ? "translate-y-0" : "translate-y-[200%]"}
+              motion-reduce:transition-none
+            `}
           >
             {secondaryDockMap[activeView]?.map((view) => {
               let label = view;

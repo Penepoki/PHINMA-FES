@@ -7,12 +7,11 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Bar } from "react-chartjs-2";
 import { LineElement, PointElement, LineController } from "chart.js";
-import { Line, Scatter } from "react-chartjs-2";
+import { Scatter } from "react-chartjs-2";
 import { SankeyController, Flow } from "chartjs-chart-sankey";
 import { Chart } from "react-chartjs-2";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../../utils/api.ts";
 import BreadAndLogout from "../../Components/Bread and Logout.tsx";
 
