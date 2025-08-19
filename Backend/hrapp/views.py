@@ -571,7 +571,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         serializers = self.get_serializer(evals, many=True)
         return Response(serializers.data, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['get'], url_path='copus-summary-by-program', permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['get'], url_path='copus-summary-by-professor', permission_classes=[IsAuthenticated])
     def copus_summary_by_professor(self, request):
         """
         RETURN TALLIES WITH AALP OF ALL EVALUATION(COPUS) FOR THE LOGGED-IN USER
