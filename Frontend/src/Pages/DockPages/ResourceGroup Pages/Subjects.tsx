@@ -422,7 +422,7 @@ function Subjects({ setActiveView }: SubjectsProps) {
       <DataTable
         data={subjects}
         columns={subjectColumns}
-        getRowKey={(subject) => subject.id}
+        getRowKey={(subject) => subject.name}
         actions={subjectActions}
         selectable
         loading={loading}

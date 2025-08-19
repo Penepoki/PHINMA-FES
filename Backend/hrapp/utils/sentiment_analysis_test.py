@@ -36,7 +36,7 @@ local_model_dir = os.path.abspath(os.path.join(
     os.path.dirname(__file__),
     '..',
     'local_model',
-    # 'distilbert-base-uncased-finetuned-sst-2-english'
+    'distilbert-base-uncased-finetuned-sst-2-english'
 ))
 
 # Try to use local model first, fall back to HuggingFace Hub if not available

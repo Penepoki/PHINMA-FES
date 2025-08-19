@@ -1,83 +1,101 @@
-import { useEffect, useState } from "react";
+import {useEffect, useMemo, useState} from "react";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import EvalCards from "../../../Components/Dashboard Components/Professor Components/Evaluation Cards.tsx";
 import CopusMatrixReadOnly from "../../../Components/Evaluation Components/Copus Matrix Read Only.tsx";
 import PieChartWithTable from "../../../Components/Evaluation Components/Piechart with Table";
+import CopusActiveSummary from "../../../Components/Evaluation Components/CopusActiveSummary";
 import * as Interfaces from "../../../Types/Interfaces.ts";
-import * as Fetcher from "../../../utils/fetcher.ts";
+import api from "../../../utils/api"; // your axios instance (baseURL, auth, etc.)
 
 function Home() {
   const [appearModal, setAppearModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [evaluations, setEvaluations] = useState<Interfaces.Evaluation[]>([]);
-  const [schedules, setSchedules] = useState<Interfaces.Schedule[]>([]);
-  const [programs, setPrograms] = useState<Interfaces.Program[]>([]);
-  const [programProfessors, setProgramProfessors] = useState<Interfaces.ProgramProfessor[]>([]);
-  const [modalOpen, setModalOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [user, setUser] = useState<any>(null);
+  const [evaluations, setEvaluations] = useState<Interfaces.Evaluation[]>([]);
+  const [copusTallies, setCopusTallies] = useState<any>({}); // { [evalId]: { studentTallies, teacherTallies, activeLearningPercentage }, totalActiveLearningPercentage }
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
 
   const [selectedEvaluation, setSelectedEvaluation] = useState<any>(null);
   const [selectedProfessor, setSelectedProfessor] = useState<any>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
-  const [copusData, setCopusData] = useState<any>({});
 
-  const currentProfessorId = 1; // replace with your auth/state logic
+  // fetch logged-in user + their evaluations + tallies
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // 1) current user
+        const me = await api.get("/user/user_view_profile/"); // adjust to your URL conf if needed
+        setUser(me.data);
 
-  // Fetch COPUS data for the current professor
-  // useEffect(() => {
-  //   async function fetchCopusData() {
-  //     if (!currentProfessorId) return;
-  //     setLoading(true);
-  //     try {
-  //       const response = await api.get(/copus-summary-by-professor/ ? professor = ${ currentProfessorId });
-  //       setCopusData(response.data);
-  //     } catch (err) {
-  //       console.error("Error fetching COPUS data:", err);
-  //       setError("Failed to load COPUS data.");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   }
-  //   fetchCopusData();
-  // }, [currentProfessorId]);
+        // 2) my evaluations (as instructor)
+        const evRes = await api.get("/evaluation/evaluations/my-evaluations/");
+        const evals = evRes.data || [];
+        setEvaluations(evals);
 
-  const evaluationarray = [
-    { name: "COPUS EXAMPLE", fullname: "College of Information Technology Education", image: null },
-    { name: "CAHS", fullname: "College of Allied Health Sciences", image: null },
-    { name: "CMA", fullname: "College of Management and Accountancy", image: null },
-    { name: "CCJE", fullname: "College of Criminal Justice Education", image: null },
-    { name: "COED", fullname: "College of Education", image: null },
-    { name: "SHS", fullname: "Senior High School", image: null },
-    { name: "etc", fullname: "Other", image: null },
-  ];
+        // 3) tallies for this professor (uses logged-in by default)
+        const talliesRes = await api.get("/evaluation/evaluations/copus-summary-by-professor/");
+        setCopusTallies(talliesRes.data || {});
+      } catch (err: any) {
+        console.error(err);
+        setError("Failed to load data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-  const professors = Array.from(
-    new Map(programProfessors.map((pp) => [pp.professor, pp.professor_details])).values()
+  // EvalCards in your project expects onEvalClick(name: string)
+  const evaluationCardData = useMemo(
+      () =>
+          evaluations.map((e) => ({
+            name: e.name || `Evaluation #${e.id}`,
+            fullname: e.evaluation_type || "COPUS",
+            image: null,
+          })),
+      [evaluations]
   );
 
-  const handleEvalClick = (evaluationId: number) => {
-    const evaluation = evaluations.find((e) => e.id === evaluationId);
+  const handleEvalClick = (evalName: string) => {
+    const evaluation = evaluations.find((e) => (e.name || `Evaluation #${e.id}`) === evalName);
     if (!evaluation) return;
-
     setSelectedEvaluation(evaluation);
-    setSelectedProfessor(evaluation.professor);
-    setSelectedSchedule(evaluation.schedule);
+    // you can compute professor/schedule display fields here if your serializer includes them
+    setSelectedProfessor((evaluation as any).instructor || (evaluation as any).professor_details || null);
+    setSelectedSchedule((evaluation as any).schedule || null);
     setAppearModal(true);
   };
 
-  return (
-    <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
-      <DashboardHeader />
+  const totalActive = copusTallies?.totalActiveLearningPercentage ?? 0;
 
-      <div className="mt-34 flex h-full w-full flex-col items-center justify-start overflow-auto bg-black/20">
-        <EvalCards evaluations={evaluationarray} onEvalClick={handleEvalClick} />
+  return (
+      <div className="home-page z-10 flex h-full w-full flex-col items-center justify-start gap-y-6">
+      <DashboardHeader />
+        {error && <div className="alert alert-error mt-2">{error}</div>}
+
+        {/* Summary gauges */}
+        <div className="w-full px-4">
+          <CopusActiveSummary
+              evaluations={evaluations}
+              evaluationTallies={copusTallies}
+              totalActiveLearningPercentage={totalActive}
+          />
+        </div>
+
+        {/* Cards */}
+        <div className="mt-4 flex h-full w-full flex-col items-center justify-start overflow-auto">
+          <EvalCards evaluations={evaluationCardData} onEvalClick={handleEvalClick}/>
       </div>
 
+        {/* Modal */}
       {appearModal && selectedEvaluation && (
         <dialog open className="modal">
           <div className="modal-box max-h-full w-full max-w-5xl text-black">
             <h3 className="mt-2 mb-6 text-xl font-bold">
-              {selectedProfessor?.first_name} {selectedProfessor?.last_name} - COPUS Evaluation -{" "}
+              {(selectedProfessor?.first_name || "")} {(selectedProfessor?.last_name || "")} — COPUS Evaluation —{" "}
               {selectedEvaluation?.evaluation_type}
             </h3>
 
@@ -89,7 +107,7 @@ function Home() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="input w-full bg-transparent">
                     <span className="text-gray-400">Role:</span>
-                    <span className="text-black"> First Name Placeholder</span>
+                    <span className="text-black"> Professor</span>
                   </div>
                   <div className="input input-bordered w-full bg-transparent">
                     <span className="text-gray-400">Date:</span>
@@ -103,19 +121,21 @@ function Home() {
                   </div>
                   <div className="input input-bordered w-full bg-transparent">
                     <span className="text-gray-400">Section:</span>
-                    <span className="text-black">{selectedSchedule?.section_name || ""}</span>
+                    <span className="text-black">
+                      {(selectedSchedule && (selectedSchedule.section_name || selectedSchedule.section?.name)) || ""}
+                    </span>
                   </div>
                   <div className="input input-bordered w-full bg-transparent">
                     <span className="text-gray-400">Subject:</span>
-                    <span className="text-black">{selectedSchedule?.subject_name || ""}</span>
+                    <span className="text-black">
+                      {(selectedSchedule && (selectedSchedule.subject_name || selectedSchedule.subject?.name)) || ""}
+                    </span>
                   </div>
                   <div className="input input-bordered w-full bg-transparent">
                     <span className="text-gray-400">Room:</span>
-                    <span className="text-black">{selectedSchedule?.room_name || ""}</span>
-                  </div>
-                  <div className="input input-bordered w-full bg-transparent">
-                    <span className="text-gray-400">Program:</span>
-                    <span className="text-black">{selectedSchedule?.program_name || "Null"}</span>
+                    <span className="text-black">
+                      {(selectedSchedule && (selectedSchedule.room_name || selectedSchedule.room?.name)) || ""}
+                    </span>
                   </div>
                   <div className="input input-bordered w-full bg-transparent">
                     <span className="text-gray-400">Start Time:</span>
@@ -136,27 +156,25 @@ function Home() {
             {/* COPUS Read Only Matrix */}
             <CopusMatrixReadOnly
               evaluationId={selectedEvaluation.id}
-              tallyData={copusData[selectedEvaluation.id] || {}}
+              tallyData={copusTallies[selectedEvaluation.id] || {}}
             />
 
             {/* COPUS Summary Chart */}
             <div className="mt-6 flex flex-col items-center justify-center gap-6 md:flex-row">
               <PieChartWithTable
-                studentTallies={copusData[selectedEvaluation.id]?.studentTallies || {}}
-                teacherTallies={copusData[selectedEvaluation.id]?.teacherTallies || {}}
+                  studentTallies={copusTallies[selectedEvaluation.id]?.studentTallies || {}}
+                  teacherTallies={copusTallies[selectedEvaluation.id]?.teacherTallies || {}}
               />
             </div>
 
-            {/* AI Feedback */}
+            {/* AI Feedback placeholder (optional) */}
             <div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
               <input type="checkbox" />
-              <div className="collapse-title text-lg font-semibold">
-                Assisted Summary
-              </div>
+              <div className="collapse-title text-lg font-semibold">Assisted Summary</div>
               <div className="collapse-content">
                 <textarea
                   id="ai-feedback-textarea"
-                  className="textarea min-h-[700px] w-full"
+                  className="textarea min-h-[300px] w-full"
                   placeholder="AI feedback will appear here..."
                   value={aiFeedback || ""}
                   readOnly

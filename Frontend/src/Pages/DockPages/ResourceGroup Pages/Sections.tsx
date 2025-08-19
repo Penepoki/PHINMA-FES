@@ -2,6 +2,11 @@
 interface Option {
   id: number | string;
   name: string;
+  // NEW: enrich for student rows
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  code?: string; // for program (optional)
 }
 
 import React, { useState, useEffect } from "react";
@@ -28,7 +33,9 @@ function Sections({ setActiveView }: SectionsProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Create dialog state
-  const [newSectionName, setNewSectionName] = useState("");
+  const [newSectionName, setNewSectionName] = useState(""); // (optional if backend auto-fills)
+  const [newYearLevel, setNewYearLevel] = useState<Option | null>(null);         // NEW
+  const [newProgram, setNewProgram] = useState<Option | null>(null);             // NEW
   const [createSelectedStudent, setCreateSelectedStudent] = useState<Option | null>(null);
   const [createStagedStudents, setCreateStagedStudents] = useState<Option[]>([]);
 
@@ -39,7 +46,15 @@ function Sections({ setActiveView }: SectionsProps) {
   const [editCurrentStudents, setEditCurrentStudents] = useState<Option[]>([]);
   const [editSelectedStudent, setEditSelectedStudent] = useState<Option | null>(null);
   const [editStagedStudents, setEditStagedStudents] = useState<Option[]>([]);
+  const [editYearLevel, setEditYearLevel] = useState<Option | null>(null);       // NEW
+  const [editProgram, setEditProgram] = useState<Option | null>(null);           // NEW
 
+  const YEAR_OPTIONS: Option[] = [
+    {id: "1", name: "1st Year"},
+    {id: "2", name: "2nd Year"},
+    {id: "3", name: "3rd Year"},
+    {id: "4", name: "4th Year"},
+  ];
   const fetchSections = async () => {
     setLoading(true);
     try {
@@ -60,22 +75,28 @@ function Sections({ setActiveView }: SectionsProps) {
   }, [searchTerm]);
 
   const createSection = async () => {
-    if (!newSectionName.trim()) return alert("Please enter a Section name");
+    // If backend auto-fills name, you can drop this check; otherwise keep as fallback
+    if (!newYearLevel || !newProgram) return alert("Please select Year Level and Program");
+
     const token = localStorage.getItem("token");
     if (!token) return alert("You are not authenticated. Please login.");
+
     try {
+      // let backend auto-name based on year/program (as you mentioned)
       const res = await api.post(
         "/section/sections/",
-        { name: newSectionName },
         {
-          headers: { Authorization: `Bearer ${token}` },
+          // name: newSectionName || undefined, // optional if server auto-fills
+          year_level: newYearLevel.id,
+          program: newProgram.id,
         },
+          {headers: {Authorization: `Bearer ${token}`}}
       );
 
       const created: Section | undefined = res?.data;
       const sectionId = created?.id;
 
-      // If we staged students, add them to the newly created section
+      // bulk add staged students via the existing action
       if (sectionId && createStagedStudents.length > 0) {
         const ids = createStagedStudents.map((s) => Number(s.id));
         await api.post(`/section/sections/${sectionId}/add_students/`, {
@@ -83,8 +104,10 @@ function Sections({ setActiveView }: SectionsProps) {
         });
       }
 
-      // Reset
+      // reset
       setNewSectionName("");
+      setNewYearLevel(null);
+      setNewProgram(null);
       setCreateSelectedStudent(null);
       setCreateStagedStudents([]);
       (document.getElementById("create_new_Section") as HTMLDialogElement)?.close();
@@ -168,15 +191,16 @@ function Sections({ setActiveView }: SectionsProps) {
     if (!editSection) return;
     try {
       await api.patch(`/section/sections/${editSection.id}/`, {
-        name: editName,
+        name: editName,                   // optional if server auto-fills; keep if you allow manual rename
         is_active: editActive,
+        year_level: editYearLevel?.id,    // NEW
+        program: editProgram?.id,         // NEW
       });
       (document.getElementById("edit_section_modal") as HTMLDialogElement)?.close();
       setEditSection(null);
       fetchSections();
     } catch (error) {
       console.error("Error updating Section:", error);
-      alert("Failed to update Section.");
     }
   };
 
@@ -303,7 +327,27 @@ function Sections({ setActiveView }: SectionsProps) {
                   required
                 />
               </div>
+              {/* Year Level (local options; no API call) */}
+              <ComboboxTextField
+                  label="Year Level"
+                  placeholder="Select year"
+                  fetchUrl=""                  // empty => won't fetch
+                  options={YEAR_OPTIONS}
+                  value={newYearLevel}
+                  onChange={setNewYearLevel}
+              />
 
+              {/* Program (type-ahead from backend) */}
+              <ComboboxTextField
+                  label="Program"
+                  placeholder="Search program"
+                  fetchUrl="/program/programs/"  // ProgramViewSet exists in backend
+                  value={newProgram}
+                  onChange={setNewProgram}
+                  mapResponse={(rows: any[]) =>
+                      rows.map((p) => ({id: p.id, name: p.name, code: p.code}))
+                  }
+              />
               {/* Assign Students (create) */}
               <div className="rounded border border-gray-300 p-3">
                 <div className="mb-2 text-lg font-bold">Assign Students (optional)</div>
@@ -311,8 +355,17 @@ function Sections({ setActiveView }: SectionsProps) {
                   label="Student Search"
                   placeholder="Type to search students"
                   fetchUrl="/users/students/"
-                  value={createSelectedStudent}
+                  value={createSelectedStudent} // or editSelectedStudent in edit dialog
                   onChange={setCreateSelectedStudent}
+                  mapResponse={(rows: any[]) =>
+                      rows.map((u) => ({
+                        id: u.id,
+                        name: `${(u.first_name ?? "").trim()} ${(u.last_name ?? "").trim()}`.trim() || u.email || `User #${u.id}`,
+                        first_name: u.first_name,
+                        last_name: u.last_name,
+                        email: u.email,
+                      }))
+                  }
                 />
                 <div className="mt-2 flex gap-2">
                   <button type="button" className="btn btn-primary" onClick={addCreateStudentToBatch}>
@@ -330,25 +383,25 @@ function Sections({ setActiveView }: SectionsProps) {
                   </button>
                 </div>
                 <div className="mt-3">
-                  <div className="font-semibold">Will be added after creation:</div>
-                  {createStagedStudents.length === 0 ? (
-                    <div className="text-sm text-gray-500">None</div>
-                  ) : (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {createStagedStudents.map((s) => (
-                        <div key={s.id} className="badge badge-outline gap-2">
-                          {s.name}
+                  <div className="font-semibold">Students to Add:</div>
+                  <DataTable
+                      data={createStagedStudents}
+                      columns={[
+                        {header: "First Name", accessor: (s) => s.first_name ?? "-"},
+                        {header: "Last Name", accessor: (s) => s.last_name ?? "-"},
+                        {header: "Email", accessor: (s) => s.email ?? "-"},
+                      ]}
+                      getRowKey={(s) => s.id}
+                      actions={(s) => (
                           <button
-                            type="button"
-                            className="ml-2 text-red-500"
-                            onClick={() => removeCreateStudentFromBatch(s.id)}
+                              type="button"
+                              className="text-red-500 underline"
+                              onClick={() => removeCreateStudentFromBatch(s.id)}
                           >
-                            ✕
+                            remove
                           </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                      )}
+                  />
                 </div>
               </div>
 
@@ -482,66 +535,67 @@ function Sections({ setActiveView }: SectionsProps) {
               />
             </div>
 
-            {/* Current students */}
-            <div className="rounded border border-gray-300 p-3">
-              <div className="mb-2 text-lg font-bold">Currently Assigned Students</div>
-              {editCurrentStudents.length === 0 ? (
-                <div className="text-sm text-gray-500">None</div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {editCurrentStudents.map((s) => (
-                    <div key={s.id} className="badge badge-outline gap-2">{s.name}</div>
-                  ))}
-                </div>
-              )}
+            {/* Edit: Year Level */}
+            <ComboboxTextField
+                label="Year Level"
+                placeholder="Select year"
+                fetchUrl=""
+                options={YEAR_OPTIONS}
+                value={editYearLevel}
+                onChange={setEditYearLevel}
+            />
+
+            {/* Edit: Program */}
+            <ComboboxTextField
+                label="Program"
+                placeholder="Search program"
+                fetchUrl="/program/programs/"
+                value={editProgram}
+                onChange={setEditProgram}
+                mapResponse={(rows: any[]) =>
+                    rows.map((p) => ({id: p.id, name: p.name, code: p.code}))
+                }
+            />
+
+            {/* Current Students */}
+            <div className="mt-3">
+              <div className="font-semibold">Currently Assigned:</div>
+              <DataTable
+                  data={editCurrentStudents}
+                  columns={[
+                    {header: "First Name", accessor: (s) => s.first_name ?? (s.name?.split(" ")[0] ?? "-")},
+                    {
+                      header: "Last Name",
+                      accessor: (s) => s.last_name ?? (s.name?.split(" ").slice(1).join(" ") || "-")
+                    },
+                    {header: "Email", accessor: (s) => s.email ?? "-"},
+                  ]}
+                  getRowKey={(s) => s.id}
+              />
             </div>
 
-            {/* Assign more students */}
-            <div className="rounded border border-gray-300 p-3">
-              <div className="mb-2 text-lg font-bold">Assign Additional Students</div>
-              <ComboboxTextField
-                label="Student Search"
-                placeholder="Type to search students"
-                fetchUrl="/users/students/"
-                value={editSelectedStudent}
-                onChange={setEditSelectedStudent}
-              />
-              <div className="mt-2 flex gap-2">
-                <button type="button" className="btn btn-primary" onClick={addEditStudentToBatch}>
-                  Add to list
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => {
-                    setEditSelectedStudent(null);
-                    setEditStagedStudents([]);
-                  }}
-                >
-                  Clear
-                </button>
-              </div>
-              <div className="mt-3">
-                <div className="font-semibold">To Add:</div>
-                {editStagedStudents.length === 0 ? (
-                  <div className="text-sm text-gray-500">None</div>
-                ) : (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {editStagedStudents.map((s) => (
-                      <div key={s.id} className="badge badge-outline gap-2">
-                        {s.name}
-                        <button
+            {/* To Add */}
+            <div className="mt-3">
+              <div className="font-semibold">To Add:</div>
+              <DataTable
+                  data={editStagedStudents}
+                  columns={[
+                    {header: "First Name", accessor: (s) => s.first_name ?? "-"},
+                    {header: "Last Name", accessor: (s) => s.last_name ?? "-"},
+                    {header: "Email", accessor: (s) => s.email ?? "-"},
+                  ]}
+                  getRowKey={(s) => s.id}
+                  actions={(s) => (
+                      <button
                           type="button"
-                          className="ml-2 text-red-500"
+                          className="text-red-500 underline"
                           onClick={() => removeEditStudentFromBatch(s.id)}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                      >
+                        remove
+                      </button>
                 )}
-              </div>
+              />
+
               <div className="mt-3">
                 <button type="button" className="btn btn-success text-white" onClick={submitEditStudents}>
                   Submit Students
