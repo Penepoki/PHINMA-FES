@@ -137,6 +137,7 @@ class TimestampViewSet(viewsets.ModelViewSet):
     queryset = Timestamp.objects.all()
     serializer_class = TimestampSerializer
     filter_backends = [DjangoFilterBackend]
+    permission_classes = [IsAuthenticated]
     filterset_fields = ['evaluation']
 
     def get_queryset(self):
@@ -153,14 +154,14 @@ class TimestampViewSet(viewsets.ModelViewSet):
 
         if evaluation_id:
             queryset = queryset.filter(evaluation_id=evaluation_id)
-
             try:
                 evaluation = Evaluation.objects.get(id=evaluation_id)
-                if not user_can_access_evaluation(self.request.user, evaluation):
+                allowed = user_can_access_evaluation(self.request.user, evaluation)
+                print("DEBUG TimestampViewSet:", self.request.user, "→ allowed?", allowed)
+                if not allowed:
                     return Timestamp.objects.none()
             except Evaluation.DoesNotExist:
                 return Timestamp.objects.none()
-
         return queryset
 
     @action(detail=False, methods=['get'], url_path='options')
@@ -571,7 +572,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         serializers = self.get_serializer(evals, many=True)
         return Response(serializers.data, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['get'], url_path='copus-summary-by-program', permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['get'], url_path='copus-summary-by-professor', permission_classes=[IsAuthenticated])
     def copus_summary_by_professor(self, request):
         """
         RETURN TALLIES WITH AALP OF ALL EVALUATION(COPUS) FOR THE LOGGED-IN USER
@@ -2040,71 +2041,86 @@ def _score_response_for_group_improved(resp):
 @permission_classes([IsAuthenticated])
 def scatterplot_analytics_save_improved(request):
     """
-    Improved version with better validation and error handling.
+    Upsert ScatterPlotAnalytics entries.
+    Supports payloads:
+    1) Single entry: {year, semester, retention_rate}
+    2) Year with multiple semesters: {year, semesters: [...], retention_rate}
+    3) List of entries: [{year, semester, retention_rate}, ...]
     """
-    data = request.data if isinstance(request.data, dict) else {}
-    year = data.get('year')
-    semester = data.get('semester')
-    retention_rate = data.get('retention_rate')
+    def validate_year(y):
+        valid_years = dict(ScatterPlotAnalytics.YEAR_CHOICES)
+        if y not in valid_years:
+            raise ValidationError({"error": f"Invalid year. Must be one of: {list(valid_years.keys())}"})
 
-    # Validate year
-    valid_years = dict(ScatterPlotAnalytics.YEAR_CHOICES)
-    if year not in valid_years:
-        return Response({
-            "error": f"Invalid year. Must be one of: {list(valid_years.keys())}"
-        }, status=status.HTTP_400_BAD_REQUEST)
+    def validate_semester(s):
+        valid_semesters = dict(ScatterPlotAnalytics.SEMESTER_CHOICES)
+        if s not in valid_semesters:
+            raise ValidationError({"error": f"Invalid semester. Must be one of: {list(valid_semesters.keys())}"})
 
-    # Validate semester
-    valid_semesters = dict(ScatterPlotAnalytics.SEMESTER_CHOICES)
-    if semester not in valid_semesters:
-        return Response({
-            "error": f"Invalid semester. Must be one of: {list(valid_semesters.keys())}"
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-    # Validate retention rate
-    try:
-        rr = float(retention_rate)
+    def validate_rate(r):
+        try:
+            rr = float(r)
+        except (ValueError, TypeError):
+            raise ValidationError({"error": "retention_rate must be a valid number"})
         if not (0 <= rr <= 100):
-            return Response({
-                "error": "Retention rate must be between 0 and 100"
-            }, status=status.HTTP_400_BAD_REQUEST)
-    except (ValueError, TypeError):
-        return Response({
-            "error": "retention_rate must be a valid number"
-        }, status=status.HTTP_400_BAD_REQUEST)
+            raise ValidationError({"error": "Retention rate must be between 0 and 100"})
+        return rr
 
     try:
-        # Check for duplicates
-        existing = ScatterPlotAnalytics.objects.filter(
-            year=year,
-            semester=semester,
-            retention_rate=rr
-        ).first()
+        payload = request.data
+        entries = []
 
-        if existing:
-            return Response({
-                "message": "Entry already exists",
-                "id": existing.id,
-                "year": existing.year,
-                "semester": existing.semester,
-                "retention_rate": existing.retention_rate,
-                "created_at": getattr(existing, 'created_at', None),
-            }, status=status.HTTP_200_OK)
+        # Case 3: list of entries
+        if isinstance(payload, list):
+            entries = payload
+        # Case 2: dict with semesters list
+        elif isinstance(payload, dict) and isinstance(payload.get('semesters'), list):
+            year = payload.get('year')
+            rr = payload.get('retention_rate')
+            validate_year(year)
+            rr = validate_rate(rr)
+            semesters = payload.get('semesters')
+            if not semesters:
+                return Response({"error": "semesters list cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
+            for s in semesters:
+                validate_semester(s)
+                entries.append({"year": year, "semester": s, "retention_rate": rr})
+        # Case 1: single dict
+        elif isinstance(payload, dict):
+            year = payload.get('year')
+            semester = payload.get('semester')
+            rr = payload.get('retention_rate')
+            validate_year(year)
+            validate_semester(semester)
+            rr = validate_rate(rr)
+            entries = [{"year": year, "semester": semester, "retention_rate": rr}]
+        else:
+            return Response({"error": "Invalid payload format"}, status=status.HTTP_400_BAD_REQUEST)
 
-        obj = ScatterPlotAnalytics.objects.create(
-            year=year,
-            semester=semester,
-            retention_rate=rr
-        )
+        results = []
+        for item in entries:
+            year = item['year']
+            semester = item['semester']
+            rr = float(item['retention_rate'])
+            obj, created = ScatterPlotAnalytics.objects.update_or_create(
+                year=year, semester=semester,
+                defaults={"retention_rate": rr}
+            )
+            results.append({
+                "id": obj.id,
+                "year": obj.year,
+                "semester": obj.semester,
+                "retention_rate": obj.retention_rate,
+                "created_at": getattr(obj, 'created_at', None),
+                "action": "created" if created else "updated"
+            })
 
-        return Response({
-            "id": obj.id,
-            "year": obj.year,
-            "semester": obj.semester,
-            "retention_rate": obj.retention_rate,
-            "created_at": getattr(obj, 'created_at', None),
-        }, status=status.HTTP_201_CREATED)
+        # Return 200 always for upsert with list of results
+        return Response({"results": results}, status=status.HTTP_200_OK)
 
+    except ValidationError as ve:
+        # When we raised one of our validations above
+        return Response(ve.detail if hasattr(ve, 'detail') else {"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         print(f"[ERROR] Failed to save retention entry: {e}")
         return Response({

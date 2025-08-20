@@ -1,4 +1,5 @@
-import {useEffect, useMemo, useState} from "react";
+
+import React, { useEffect, useMemo, useState } from "react";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import EvalCards from "../../../Components/Dashboard Components/Professor Components/Evaluation Cards.tsx";
 import CopusMatrixReadOnly from "../../../Components/Evaluation Components/Copus Matrix Read Only.tsx";
@@ -28,7 +29,7 @@ function Home() {
       setError(null);
       try {
         // 1) current user
-        const me = await api.get("/user/user_view_profile/"); // adjust to your URL conf if needed
+        const me = await api.get("/user-dashboard/"); // adjust to your URL conf if needed
         setUser(me.data);
 
         // 2) my evaluations (as instructor)
