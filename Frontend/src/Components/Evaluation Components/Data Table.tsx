@@ -26,7 +26,7 @@ function DataTable<T>({
   return (
     <div className="w-full overflow-x-auto text-white shadow-xl">
       <table className="table text-lg">
-        <thead className="sticky top-0 z-1 bg-[#1c402a] text-xl font-bold text-white">
+        <thead className="sticky top-0 z-1 bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
           <tr>
             {selectable && (
               <th>
@@ -51,17 +51,17 @@ function DataTable<T>({
               <tr key={`skeleton-${rowIndex}`} className="animate-pulse">
                 {selectable && (
                   <td>
-                    <div className="skeleton h-5 w-5 bg-black/5"></div>
+                    <div className="skeleton h-8 w-5"></div>
                   </td>
                 )}
                 {columns.map((_, colIndex) => (
                   <td key={colIndex}>
-                    <div className="skeleton h-6 w-full bg-black/5"></div>
+                    <div className="skeleton py-6 h-8 w-full"></div>
                   </td>
                 ))}
                 {actions && (
                   <td>
-                    <div className="skeleton h-5 w-16 bg-black/5"></div>
+                    <div className="skeleton h-8 w-12"></div>
                   </td>
                 )}
               </tr>
@@ -76,7 +76,7 @@ function DataTable<T>({
             data.map((item) => (
               <tr
                 key={getRowKey(item)}
-                className="transition-colors duration-500 hover:bg-[#1b2e3e]"
+                className="transition-colors duration-500 hover:bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40"
               >
                 {selectable && (
                   <td>

@@ -97,6 +97,15 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
           </span>
         </div>
         <div className="rg-container md:gap-y-6 md:p-6">
+          <h2 className="mb-4 text-4xl font-bold">Sections</h2>
+          <span className="text-xl text-gray-300">
+            Number of current sections:
+          </span>
+          <span className="text-8xl text-white">
+            {renderCount(programs.length)}
+          </span>
+        </div>
+        <div className="rg-container md:gap-y-6 md:p-6">
           <h2 className="mb-4 text-4xl font-bold">Schedules</h2>
           <span className="text-xl text-gray-300">
             Number of current schedules:

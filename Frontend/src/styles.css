@@ -287,5 +287,5 @@ html {
 	@apply hover:scale-100;
 }
 .skeleton {
-  @apply bg-black/20; 
+  @apply bg-black/5;
 }
