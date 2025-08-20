@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../utils/api";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 
 interface ResourceGroupProps {
   setActiveView: (view: string) => void;
@@ -53,17 +54,20 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
   return (
     <div className="custom-container">
       {/* Breadcrumbs */}
-      <div className="breadcrumbs">
-        <ul>
-          <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
-          </li>
-          <li>Resource Group</li>
-        </ul>
-      </div>
+      <BreadAndLogout
+        setActiveView={setActiveView}
+        breadcrumbs={[
+          { label: "Home", view: "home" },
+          { label: "Response Group" },
+        ]}
+      />
+
       <h2 className="mt-4 text-3xl font-bold text-white">
         Resource Group Overview
       </h2>
+      <span className="font-thin text-[#888888] block my-6">
+        This is where you can access and organize your institution’s resources—programs, subjects, rooms, sections, and schedules—so that evaluation and classroom management run smoothly.
+      </span>
       <div className="z-10 flex h-full w-full flex-col items-center justify-center gap-6 p-0 md:flex-row md:p-6">
         <div className="rg-container md:gap-y-6 md:p-6">
           <h2 className="mb-4 text-4xl font-bold">Courses</h2>

@@ -1,470 +1,218 @@
-import React, { useEffect, useState } from "react";
-import SubjectCards from "../../../Components/Dashboard Components/Student Components/Subject Cards";
-import SemesterCard from "../../../Components/Dashboard Components/HR Components/Semester Cards";
+
+import React, { useEffect, useMemo, useState } from "react";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
-import api from "../../../utils/api";
-import { mapTypeToFrontend } from "../../../Components/Evaluation Components/CreateStudentQuestion";
-
-interface Schedule {
-  id: number;
-  subject_name: string;
-  instructor_name: string;
-  section_name: string;
-  semester: string;
-  year: string;
-  room_name: string;
-}
-
-interface StudentEvaluation {
-  id: number;
-  title: string;
-  description: string;
-  import_questions: any[];
-}
-
-interface Subject {
-  id: number;
-  name: string;
-  teacher: string;
-  section: string;
-  scheduleId: number;
-  questions: any[];
-  image?: string | null;
-  isCompleted?: boolean;
-}
+import EvalCards from "../../../Components/Dashboard Components/Professor Components/Evaluation Cards.tsx";
+import CopusMatrixReadOnly from "../../../Components/Evaluation Components/Copus Matrix Read Only.tsx";
+import PieChartWithTable from "../../../Components/Evaluation Components/Piechart with Table";
+import CopusActiveSummary from "../../../Components/Evaluation Components/CopusActiveSummary";
+import * as Interfaces from "../../../Types/Interfaces.ts";
+import api from "../../../utils/api"; // your axios instance (baseURL, auth, etc.)
 
 function Home() {
-  const [openAnswerDialog, setOpenAnswerDialog] = useState(false);
-  const [openViewDialog, setOpenViewDialog] = useState(false);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [currentEvaluation, setCurrentEvaluation] = useState<StudentEvaluation | null>(null);
-  const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
+  const [appearModal, setAppearModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [viewAnswers, setViewAnswers] = useState<Record<number, string>>({});
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch student's schedules and evaluation completion status
+  const [user, setUser] = useState<any>(null);
+  const [evaluations, setEvaluations] = useState<Interfaces.Evaluation[]>([]);
+  const [copusTallies, setCopusTallies] = useState<any>({}); // { [evalId]: { studentTallies, teacherTallies, activeLearningPercentage }, totalActiveLearningPercentage }
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
+
+  const [selectedEvaluation, setSelectedEvaluation] = useState<any>(null);
+  const [selectedProfessor, setSelectedProfessor] = useState<any>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
+
+  // fetch logged-in user + their evaluations + tallies
   useEffect(() => {
-    const fetchStudentSchedulesAndProgress = async () => {
+    (async () => {
       setLoading(true);
+      setError(null);
       try {
-        const response = await api.get('/schedule/schedules/my-schedules/');
-        const subjectCards: Subject[] = response.data.map((schedule: Schedule) => ({
-          id: schedule.id,
-          name: schedule.subject_name,
-          teacher: schedule.instructor_name,
-          section: schedule.section_name,
-          scheduleId: schedule.id,
-          questions: [],
-          image: null,
-          isCompleted: false,
-        }));
+        // 1) current user
+        const me = await api.get("/user-dashboard/"); // adjust to your URL conf if needed
+        setUser(me.data);
 
-        // For each subject, fetch the evaluation and set isCompleted
-        await Promise.all(subjectCards.map(async (subject) => {
-          try {
-            const evalRes = await api.get(`/studentevaluation/studentevaluation/by-schedule/${subject.scheduleId}/`);
-            subject.isCompleted = !!evalRes.data.is_completed;
-          } catch (e) {
-            subject.isCompleted = false;
-          }
-        }));
+        // 2) my evaluations (as instructor)
+        const evRes = await api.get("/evaluation/evaluations/my-evaluations/");
+        const evals = evRes.data || [];
+        setEvaluations(evals);
 
-        setSubjects(subjectCards);
-      } catch (error) {
-        console.error('Error fetching schedules or progress:', error);
+        // 3) tallies for this professor (uses logged-in by default)
+        const talliesRes = await api.get("/evaluation/evaluations/copus-summary-by-professor/");
+        setCopusTallies(talliesRes.data || {});
+      } catch (err: any) {
+        console.error(err);
+        setError("Failed to load data. Please try again.");
       } finally {
         setLoading(false);
       }
-    };
-    fetchStudentSchedulesAndProgress();
+    })();
   }, []);
 
-  // Handle subject card click
-  const handleSubjectClick = async (subjectName: string) => {
-    const selectedSubject = subjects.find(s => s.name === subjectName);
-    if (!selectedSubject) return;
+  // EvalCards in your project expects onEvalClick(name: string)
+  const evaluationCardData = useMemo(
+      () =>
+          evaluations.map((e) => ({
+            name: e.name || `Evaluation #${e.id}`,
+            fullname: e.evaluation_type || "COPUS",
+            image: null,
+          })),
+      [evaluations]
+  );
 
-    try {
-      const evalResponse = await api.get(`/studentevaluation/studentevaluation/by-schedule/${selectedSubject.scheduleId}/`);
-      const importQuestions = evalResponse.data.import_questions || [];
-      let mappedQuestions: any[] = [];
-
-      if (importQuestions.length > 0) {
-        if (typeof importQuestions[0] === 'number') {
-          const allQuestionsResponse = await api.get('/studentevaluationquestion/studentevaluationquestion/');
-          mappedQuestions = allQuestionsResponse.data
-            .filter((q: any) => importQuestions.includes(q.id))
-            .map((q: any) => ({
-              id: q.id,
-              question: q.question,
-              type: mapTypeToFrontend(q.type),
-              choices: q.options || [],
-            }));
-        } else {
-          mappedQuestions = importQuestions.map((q: any) => ({
-            id: q.id,
-            question: q.question,
-            type: mapTypeToFrontend(q.type),
-            choices: q.options || [],
-          }));
-        }
-      }
-
-      setCurrentEvaluation({
-        ...evalResponse.data,
-        import_questions: mappedQuestions
-      });
-      setCurrentSubject(selectedSubject);
-
-      // Use is_completed from backend
-      if (evalResponse.data.is_completed) {
-        // Fetch only answers for this evaluation
-        const answers: Record<number, string> = {};
-        try {
-          const prevResponse = await api.get(`/studentevaluationresponse/studentevaluationresponse/?student_evaluation=${evalResponse.data.id}&user=current`);
-          if (prevResponse.data && prevResponse.data.length > 0) {
-            prevResponse.data.forEach((resp: any) => {
-              answers[resp.student_eval_question] = resp.answer;
-            });
-          }
-        } catch (err) { }
-        setViewAnswers(answers);
-        setOpenViewDialog(true);
-      } else {
-        setOpenAnswerDialog(true);
-      }
-    } catch (error) {
-      console.error('Error fetching evaluation:', error);
-      alert('No evaluation found for this subject');
-    }
+  const handleEvalClick = (evalName: string) => {
+    const evaluation = evaluations.find((e) => (e.name || `Evaluation #${e.id}`) === evalName);
+    if (!evaluation) return;
+    setSelectedEvaluation(evaluation);
+    // you can compute professor/schedule display fields here if your serializer includes them
+    setSelectedProfessor((evaluation as any).instructor || (evaluation as any).professor_details || null);
+    setSelectedSchedule((evaluation as any).schedule || null);
+    setAppearModal(true);
   };
 
-  // Handle evaluation submission
-  const handleSubmitEvaluation = async (formData: FormData) => {
-    if (!currentEvaluation || !currentSubject) return;
-
-    try {
-      const responses = currentEvaluation.import_questions.map((question, index) => ({
-        question_id: question.id,
-        answer: formData.get(`question-${index}`) as string
-      }));
-
-      await api.post('/studentevaluationresponse/studentevaluationresponse/submit-responses/', {
-        student_evaluation_id: currentEvaluation.id,
-        responses: responses
-      });
-
-      // Update isCompleted for the subject
-      setSubjects(prevSubjects =>
-        prevSubjects.map(subject =>
-          subject.id === currentSubject.id
-            ? { ...subject, isCompleted: true }
-            : subject
-        )
-      );
-      setOpenAnswerDialog(false);
-      alert(`${currentSubject.name} evaluation submitted successfully!`);
-    } catch (error: any) {
-      console.error('Error submitting evaluation:', error);
-      if (error.response?.data?.error) {
-        alert(error.response.data.error);
-      } else {
-        alert('Error submitting evaluation. Please try again.');
-      }
-    }
-  };
-
-  const totalSubjects = subjects.length;
-  const completedCount = subjects.filter(subject => subject.isCompleted).length;
-  const ratio = `${completedCount}/${totalSubjects}`;
-
-  const semesterData = [
-    {
-      semester: "1st",
-      ratio: ratio,
-    },
-    {
-      semester: "2nd",
-      ratio: ratio,
-    },
-  ];
-
-  if (loading) {
-    return (
-      <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center">
-        <div className="loading loading-spinner loading-lg"></div>
-        <p className="mt-4 text-white">Loading your subjects...</p>
-      </div>
-    );
-  }
-
-  const unfinishedSubjects = subjects.filter(subject => !subject.isCompleted);
-  const finishedSubjects = subjects.filter(subject => subject.isCompleted);
+  const totalActive = copusTallies?.totalActiveLearningPercentage ?? 0;
 
   return (
-    <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
-      {/* Header */}
+      <div className="home-page z-10 flex h-full w-full flex-col items-center justify-start gap-y-6">
       <DashboardHeader />
+        {error && <div className="alert alert-error mt-2">{error}</div>}
 
-      {/* Content */}
-      <div className="mt-35 ml-3 flex h-auto w-auto flex-col-reverse items-start justify-center gap-4 overflow-y-auto md:mr-103 md:flex-row">
-        {/* Subject Lists Split into Unfinished and Finished */}
-        <div className="flex flex-col gap-6">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Unfinished Subjects</h2>
-            <SubjectCards
-              subjects={unfinishedSubjects}
-              onClick={handleSubjectClick}
-              completedSubjects={new Set()} // Not used anymore, but required by prop
-            />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-white">Finished Subjects</h2>
-            <SubjectCards
-              subjects={finishedSubjects}
-              onClick={handleSubjectClick}
-              completedSubjects={new Set()} // Not used anymore, but required by prop
-            />
-          </div>
+        {/* Summary gauges */}
+        <div className="w-full px-4">
+          <CopusActiveSummary
+              evaluations={evaluations}
+              evaluationTallies={copusTallies}
+              totalActiveLearningPercentage={totalActive}
+          />
         </div>
 
-        {/* Progress */}
-        <div className="flex w-full flex-row items-center justify-center gap-6 md:absolute md:right-20 md:mt-26 md:w-auto md:flex-col">
-          {semesterData.map(({ semester, ratio }) => (
-            <SemesterCard
-              key={semester}
-              semester={semester}
-              ratio={ratio}
-            />
-          ))}
-        </div>
-        {/* Progress Bar */}
-        <div className="flex w-full flex-row items-center justify-center gap-6 md:absolute md:right-20 md:mt-26 md:w-auto md:flex-col">
-          {semesterData.map(({ semester, ratio }) => (
-            <SemesterCard
-              key={semester}
-              semester={semester}
-              ratio={ratio}
-            />
-          ))}
-        </div>
+        {/* Cards */}
+        <div className="mt-4 flex h-full w-full flex-col items-center justify-start overflow-auto">
+          <EvalCards evaluations={evaluationCardData} onEvalClick={handleEvalClick}/>
       </div>
 
-      {/* Answer Dialog */}
-      {openAnswerDialog && currentEvaluation && currentSubject && (
-        <div className="modal modal-open" id="answer_modal">
-          <div className="modal-box flex h-[80%] w-[90%] max-w-5xl flex-col text-black md:w-11/12">
-            {/* Sticky Header */}
-            <div className="sticky top-0 z-10 flex items-start justify-between px-6 py-3">
-              <div className="text-left">
-                <h3 className="text-2xl font-bold">{currentSubject.name}</h3>
-                <p className="text-md text-gray-400">
-                  Teacher: <strong>{currentSubject.teacher}</strong>
-                </p>
-                <p className="text-md text-gray-400">
-                  Section: <strong>{currentSubject.section}</strong>
-                </p>
-                <p className="text-md text-gray-600 mt-2">
-                  {currentEvaluation.title}
-                </p>
-                {currentEvaluation.description && (
-                  <p className="text-sm text-gray-500">
-                    {currentEvaluation.description}
-                  </p>
-                )}
+        {/* Modal */}
+      {appearModal && selectedEvaluation && (
+        <dialog open className="modal">
+          <div className="modal-box max-h-full w-full max-w-5xl text-black">
+            <h3 className="mt-2 mb-6 text-xl font-bold">
+              {(selectedProfessor?.first_name || "")} {(selectedProfessor?.last_name || "")} — COPUS Evaluation —{" "}
+              {selectedEvaluation?.evaluation_type}
+            </h3>
+
+            {/* Basic Information */}
+            <div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
+              <input type="checkbox" />
+              <div className="collapse-title text-lg font-semibold">Basic Information</div>
+              <div className="collapse-content space-y-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="input w-full bg-transparent">
+                    <span className="text-gray-400">Role:</span>
+                    <span className="text-black"> Professor</span>
+                  </div>
+                  <div className="input input-bordered w-full bg-transparent">
+                    <span className="text-gray-400">Date:</span>
+                    <span className="text-black"> {selectedEvaluation?.observation_date}</span>
+                  </div>
+                  <div className="input input-bordered w-full bg-transparent">
+                    <span className="text-gray-400">Name of Evaluated:</span>
+                    <span className="text-black">
+                      {`${selectedProfessor?.first_name || ""} ${selectedProfessor?.last_name || ""}`}
+                    </span>
+                  </div>
+                  <div className="input input-bordered w-full bg-transparent">
+                    <span className="text-gray-400">Section:</span>
+                    <span className="text-black">
+                      {(selectedSchedule && (selectedSchedule.section_name || selectedSchedule.section?.name)) || ""}
+                    </span>
+                  </div>
+                  <div className="input input-bordered w-full bg-transparent">
+                    <span className="text-gray-400">Subject:</span>
+                    <span className="text-black">
+                      {(selectedSchedule && (selectedSchedule.subject_name || selectedSchedule.subject?.name)) || ""}
+                    </span>
+                  </div>
+                  <div className="input input-bordered w-full bg-transparent">
+                    <span className="text-gray-400">Room:</span>
+                    <span className="text-black">
+                      {(selectedSchedule && (selectedSchedule.room_name || selectedSchedule.room?.name)) || ""}
+                    </span>
+                  </div>
+                  <div className="input input-bordered w-full bg-transparent">
+                    <span className="text-gray-400">Start Time:</span>
+                    <span className="text-black">{selectedSchedule?.start_time || ""}</span>
+                  </div>
+                  <div className="input input-bordered w-full bg-transparent">
+                    <span className="text-gray-400">End Time:</span>
+                    <span className="text-black">{selectedSchedule?.end_time || ""}</span>
+                  </div>
+                  <div className="input input-bordered w-full bg-transparent">
+                    <span className="text-gray-400">Semester:</span>
+                    <span className="text-black">{selectedSchedule?.semester || ""}</span>
+                  </div>
+                </div>
               </div>
-              <button
-                type="button"
-                className="btn btn-sm btn-error mt-2 h-9 text-white"
-                onClick={() => setOpenAnswerDialog(false)}
-              >
-                Cancel
-              </button>
             </div>
 
-            {/* Scrollable Questions */}
-            <form
-              method="dialog"
-              className="mb-6 flex-1 overflow-y-scroll border-t-3 px-6 shadow-[inset_0_30px_20px_-20px_rgba(0,0,0,0.35)]"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                handleSubmitEvaluation(formData);
-              }}
-            >
-              <div className="flex flex-col gap-12">
-                {currentEvaluation.import_questions.map((question, index) => (
-                  <div key={question.id} className="flex flex-col gap-2 md:items-start">
-                    <label className="w-full pt-2 text-lg font-semibold">
-                      {index + 1}. {question.question}
-                    </label>
-                    {question.type === "mcq" && question.choices && question.choices.length > 0 && (
-                      <div className="flex flex-col gap-2">
-                        {question.choices.map((choice: string, choiceIndex: number) => (
-                          <label key={choiceIndex} className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name={`question-${index}`}
-                              value={choice}
-                              className="radio"
-                              required
-                            />
-                            {choice}
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                    {question.type === "rating" && (
-                      <div className="flex flex-col gap-2">
-                        {[1, 2, 3, 4, 5].map((rating) => (
-                          <label key={rating} className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name={`question-${index}`}
-                              value={rating.toString()}
-                              className="radio"
-                              required
-                            />
-                            {rating} - {
-                              rating === 1 ? "Poor/Strongly Disagree" :
-                                rating === 2 ? "Below Average/Disagree" :
-                                  rating === 3 ? "Average/Neutral" :
-                                    rating === 4 ? "Good/Agree" :
-                                      "Excellent/Strongly Agree"
-                            }
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                    {question.type === "comment" && (
-                      <textarea
-                        name={`question-${index}`}
-                        className="textarea textarea-bordered w-full"
-                        placeholder="Enter your response..."
-                        rows={3}
-                        required
-                        defaultValue=""
-                      />
-                    )}
+            {/* COPUS Read Only Matrix */}
+            <CopusMatrixReadOnly
+              evaluationId={selectedEvaluation.id}
+              tallyData={copusTallies[selectedEvaluation.id] || {}}
+            />
 
-                  </div>
-                ))}
+            {/* COPUS Summary Chart */}
+            <div className="mt-6 flex flex-col items-center justify-center gap-6 md:flex-row">
+              <PieChartWithTable
+                  studentTallies={copusTallies[selectedEvaluation.id]?.studentTallies || {}}
+                  teacherTallies={copusTallies[selectedEvaluation.id]?.teacherTallies || {}}
+              />
+            </div>
+
+            {/* AI Feedback placeholder (optional) */}
+            <div className="collapse-arrow collapse mb-4 border-1 border-gray-300">
+              <input type="checkbox" />
+              <div className="collapse-title text-lg font-semibold">Assisted Summary</div>
+              <div className="collapse-content">
+                <textarea
+                  id="ai-feedback-textarea"
+                  className="textarea min-h-[300px] w-full"
+                  placeholder="AI feedback will appear here..."
+                  value={aiFeedback || ""}
+                  readOnly
+                />
               </div>
-              <div className="modal-action bottom-0 pt-3">
+            </div>
+
+            {/* Actions */}
+            <div className="modal-action">
+              <form method="dialog" className="flex flex-wrap gap-3">
+                <button
+                  className="btn btn-primary px-6 text-white"
+                  onClick={() => {
+                    setAppearModal(false);
+                    setSelectedEvaluation(null);
+                    setSelectedProfessor(null);
+                    setSelectedSchedule(null);
+                  }}
+                >
+                  Save and Exit
+                </button>
                 <button
                   type="submit"
-                  className="btn btn-success text-white"
+                  className="btn btn-cancel text-white"
+                  onClick={() => {
+                    setAppearModal(false);
+                    setSelectedEvaluation(null);
+                    setSelectedProfessor(null);
+                    setSelectedSchedule(null);
+                  }}
                 >
-                  Submit Evaluation
+                  Close
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* View-Only Dialog */}
-      {openViewDialog && currentEvaluation && currentSubject && (
-        <div className="modal modal-open" id="view_modal">
-          <div className="modal-box flex h-[80%] w-[90%] max-w-5xl flex-col text-black md:w-11/12">
-            <div className="sticky top-0 z-10 flex items-start justify-between px-6 py-3">
-              <div className="text-left">
-                <h3 className="text-2xl font-bold">{currentSubject.name}</h3>
-                <p className="text-md text-gray-400">
-                  Teacher: <strong>{currentSubject.teacher}</strong>
-                </p>
-                <p className="text-md text-gray-400">
-                  Section: <strong>{currentSubject.section}</strong>
-                </p>
-                <p className="text-md text-gray-600 mt-2">
-                  {currentEvaluation.title}
-                </p>
-                {currentEvaluation.description && (
-                  <p className="text-sm text-gray-500">
-                    {currentEvaluation.description}
-                  </p>
-                )}
-                <p className="text-green-600 font-semibold mt-2">
-                  You have already submitted this evaluation. Answers are view-only.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="btn btn-sm btn-error mt-2 h-9 text-white"
-                onClick={() => setOpenViewDialog(false)}
-              >
-                Close
-              </button>
-            </div>
-            <div className="mb-6 flex-1 overflow-y-scroll border-t-3 px-6 shadow-[inset_0_30px_20px_-20px_rgba(0,0,0,0.35)]">
-              <div className="flex flex-col gap-12">
-                {currentEvaluation.import_questions.map((question, index) => {
-                  const prevAnswer = viewAnswers[question.id] || "";
-                  return (
-                    <div key={question.id} className="flex flex-col gap-2 md:items-start">
-                      <label className="w-full pt-2 text-lg font-semibold">
-                        {index + 1}. {question.question}
-                      </label>
-                      {question.type === "mcq" && question.choices && question.choices.length > 0 && (
-                        <div className="flex flex-col gap-2">
-                          {question.choices.map((choice: string, choiceIndex: number) => (
-                            <label key={choiceIndex} className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                name={`question-${index}`}
-                                value={choice}
-                                className="radio"
-                                disabled
-                                checked={prevAnswer === choice}
-                                readOnly
-                              />
-                              {choice}
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                      {question.type === "rating" && (
-                        <div className="flex flex-col gap-2">
-                          {[1, 2, 3, 4, 5].map((rating) => (
-                            <label key={rating} className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                name={`question-${index}`}
-                                value={rating.toString()}
-                                className="radio"
-                                disabled
-                                checked={prevAnswer === rating.toString()}
-                                readOnly
-                              />
-                              {rating} - {
-                                rating === 1 ? "Poor/Strongly Disagree" :
-                                  rating === 2 ? "Below Average/Disagree" :
-                                    rating === 3 ? "Average/Neutral" :
-                                      rating === 4 ? "Good/Agree" :
-                                        "Excellent/Strongly Agree"
-                              }
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                      {question.type === "comment" && (
-                        <textarea
-                          name={`question-${index}`}
-                          className="textarea textarea-bordered w-full"
-                          placeholder="Enter your response..."
-                          rows={3}
-                          value={prevAnswer}
-                          disabled
-                          readOnly
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              </form>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import api from "../../../utils/api";
 import CreateStudentQuestion, { QuestionData, mapTypeToBackend, mapTypeToFrontend } from "../../../Components/Evaluation Components/CreateStudentQuestion";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
+import { PencilSquareIcon } from "@heroicons/react/16/solid";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table.tsx"; // <-- NEW
 
 interface CreateStudentEvalProps {
   setActiveView: (view: string) => void;
@@ -34,6 +36,7 @@ interface StudentEvaluation {
 
 function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
   const [evaluations, setEvaluations] = useState<StudentEvaluation[]>([]);
+  const [evaluationsLoading, setEvaluationsLoading] = useState<boolean>(true); // <-- NEW
   const [form, setForm] = useState({
     schedule: "",
     title: "",
@@ -46,29 +49,43 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
   const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [isCreateEvalModalOpen, setIsCreateEvalModalOpen] = useState(false);
+
   // Edit modal state
   const [isEditEvalModalOpen, setIsEditEvalModalOpen] = useState(false);
   const [editEval, setEditEval] = useState<StudentEvaluation | null>(null);
   const [editEvalQuestions, setEditEvalQuestions] = useState<QuestionData[]>([]);
   const [editEvalSchedule, setEditEvalSchedule] = useState<Schedule | null>(null);
-  const [editEvalInfo, setEditEvalInfo] = useState<{ title: string; description: string }>({ title: '', description: '' });
+  const [editEvalInfo, setEditEvalInfo] = useState<{ title: string; description: string }>({ title: "", description: "" });
   const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false);
   const [editQuestionToEdit, setEditQuestionToEdit] = useState<QuestionData | null>(null);
   const [editQuestionIndex, setEditQuestionIndex] = useState<number | null>(null);
   const [importedQuestionIds, setImportedQuestionIds] = useState<number[]>([]);
   const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [importTarget, setImportTarget] = useState<'create' | 'edit'>('create');
+  const [importTarget, setImportTarget] = useState<"create" | "edit">("create");
   const [editImportedQuestionIds, setEditImportedQuestionIds] = useState<number[]>([]);
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get("studentevaluation/studentevaluation/")
-      .then((res) => setEvaluations(res.data))
+    let mounted = true;
+    setEvaluationsLoading(true);
+    api
+      .get("studentevaluation/studentevaluation/")
+      .then((res) => {
+        if (!mounted) return;
+        setEvaluations(res.data);
+        setErrorAlert(null);
+      })
       .catch((err) => {
         console.error("Error fetching evaluations:", err);
         setErrorAlert("Failed to fetch evaluations. See console for details.");
+      })
+      .finally(() => {
+        if (mounted) setEvaluationsLoading(false);
       });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Fetch schedule for edit modal
@@ -85,8 +102,8 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
   const handleEditEvaluation = async (evalItem: StudentEvaluation) => {
     setEditEval(evalItem);
     setEditEvalInfo({
-      title: evalItem.title ?? '',
-      description: evalItem.description ?? '',
+      title: evalItem.title ?? "",
+      description: evalItem.description ?? "",
     });
 
     // Fetch all available questions from the API (for ID lookup if needed)
@@ -94,7 +111,6 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
     try {
       const res = await api.get("studentevaluationquestion/studentevaluationquestion/");
       allAvailableQuestions = res.data;
-      // console.log("Fetched all available questions:", allAvailableQuestions);
     } catch (err) {
       console.error("Failed to fetch all questions:", err);
     }
@@ -102,8 +118,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
     // Determine if import_questions is a list of IDs or objects
     let allQuestions: QuestionData[] = [];
     const importQuestions = evalItem.import_questions || [];
-    if (importQuestions.length > 0 && typeof importQuestions[0] === 'number') {
-      // List of IDs, so map to full objects from allAvailableQuestions
+    if (importQuestions.length > 0 && typeof importQuestions[0] === "number") {
       allQuestions = allAvailableQuestions
         .filter((q: any) => importQuestions.includes(q.id))
         .map((q: any) => ({
@@ -113,7 +128,6 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
           id: q.id,
         }));
     } else {
-      // List of objects (or empty)
       allQuestions = importQuestions.map((q: any) => ({
         question: q.question,
         type: mapTypeToFrontend(q.type),
@@ -131,9 +145,10 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
       scheduleObj = await fetchScheduleById(Number(evalItem.schedule));
     }
     setEditEvalSchedule(scheduleObj);
-    // Set imported question IDs correctly (if objects, extract id; if IDs, use as is)
+
+    // Set imported question IDs correctly
     setEditImportedQuestionIds(
-      importQuestions.length > 0 && typeof importQuestions[0] === 'number'
+      importQuestions.length > 0 && typeof importQuestions[0] === "number"
         ? importQuestions
         : importQuestions.map((q: any) => q.id)
     );
@@ -144,8 +159,8 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
   const handleImportQuestion = (q: any) => {
     if (importTarget === "create") {
       if (!importedQuestionIds.includes(q.id)) {
-        setImportedQuestionIds(ids => [...ids, q.id]);
-        setQuestions(prev => [
+        setImportedQuestionIds((ids) => [...ids, q.id]);
+        setQuestions((prev) => [
           ...prev,
           {
             question: q.question,
@@ -157,8 +172,8 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
       }
     } else {
       if (!editImportedQuestionIds.includes(q.id)) {
-        setEditImportedQuestionIds(ids => [...ids, q.id]);
-        setEditEvalQuestions(prev => [
+        setEditImportedQuestionIds((ids) => [...ids, q.id]);
+        setEditEvalQuestions((prev) => [
           ...prev,
           {
             question: q.question,
@@ -191,18 +206,15 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
   const handleEditEvalSave = async () => {
     if (!editEval) return;
     try {
-      // Debug print: log payload
       const patchPayload = {
         title: editEvalInfo.title,
         description: editEvalInfo.description,
         import_questions: [...editImportedQuestionIds],
       };
-      console.log("PATCH payload to studentevaluation:", patchPayload);
-
       await api.patch(`studentevaluation/studentevaluation/${editEval.id}/`, patchPayload);
       const updatedEval = await api.get(`studentevaluation/studentevaluation/${editEval.id}/`);
       setEditEval(updatedEval.data);
-      // Always map backend fields to frontend format after update
+
       const mappedQuestions = (updatedEval.data.import_questions || []).map((q: any) => ({
         id: q.id,
         question: q.question,
@@ -210,14 +222,20 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
         choices: q.options || [],
       }));
       setEditEvalQuestions(mappedQuestions);
-      // Refresh evaluations
+
+      // Refresh table
+      setEvaluationsLoading(true);
       const updated = await api.get("studentevaluation/studentevaluation/");
       setEvaluations(updated.data);
+      setEvaluationsLoading(false);
+
       setIsEditEvalModalOpen(false);
       setErrorAlert(null);
     } catch (err: any) {
       console.error("Error updating evaluation:", err);
-      setErrorAlert(`Error updating evaluation: ${err?.response?.data ? JSON.stringify(err.response.data) : err.message}`);
+      setErrorAlert(
+        `Error updating evaluation: ${err?.response?.data ? JSON.stringify(err.response.data) : err.message}`
+      );
     }
   };
 
@@ -239,29 +257,29 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
       const evaluationId = evalRes.data.id;
       const createdQuestionIds: number[] = [];
       for (const q of questions) {
-        // Only create if not imported (no id)
         if (!q.id) {
           const questionPayload = {
             question: q.question,
             type: mapTypeToBackend(q.type),
             ...(q.type === "mcq" && { options: q.choices }),
           };
-          console.log("POST payload to studentevaluationquestion:", questionPayload);
           const res = await api.post("studentevaluationquestion/studentevaluationquestion/", questionPayload);
           createdQuestionIds.push(res.data.id);
         } else {
-          // Imported question, just add its id
           createdQuestionIds.push(q.id);
         }
       }
-      // Add any additionally imported question IDs
       const allQuestionIds = Array.from(new Set([...createdQuestionIds, ...importedQuestionIds]));
-      console.log("PATCH payload to studentevaluation (import_questions):", allQuestionIds);
       await api.patch(`studentevaluation/studentevaluation/${evaluationId}/`, {
         import_questions: allQuestionIds,
       });
+
+      // Refresh table with skeleton while loading
+      setEvaluationsLoading(true);
       const updated = await api.get("studentevaluation/studentevaluation/");
       setEvaluations(updated.data);
+      setEvaluationsLoading(false);
+
       setForm({ schedule: "", title: "", description: "", questions: "" });
       setQuestions([]);
       setImportedQuestionIds([]);
@@ -269,21 +287,37 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
       setErrorAlert(null);
     } catch (err: any) {
       console.error("Error creating evaluation:", err);
-      setErrorAlert(`Error creating evaluation: ${err?.response?.data ? JSON.stringify(err.response.data) : err.message}`);
+      setErrorAlert(
+        `Error creating evaluation: ${err?.response?.data ? JSON.stringify(err.response.data) : err.message}`
+      );
     }
   };
 
+  // ----- TABLE COLUMNS (uses DataTable) -----
+  const columns: Column<StudentEvaluation>[] = [
+    { header: "Evaluation Title", accessor: "title" },
+    { header: "Description", accessor: "description", className: "w-[240px]" },
+    {
+      header: "Questions Imported",
+      accessor: (item) => (item.import_questions?.length ?? 0),
+    },
+  ];
+
   return (
     <div className="custom-container gap-y-6">
-      <div className="breadcrumbs">
-        <ul>
-          <li><a onClick={() => setActiveView("home")}>Home</a></li>
-          <li><a onClick={() => setActiveView("evaluation")}>Evaluation</a></li>
-          <li>Create Student Evaluations</li>
-        </ul>
-      </div>
+      <BreadAndLogout
+        setActiveView={setActiveView}
+        breadcrumbs={[
+          { label: "Home", view: "home" },
+          { label: "Evalustion", view: "evaluation" },
+          { label: "Create Student Evaluation" },
+        ]}
+      />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Create Student Evaluation</h2>
+      <span className="block mb-2 font-thin text-[#888888]">
+        This is where you can design and publish evaluation forms that follow the Student Feedback Framework (SFF), ensuring feedback is clear, consistent, and aligned with standards.
+      </span>
 
       <div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl md:justify-start">
         <button
@@ -292,26 +326,24 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
             setQuestions([]); // Clear questions when opening create dialog
             setImportedQuestionIds([]); // Clear imported question IDs
           }}
-          className="flex w-auto rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105"
+          className="flex w-auto whitespace-nowrap rounded-lg bg-[#1c402a] px-5 py-2 text-white shadow-xl transition-transform hover:scale-105"
         >
           Create New Student Evaluation
         </button>
         {isCreateEvalModalOpen && (
-          <dialog open className="modal" style={{ zIndex: 999 }}>
+          <dialog open className="modal z-[9995]">
             <div className="modal-box w-11/12 max-w-5xl">
               <h3 className="mb-4 text-center text-2xl font-bold">New Student Evaluation</h3>
               <form method="dialog" className="flex flex-col gap-6 ">
-                <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-lg font-bold md:w-1/4">Schedule:</label>
-                  <ComboboxTextField
-                    label="Schedule"
-                    fetchUrl="schedule/schedules/"
-                    value={selectedSchedule}
-                    onChange={setSelectedSchedule}
-                    mapResponse={(data) => data}
-                    placeholder="Search by name or section"
-                  />
-                </div>
+                <ComboboxTextField
+                  label="Schedule"
+                  fetchUrl="schedule/schedules/"
+                  value={selectedSchedule}
+                  onChange={setSelectedSchedule}
+                  mapResponse={(data) => data}
+                  placeholder="Search by name or section"
+                />
+
                 {selectedSchedule && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
                     <div>
@@ -340,35 +372,57 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                     </div>
                   </div>
                 )}
+
                 <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-lg font-bold md:w-1/4">Title:</label>
-                  <input type="text" name="title" className="input input-bordered w-full"
-                    value={form.title} onChange={handleChange} required />
+                  <label className="text-left text-lg font-bold md:w-1/4">Title:</label>
+                  <input
+                    type="text"
+                    name="title"
+                    className="input input-bordered w-full"
+                    value={form.title}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
+
                 <div className="flex flex-col gap-2 md:flex-row md:items-start">
-                  <label className="text-lg font-bold md:w-1/4 pt-2">Description:</label>
-                  <textarea name="description" className="textarea textarea-bordered w-full"
-                    value={form.description} onChange={handleChange} required />
+                  <label className="text-left text-lg font-bold md:w-1/4 pt-2">Description:</label>
+                  <textarea
+                    name="description"
+                    className="textarea textarea-bordered w-full"
+                    value={form.description}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
+
                 <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-lg font-bold">Questions:</label>
-                    <button type="button" className="btn btn-sm btn-accent" onClick={() => setIsQuestionModalOpen(true)}>
-                      + Add Question
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-info ml-2"
-                      onClick={async () => {
-                        const res = await api.get("studentevaluationquestion/studentevaluationquestion/");
-                        setAvailableQuestions(res.data.filter((q: any) => !importedQuestionIds.includes(q.id)));
-                        setImportTarget("create");
-                        setIsImportModalOpen(true);
-                      }}
-                    >Import Question
-                    </button>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="text-left text-lg font-bold">Questions:</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-md btn-primary text-white"
+                        onClick={() => setIsQuestionModalOpen(true)}
+                      >
+                        + Add Question
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-md btn-primary text-white"
+                        onClick={async () => {
+                          const res = await api.get("studentevaluationquestion/studentevaluationquestion/");
+                          setAvailableQuestions(res.data.filter((q: any) => !importedQuestionIds.includes(q.id)));
+                          setImportTarget("create");
+                          setIsImportModalOpen(true);
+                        }}
+                      >
+                        Import Question
+                      </button>
+                    </div>
                   </div>
-                  <div className="overflow-x-auto max-h-64 overflow-y-auto rounded-lg border border-gray-300">
+
+                  <div className="max-h-64 overflow-y-auto overflow-x-auto rounded-lg border border-gray-300">
                     <table className="table w-full">
                       <thead>
                         <tr>
@@ -393,16 +447,23 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                             </td>
                           </tr>
                         ))}
+                        {questions.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="py-6 text-center text-gray-400">
+                              No questions yet.
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
                 </div>
+
                 <div className="modal-action">
                   <button type="button" className="btn btn-success text-white" onClick={handleSubmit}>
                     Submit
                   </button>
-                  <button type="button" className="btn btn-cancel"
-                    onClick={() => setIsCreateEvalModalOpen(false)}>
+                  <button type="button" className="btn btn-cancel" onClick={() => setIsCreateEvalModalOpen(false)}>
                     Cancel
                   </button>
                 </div>
@@ -412,38 +473,22 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
         )}
       </div>
 
-      <div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg text-white">
-        <table className="table">
-          <thead className="bg-[#1c402a]/50 text-xl font-bold text-white">
-            <tr>
-              <th></th>
-              <th>Evaluation Title</th>
-              <th>Description</th>
-              <th>Questions Imported</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody className="text-lg text-gray-300">
-            {evaluations.map((evaluation, index) => (
-              <tr key={evaluation.id}>
-                <td>{index + 1}</td>
-                <td>{evaluation.title}</td>
-                <td>{evaluation.description}</td>
-                <td>{evaluation.import_questions?.length ?? 0}</td>
-                <td>
-                  <button
-                    className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
-                    onClick={() => handleEditEvaluation(evaluation)}
-                  >
-                    <PencilSquareIcon className="h-4 w-4" />
-                    Edit
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Table (with skeleton via loading flag) */}
+      <DataTable<StudentEvaluation>
+        data={evaluations}
+        columns={columns}
+        getRowKey={(item) => item.id}
+        loading={evaluationsLoading}
+        actions={(item) => (
+          <button
+            className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
+            onClick={() => handleEditEvaluation(item)}
+          >
+            <PencilSquareIcon className="h-4 w-4" />
+            Edit
+          </button>
+        )}
+      />
 
       {/* Edit Evaluation Modal */}
       {isEditEvalModalOpen && (
@@ -451,75 +496,78 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
           <div className="modal-box w-11/12 max-w-5xl">
             <h3 className="mb-4 text-center text-2xl font-bold">Edit Student Evaluation</h3>
             {editEvalSchedule && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+              <div className="mb-2 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Subject</label>
-                  <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100" value={editEvalSchedule.subject_name || editEvalSchedule.subject || ''} disabled />
+                  <input type="text" className="w-full rounded border border-gray-300 bg-gray-100 px-3 py-2" value={editEvalSchedule.subject_name || editEvalSchedule.subject || ""} disabled />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Section</label>
-                  <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100" value={editEvalSchedule.section_name || ''} disabled />
+                  <input type="text" className="w-full rounded border border-gray-300 bg-gray-100 px-3 py-2" value={editEvalSchedule.section_name || ""} disabled />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Room</label>
-                  <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100" value={editEvalSchedule.room_name || editEvalSchedule.room || ''} disabled />
+                  <input type="text" className="w-full rounded border border-gray-300 bg-gray-100 px-3 py-2" value={editEvalSchedule.room_name || editEvalSchedule.room || ""} disabled />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Semester</label>
-                  <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100" value={editEvalSchedule.semester || ''} disabled />
+                  <input type="text" className="w-full rounded border border-gray-300 bg-gray-100 px-3 py-2" value={editEvalSchedule.semester || ""} disabled />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Year</label>
-                  <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100" value={editEvalSchedule.year || ''} disabled />
+                  <input type="text" className="w-full rounded border border-gray-300 bg-gray-100 px-3 py-2" value={editEvalSchedule.year || ""} disabled />
                 </div>
               </div>
             )}
             <div className="flex flex-col gap-2 md:flex-row md:items-center">
-              <label className="text-lg font-bold md:w-1/4">Title:</label>
+              <label className="text-left text-lg font-bold md:w-1/4">Title:</label>
               <input
                 type="text"
                 className="input input-bordered w-full"
-                value={editEvalInfo.title || ''}
-                onChange={e => setEditEvalInfo(info => ({ ...info, title: e.target.value }))}
+                value={editEvalInfo.title || ""}
+                onChange={(e) => setEditEvalInfo((info) => ({ ...info, title: e.target.value }))}
               />
             </div>
             <div className="flex flex-col gap-2 md:flex-row md:items-start">
-              <label className="text-lg font-bold md:w-1/4 pt-2">Description:</label>
+              <label className="pt-2 text-left text-lg font-bold md:w-1/4">Description:</label>
               <textarea
                 className="textarea textarea-bordered w-full"
-                value={editEvalInfo.description || ''}
-                onChange={e => setEditEvalInfo(info => ({ ...info, description: e.target.value }))}
+                value={editEvalInfo.description || ""}
+                onChange={(e) => setEditEvalInfo((info) => ({ ...info, description: e.target.value }))}
               />
             </div>
             <div>
-              <div className="flex justify-between items-center mb-2">
+              <div className="my-4 flex items-center justify-between">
                 <label className="text-lg font-bold">Questions:</label>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-accent"
-                  onClick={() => {
-                    setEditQuestionToEdit(null);
-                    setEditQuestionIndex(null);
-                    setEditQuestionModalOpen(true);
-                  }}
-                >
-                  + Add Question
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-info ml-2"
-                  onClick={async () => {
-                    const res = await api.get("studentevaluationquestion/studentevaluationquestion/");
-                    setAvailableQuestions(res.data.filter((q: any) => !editImportedQuestionIds.includes(q.id)));
-                    setImportTarget("edit");
-                    setIsImportModalOpen(true);
-                  }}
-                >
-                  Import Question
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-md text-white btn-primary"
+                    onClick={() => {
+                      setEditQuestionToEdit(null);
+                      setEditQuestionIndex(null);
+                      setEditQuestionModalOpen(true);
+                    }}
+                  >
+                    + Add Question
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-md text-white btn-primary"
+                    onClick={async () => {
+                      const res = await api.get("studentevaluationquestion/studentevaluationquestion/");
+                      setAvailableQuestions(res.data.filter((q: any) => !editImportedQuestionIds.includes(q.id)));
+                      setImportTarget("edit");
+                      setIsImportModalOpen(true);
+                    }}
+                  >
+                    Import Question
+                  </button>
+                </div>
               </div>
-              <div className="overflow-x-auto max-h-64 overflow-y-auto rounded-lg border border-gray-300">
-                <table className="table w-full ">
+
+              <div className="max-h-64 overflow-y-auto overflow-x-auto rounded-lg border border-gray-300">
+                <table className="table w-full">
                   <thead>
                     <tr>
                       <th>#</th>
@@ -535,16 +583,10 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                         <td>{i + 1}</td>
                         <td>{q.question}</td>
                         <td>{q.type}</td>
-                        <td>
-                          {q.id ? (
-                            <span className="text-blue-500 font-medium">Yes</span>
-                          ) : (
-                            <span className="text-gray-500">No</span>
-                          )}
-                        </td>
-                        <td className="text-center space-x-2">
+                        <td>{q.id ? <span className="font-medium text-blue-500">Yes</span> : <span className="text-gray-500">No</span>}</td>
+                        <td className="space-x-2 text-center">
                           <button
-                            className="btn btn-xs btn-primary"
+                            className="btn btn-xs text-white btn-primary"
                             onClick={() => {
                               setEditQuestionToEdit(q);
                               setEditQuestionIndex(i);
@@ -553,35 +595,33 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                           >
                             Edit
                           </button>
-                          <button
-                            className="btn btn-xs btn-error"
-                            onClick={() => handleEditEvalDeleteQuestion(i)}
-                          >
+                          <button className="btn btn-xs btn-error" onClick={() => handleEditEvalDeleteQuestion(i)}>
                             Delete
                           </button>
                         </td>
                       </tr>
                     ))}
+                    {editEvalQuestions.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="py-6 text-center text-gray-400">
+                          No questions yet.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
+
             <div className="modal-action">
-              <button
-                type="button"
-                className="btn btn-success text-white"
-                onClick={handleEditEvalSave}
-              >
+              <button type="button" className="btn btn-success text-white" onClick={handleEditEvalSave}>
                 Save Changes
               </button>
-              <button
-                type="button"
-                className="btn btn-cancel"
-                onClick={() => setIsEditEvalModalOpen(false)}
-              >
+              <button type="button" className="btn btn-cancel" onClick={() => setIsEditEvalModalOpen(false)}>
                 Cancel
               </button>
             </div>
+
             {/* Nested question modal for edit/add */}
             <CreateStudentQuestion
               open={editQuestionModalOpen}
@@ -601,18 +641,15 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
       {/* Import Modal (root level, not nested) */}
       {isImportModalOpen && (
-        <dialog open className="modal" style={{ zIndex: 2000 }}>
+        <dialog open className="modal" style={{ zIndex: 9999 }}>
           <div className="modal-box w-11/12 max-w-5xl">
             <h3 className="mb-4 text-center text-2xl font-bold">Import Question</h3>
             <ul>
               {availableQuestions.map((q, idx) => (
                 <div key={q.id}>
-                  <li className="flex justify-between items-center py-2">
+                  <li className="flex items-center justify-between py-2">
                     <span>{q.question}</span>
-                    <button
-                      className="btn btn-xs btn-success"
-                      onClick={() => handleImportQuestion(q)}
-                    >
+                    <button className="btn btn-md text-white btn-primary" onClick={() => handleImportQuestion(q)}>
                       Import
                     </button>
                   </li>
@@ -620,12 +657,13 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                 </div>
               ))}
             </ul>
-            <button className="btn btn-xs btn-success mt-4"
-              onClick={() => setIsImportModalOpen(false)}>Close
+            <button className="btn btn-md btn-cancel text-white mt-4" onClick={() => setIsImportModalOpen(false)}>
+              Close
             </button>
           </div>
         </dialog>
       )}
+
       {/* Question Modal */}
       <CreateStudentQuestion
         open={isQuestionModalOpen}

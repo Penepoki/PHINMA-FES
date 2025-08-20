@@ -55,7 +55,7 @@ class StudentEvaluationQuestionsAdmin(admin.ModelAdmin):
 
 @admin.register(StudentEvaluationResponse)
 class StudentEvaluationResponseAdmin(admin.ModelAdmin):
-    list_display = ("user", "student_evaluation", "student_eval_question" ,"answer")
+    list_display = ("user", "student_evaluation", "student_eval_question" ,"answer", "sentiment_score")
 
 @admin.register(Evaluation)
 class EvaluationAdmin(admin.ModelAdmin):

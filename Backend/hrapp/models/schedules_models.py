@@ -44,7 +44,7 @@ class ProgramProfessor(models.Model):
 # Subjects
 class Subject(BaseModel):
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.name} ({'Active' if self.is_active else 'Inactive'})"
@@ -125,7 +125,7 @@ class Schedule(BaseModel):
 
     def save(self, *args, **kwargs):
         # Automatically combine year and semester to create academic_period
-        self.name = f"{self.section.name} - {self.subject.name} - {self.section.year_level}"
+        self.name = f"{self.section.name} - {self.subject.name} - {self.section.year_level} - {self.semester}"
         self.academic_period = f"{self.year} - {self.semester}"
         super().save(*args, **kwargs)
 

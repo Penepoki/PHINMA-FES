@@ -1,3 +1,5 @@
+from email.policy import default
+
 from django.db import models
 from .schedules_models import Schedule
 from .custom_manager import *
@@ -139,17 +141,12 @@ class StudentEvaluation(models.Model):
     description = models.TextField(null=True, blank=True)
     schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, null=True)
     import_questions = models.ManyToManyField("StudentEvaluationQuestion", blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     objects = CustomStudentEvaluation()
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['schedule', 'import_questions'], name="unique_schedule_import_questions")
-        ]
 
     def save(self, *args, **kwargs):
         if self.title:
@@ -199,6 +196,7 @@ class StudentEvaluationResponse(models.Model):
                                               on_delete=models.CASCADE, null=True)  # Links response to question
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Student who provided the response
     answer = models.TextField()
+    sentiment_score = models.JSONField(null=True, blank=True, help_text="DistilBERT sentiment analysis results: {label, score, points}")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -214,3 +212,13 @@ class StudentEvaluationResponse(models.Model):
         self.save()
 
 
+class ScatterPlotAnalytics(models.Model):
+    YEAR_CHOICES = [("1st","1st Year"), ("2nd","2nd Year"), ("3rd","3rd Year"), ("4th","4th Year")]
+    SEMESTER_CHOICES = [("1st","1st Semester"), ("2nd","2nd Semester"), ("Summer","Summer")]
+    retention_rate = models.FloatField(null=True, blank=True)
+    year = models.CharField(max_length=20, choices=YEAR_CHOICES)
+    semester = models.CharField(max_length=20, choices=SEMESTER_CHOICES)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ("year", "semester", "retention_rate")

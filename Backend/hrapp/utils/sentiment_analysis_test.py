@@ -30,7 +30,7 @@ def _normalize_text(s: Optional[str]) -> str:
 
 
 ############################################################
-# Sentiment Analyzer (local DistilBERT)
+# Sentiment Analyzer (local DistilBERT or HuggingFace Hub)
 ############################################################
 local_model_dir = os.path.abspath(os.path.join(
     os.path.dirname(__file__),
@@ -39,11 +39,29 @@ local_model_dir = os.path.abspath(os.path.join(
     'distilbert-base-uncased-finetuned-sst-2-english'
 ))
 
-sentiment_analyzer = pipeline(
-    "sentiment-analysis",
-    model=local_model_dir,
-    tokenizer=local_model_dir
-)
+# Try to use local model first, fall back to HuggingFace Hub if not available
+try:
+    if os.path.exists(local_model_dir) and os.path.isdir(local_model_dir):
+        print(f"[INFO] Using local DistilBERT model from: {local_model_dir}")
+        sentiment_analyzer = pipeline(
+            "sentiment-analysis",
+            model=local_model_dir,
+            tokenizer=local_model_dir
+        )
+    else:
+        print(f"[INFO] Local model not found at {local_model_dir}")
+        print("[INFO] Using DistilBERT model from HuggingFace Hub")
+        sentiment_analyzer = pipeline(
+            "sentiment-analysis",
+            model="distilbert-base-uncased-finetuned-sst-2-english"
+        )
+except Exception as e:
+    print(f"[WARNING] Failed to load local model: {e}")
+    print("[INFO] Falling back to HuggingFace Hub model")
+    sentiment_analyzer = pipeline(
+        "sentiment-analysis",
+        model="distilbert-base-uncased-finetuned-sst-2-english"
+    )
 
 
 def analyze_text_sentiment(text: str) -> Dict[str, Any]:

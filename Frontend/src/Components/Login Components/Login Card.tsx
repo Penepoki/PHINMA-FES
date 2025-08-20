@@ -14,7 +14,7 @@ function LoginCard() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-    const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [first_name, setFirstName] = useState("");
   const [last_name, setLastName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
@@ -94,6 +94,9 @@ function LoginCard() {
           break;
         case "Student":
           navigate("/Dashboard/student");
+          break;
+        case "Professor":
+          navigate("/Dashboard/professor");
           break;
         default:
           setError("Invalid user role.");

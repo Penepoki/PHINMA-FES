@@ -3,6 +3,7 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 
 interface ProgramProps {
   setActiveView: (view: string) => void;
@@ -219,21 +220,19 @@ function Programs({ setActiveView }: ProgramProps) {
   return (
     <div className="custom-container gap-y-6">
       {/* Breadcrumbs */}
-      <div className="breadcrumbs">
-        <ul>
-          <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
-          </li>
-          <li>
-            <a onClick={() => setActiveView("resourceGroup")}>
-              Resource Group
-            </a>
-          </li>
-          <li>Programs</li>
-        </ul>
-      </div>
+      <BreadAndLogout
+        setActiveView={setActiveView}
+        breadcrumbs={[
+          { label: "Home", view: "home" },
+          { label: "Resource Group" },
+          { label: "Programs" },
+        ]}
+      />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Programs</h2>
+      <span className="font-thin text-[#888888] block mx-6">
+        This is where you can manage academic programs and connect them to the right faculty, subjects, and evaluations.
+      </span>
 
       <div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
         {/* New Program Button */}
@@ -524,65 +523,6 @@ function Programs({ setActiveView }: ProgramProps) {
         </dialog>
 
         <div className="flex flex-row justify-center">
-          {/* Import Programs Button */}
-          <button
-            onClick={() =>
-              (
-                document.getElementById(
-                  "modal_import_program",
-                ) as HTMLDialogElement
-              )?.showModal()
-            }
-            className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
-          >
-            Import Program
-          </button>
-
-          <dialog id="modal_import_program" className="modal">
-            <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="mb-4 text-center text-2xl font-bold">
-                Import Program
-              </h3>
-
-              <form
-                method="dialog"
-                className="flex flex-col gap-6"
-              >
-                <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-left text-lg font-bold md:w-1/6">
-                    File:
-                  </label>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    className="file-input file-input-bordered w-full"
-                    required
-                  />
-                </div>
-                <div className="modal-action">
-                  <button
-                    type="submit"
-                    className="btn btn-success text-white"
-                  >
-                    Upload
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-cancel"
-                    onClick={() =>
-                      (
-                        document.getElementById(
-                          "modal_import_program",
-                        ) as HTMLDialogElement
-                      )?.close()
-                    }
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </dialog>
 
           {/* Export Programs Button */}
           <button
@@ -593,7 +533,7 @@ function Programs({ setActiveView }: ProgramProps) {
                 ) as HTMLDialogElement
               )?.showModal()
             }
-            className="w-full rounded-lg bg-[#d4c351] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
+            className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
           >
             Export Program
           </button>

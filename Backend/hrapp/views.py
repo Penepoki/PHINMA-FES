@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from hrapp.models.schedules_models import *
 from hrapp.serializers import *
 from hrapp.utils.user_utils import *
@@ -24,7 +24,7 @@ from django.shortcuts import get_object_or_404
 # from rest_framework.filter import Search
 import pandas as pd
 from datetime import datetime, timedelta, time
-from hrapp.models.evaluation_models import StudentEvaluationResponse, StudentEvaluationQuestion
+from hrapp.models.evaluation_models import StudentEvaluationResponse, StudentEvaluationQuestion, ScatterPlotAnalytics
 # Optional import of scoring helpers; safe import even if heavy model is present.
 try:
     from hrapp.utils.sentiment_analysis_test import score_mcq_answer, analyze_text_sentiment
@@ -137,6 +137,7 @@ class TimestampViewSet(viewsets.ModelViewSet):
     queryset = Timestamp.objects.all()
     serializer_class = TimestampSerializer
     filter_backends = [DjangoFilterBackend]
+    permission_classes = [IsAuthenticated]
     filterset_fields = ['evaluation']
 
     def get_queryset(self):
@@ -153,14 +154,14 @@ class TimestampViewSet(viewsets.ModelViewSet):
 
         if evaluation_id:
             queryset = queryset.filter(evaluation_id=evaluation_id)
-
             try:
                 evaluation = Evaluation.objects.get(id=evaluation_id)
-                if not user_can_access_evaluation(self.request.user, evaluation):
+                allowed = user_can_access_evaluation(self.request.user, evaluation)
+                print("DEBUG TimestampViewSet:", self.request.user, "→ allowed?", allowed)
+                if not allowed:
                     return Timestamp.objects.none()
             except Evaluation.DoesNotExist:
                 return Timestamp.objects.none()
-
         return queryset
 
     @action(detail=False, methods=['get'], url_path='options')
@@ -559,6 +560,45 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
         return Response(data, status=200)
 
+    ### EVALUATION CUSTOMS FOR PROFESSOR VIEW BELOW
+    @action(detail=False, methods=["get"], url_path='my-evaluations', permission_classes=[IsAuthenticated])
+    def my_evaluations(self, request):
+        """
+        RETURN EVALUATIONS(COPUS) FOR THE LOGGED-IN USER
+        """
+        evals = Evaluation.objects.filter(
+            instructor=request.user, deleted_at__isnull=True
+        ).select_related('schedule')
+        serializers = self.get_serializer(evals, many=True)
+        return Response(serializers.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='copus-summary-by-professor', permission_classes=[IsAuthenticated])
+    def copus_summary_by_professor(self, request):
+        """
+        RETURN TALLIES WITH AALP OF ALL EVALUATION(COPUS) FOR THE LOGGED-IN USER
+        """
+        prof_id = request.query_params.get('professor') or request.user.id
+        evals = Evaluation.objects.filter(
+            instructor_id=prof_id, deleted_at__isnull=True
+        )
+        ids = [e.id for e in evals]
+        if not ids:
+            return Response({"data": {}, "totalActiveLearningPercentage": 0}, status=status.HTTP_200_OK)
+        data = get_copus_bulk_tallies_data(ids)
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='bulk-tallies', permission_classes=[IsAuthenticated])
+    def bulk_tallies(self, request):
+        """FALLBACK UTIL to request tallies by specific ids:
+        /api/evaluation/evaluations/bulk-tallies?evaluation_ids=?,?,?"""
+        eval_ids = request.query_params.get('evaluation_ids', '')
+        ids = [int(x) for x in eval_ids.split(',') if x.strip().isdigit()]
+        if not ids:
+            return Response({"error": "evaluation_ids required"}, status=400)
+        data = get_copus_bulk_tallies_data(ids)
+        return Response(data, status=status.HTTP_200_OK)
+    ### EVALUATION CUSTOMS FOR PROFESSOR VIEW ABOVE
+
 # END OF CRUD EVALUATION -----------------------------------------
 # Define your activity options (should match frontend)
 
@@ -756,19 +796,62 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Create responses
+            # Create responses with sentiment analysis
             response_objects = []
             for response_data in responses:
+                question_id = response_data.get('question_id')
+                answer = response_data.get('answer')
+
+                # Get the question to determine type and context
+                try:
+                    question = StudentEvaluationQuestion.objects.get(id=question_id)
+                except StudentEvaluationQuestion.DoesNotExist:
+                    question = None
+
+                # Perform sentiment analysis based on question type
+                sentiment_score = None
+                if question and answer:
+                    question_type = question.type.upper() if question.type else ""
+
+                    if question_type == "MCQ":
+                        # Score MCQ answer
+                        points, meta = score_mcq_answer(question, answer)
+                        sentiment_score = {
+                            "type": "mcq",
+                            "points": points,
+                            "meta": meta,
+                            "label": "POSITIVE" if points > 0 else "NEGATIVE" if points < 0 else "NEUTRAL"
+                        }
+                    elif question_type == "TEXT":
+                        # Analyze text sentiment with question context
+                        question_text = question.question if question.question else ""
+                        text_input = f"Question: {question_text}\nAnswer: {answer}" if question_text else str(answer)
+                        sentiment_result = analyze_text_sentiment(text_input)
+                        sentiment_score = {
+                            "type": "text",
+                            "label": sentiment_result.get("label"),
+                            "score": sentiment_result.get("score"),
+                            "points": sentiment_result.get("points")
+                        }
+                    else:
+                        # For RATING or other types, set neutral
+                        sentiment_score = {
+                            "type": question_type.lower(),
+                            "label": "NEUTRAL",
+                            "score": 0.0,
+                            "points": 0
+                        }
+
+                # Create and save response with sentiment score
                 response_obj = StudentEvaluationResponse(
                     student_evaluation_id=student_evaluation_id,
-                    student_eval_question_id=response_data.get('question_id'),
+                    student_eval_question_id=question_id,
                     user=user,
-                    answer=response_data.get('answer')
+                    answer=answer,
+                    sentiment_score=sentiment_score
                 )
+                response_obj.save()
                 response_objects.append(response_obj)
-
-            # Bulk create responses
-            StudentEvaluationResponse.objects.bulk_create(response_objects)
 
             return Response(
                 {'message': 'Responses submitted successfully'},
@@ -801,7 +884,7 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': 'program is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         unique_pairs = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__program_id=program_id
         ).values(
@@ -818,7 +901,7 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         professor_id = request.query_params.get('professor')
         if not professor_id:
             return Response({'error': 'professor is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         unique_pairs = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__instructor_id=professor_id
         ).values(
@@ -835,7 +918,7 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         faculty_id = request.query_params.get('faculty')
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         unique_pairs = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__program__faculty_id=faculty_id
         ).values(
@@ -931,6 +1014,241 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
             student_evaluation__schedule__program__faculty_id=faculty_id)
         serializer = self.get_serializer(responses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='sentiment-summary')
+    def sentiment_summary(self, request):
+        """RETURNS SENTIMENT SCORE SUMMARY WITH FILTERING OPTIONS
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/sentiment-summary?semester=<semester>&year=<year>&program=<program_id>&faculty=<faculty_id>&professor=<professor_id>"""
+
+        # Get filter parameters
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
+        program_id = request.query_params.get('program')
+        faculty_id = request.query_params.get('faculty')
+        professor_id = request.query_params.get('professor')
+
+        # Start with all responses that have sentiment scores
+        responses = StudentEvaluationResponse.objects.filter(
+            sentiment_score__isnull=False
+        ).select_related(
+            'student_evaluation__schedule__section',
+            'student_evaluation__schedule__program',
+            'student_evaluation__schedule__instructor',
+            'student_eval_question'
+        )
+
+        # Apply filters
+        if semester:
+            responses = responses.filter(student_evaluation__schedule__semester=semester)
+        if year:
+            try:
+                responses = responses.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
+        if program_id:
+            responses = responses.filter(student_evaluation__schedule__program_id=program_id)
+        if faculty_id:
+            responses = responses.filter(student_evaluation__schedule__program__faculty_id=faculty_id)
+        if professor_id:
+            responses = responses.filter(student_evaluation__schedule__instructor_id=professor_id)
+
+        # Calculate summary statistics
+        total_responses = responses.count()
+        if total_responses == 0:
+            return Response({
+                'total_responses': 0,
+                'average_sentiment_score': 0,
+                'sentiment_distribution': {'POSITIVE': 0, 'NEGATIVE': 0, 'NEUTRAL': 0},
+                'question_type_breakdown': {},
+                'filters_applied': {
+                    'semester': semester,
+                    'year': year,
+                    'program': program_id,
+                    'faculty': faculty_id,
+                    'professor': professor_id
+                }
+            }, status=status.HTTP_200_OK)
+
+        # Aggregate sentiment data
+        sentiment_scores = []
+        sentiment_labels = {'POSITIVE': 0, 'NEGATIVE': 0, 'NEUTRAL': 0}
+        question_types = {'mcq': 0, 'text': 0, 'rating': 0}
+
+        for response in responses:
+            if response.sentiment_score and isinstance(response.sentiment_score, dict):
+                points = response.sentiment_score.get('points', 0)
+                label = response.sentiment_score.get('label', 'NEUTRAL')
+                q_type = response.sentiment_score.get('type', 'unknown')
+
+                sentiment_scores.append(float(points))
+                sentiment_labels[label] = sentiment_labels.get(label, 0) + 1
+                question_types[q_type] = question_types.get(q_type, 0) + 1
+
+        average_score = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0
+
+        return Response({
+            'total_responses': total_responses,
+            'average_sentiment_score': round(average_score, 3),
+            'sentiment_distribution': sentiment_labels,
+            'question_type_breakdown': question_types,
+            'filters_applied': {
+                'semester': semester,
+                'year': year,
+                'program': program_id,
+                'faculty': faculty_id,
+                'professor': professor_id
+            }
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='sentiment-summary-by-semester')
+    def sentiment_summary_by_semester(self, request):
+        """RETURNS SENTIMENT SCORE SUMMARY GROUPED BY SEMESTER
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/sentiment-summary-by-semester?year=<year>&program=<program_id>&faculty=<faculty_id>&professor=<professor_id>"""
+
+        # Get filter parameters (excluding semester since we're grouping by it)
+        year = request.query_params.get('year')
+        program_id = request.query_params.get('program')
+        faculty_id = request.query_params.get('faculty')
+        professor_id = request.query_params.get('professor')
+
+        # Start with all responses that have sentiment scores
+        responses = StudentEvaluationResponse.objects.filter(
+            sentiment_score__isnull=False
+        ).select_related(
+            'student_evaluation__schedule__section',
+            'student_evaluation__schedule__program',
+            'student_evaluation__schedule__instructor'
+        )
+
+        # Apply filters
+        if year:
+            try:
+                responses = responses.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
+        if program_id:
+            responses = responses.filter(student_evaluation__schedule__program_id=program_id)
+        if faculty_id:
+            responses = responses.filter(student_evaluation__schedule__program__faculty_id=faculty_id)
+        if professor_id:
+            responses = responses.filter(student_evaluation__schedule__instructor_id=professor_id)
+
+        # Group by semester
+        semester_data = {}
+        for response in responses:
+            semester = response.student_evaluation.schedule.semester if response.student_evaluation.schedule else 'Unknown'
+
+            if semester not in semester_data:
+                semester_data[semester] = {
+                    'responses': [],
+                    'sentiment_labels': {'POSITIVE': 0, 'NEGATIVE': 0, 'NEUTRAL': 0},
+                    'question_types': {'mcq': 0, 'text': 0, 'rating': 0}
+                }
+
+            if response.sentiment_score and isinstance(response.sentiment_score, dict):
+                points = response.sentiment_score.get('points', 0)
+                label = response.sentiment_score.get('label', 'NEUTRAL')
+                q_type = response.sentiment_score.get('type', 'unknown')
+
+                semester_data[semester]['responses'].append(float(points))
+                semester_data[semester]['sentiment_labels'][label] += 1
+                semester_data[semester]['question_types'][q_type] = semester_data[semester]['question_types'].get(q_type, 0) + 1
+
+        # Calculate averages for each semester
+        summary = {}
+        for semester, data in semester_data.items():
+            scores = data['responses']
+            avg_score = sum(scores) / len(scores) if scores else 0
+            summary[semester] = {
+                'total_responses': len(scores),
+                'average_sentiment_score': round(avg_score, 3),
+                'sentiment_distribution': data['sentiment_labels'],
+                'question_type_breakdown': data['question_types']
+            }
+
+        return Response({
+            'semester_summary': summary,
+            'filters_applied': {
+                'year': year,
+                'program': program_id,
+                'faculty': faculty_id,
+                'professor': professor_id
+            }
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='sentiment-summary-by-year')
+    def sentiment_summary_by_year(self, request):
+        """RETURNS SENTIMENT SCORE SUMMARY GROUPED BY YEAR
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/sentiment-summary-by-year?semester=<semester>&program=<program_id>&faculty=<faculty_id>&professor=<professor_id>"""
+
+        # Get filter parameters (excluding year since we're grouping by it)
+        semester = request.query_params.get('semester')
+        program_id = request.query_params.get('program')
+        faculty_id = request.query_params.get('faculty')
+        professor_id = request.query_params.get('professor')
+
+        # Start with all responses that have sentiment scores
+        responses = StudentEvaluationResponse.objects.filter(
+            sentiment_score__isnull=False
+        ).select_related(
+            'student_evaluation__schedule__section',
+            'student_evaluation__schedule__program',
+            'student_evaluation__schedule__instructor'
+        )
+
+        # Apply filters
+        if semester:
+            responses = responses.filter(student_evaluation__schedule__semester=semester)
+        if program_id:
+            responses = responses.filter(student_evaluation__schedule__program_id=program_id)
+        if faculty_id:
+            responses = responses.filter(student_evaluation__schedule__program__faculty_id=faculty_id)
+        if professor_id:
+            responses = responses.filter(student_evaluation__schedule__instructor_id=professor_id)
+
+        # Group by year
+        year_data = {}
+        for response in responses:
+            year = response.student_evaluation.schedule.year.year if response.student_evaluation.schedule and response.student_evaluation.schedule.year else 'Unknown'
+
+            if year not in year_data:
+                year_data[year] = {
+                    'responses': [],
+                    'sentiment_labels': {'POSITIVE': 0, 'NEGATIVE': 0, 'NEUTRAL': 0},
+                    'question_types': {'mcq': 0, 'text': 0, 'rating': 0}
+                }
+
+            if response.sentiment_score and isinstance(response.sentiment_score, dict):
+                points = response.sentiment_score.get('points', 0)
+                label = response.sentiment_score.get('label', 'NEUTRAL')
+                q_type = response.sentiment_score.get('type', 'unknown')
+
+                year_data[year]['responses'].append(float(points))
+                year_data[year]['sentiment_labels'][label] += 1
+                year_data[year]['question_types'][q_type] = year_data[year]['question_types'].get(q_type, 0) + 1
+
+        # Calculate averages for each year
+        summary = {}
+        for year, data in year_data.items():
+            scores = data['responses']
+            avg_score = sum(scores) / len(scores) if scores else 0
+            summary[year] = {
+                'total_responses': len(scores),
+                'average_sentiment_score': round(avg_score, 3),
+                'sentiment_distribution': data['sentiment_labels'],
+                'question_type_breakdown': data['question_types']
+            }
+
+        return Response({
+            'year_summary': summary,
+            'filters_applied': {
+                'semester': semester,
+                'program': program_id,
+                'faculty': faculty_id,
+                'professor': professor_id
+            }
+        }, status=status.HTTP_200_OK)
+
 ### END OF STUDENTEVALUATION VIEW ###
 """-------------------------------------------------------------"""
 
@@ -1431,6 +1749,40 @@ def get_professors(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_students(request):
+    """
+    Return a simplified list of student users for selection in Sections dialog.
+    Supports search by first/last name or email and scopes by faculty when applicable.
+    Allowed roles: Dean, HR, Program Head (or superuser).
+    """
+    user = request.user
+    if not (user.is_superuser or user.groups.filter(name__in=['Dean', 'HR', 'Program Head']).exists()):
+        raise PermissionDenied("You do not have permission to view students.")
+
+    qs = User.objects.filter(groups__name__iexact='Student', is_active=True)
+
+    search = request.query_params.get('search')
+    if search:
+        qs = qs.filter(
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(email__icontains=search)
+        )
+
+    # Scope by faculty if user has one
+    faculty = getattr(user, 'faculty', None)
+    if faculty and not user.is_superuser:
+        # Get students that are already in sections within this faculty
+        student_ids = Section.objects.filter(program__faculty=faculty).values_list('students__id', flat=True).distinct()
+        # Include all students for now, but this could be restricted if needed
+        # qs = qs.filter(id__in=student_ids)
+
+    data = [{'id': u.id, 'name': (u.get_full_name() or u.email)} for u in qs.order_by('first_name', 'last_name')[:50]]
+    return Response(data, status=status.HTTP_200_OK)
+
+
 class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.filter(deleted_at__isnull=True)
     serializer_class = SectionSerializer
@@ -1441,18 +1793,49 @@ class SectionViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return base_qs
         if hasattr(user, 'faculty') and user.faculty:
-            return base_qs.filter(schedule__program__faculty=user.faculty)
+            return base_qs.filter(program__faculty=user.faculty)
         return base_qs.none()
+
+    def _check_permissions(self, request):
+        """Check if user has permission for CRUD operations"""
+        user = request.user
+        if not (user.is_superuser or user.groups.filter(name__in=['Dean', 'HR', 'Program Head']).exists()):
+            raise PermissionDenied("You do not have permission to perform this action.")
 
     @action(detail=True, methods=['post'])
     def add_students(self, request, pk=None):
+        """Add multiple students to a section with validation"""
+        self._check_permissions(request)
+        
         section = self.get_object()
         student_ids = request.data.get('student_ids', [])
+
         if not isinstance(student_ids, list):
             return Response({'error': 'student_ids must be a list.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not student_ids:
+            return Response({'error': 'At least one student ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate that all provided IDs are actual students
+        valid_students = User.objects.filter(
+            id__in=student_ids,
+            groups__name__iexact='Student',
+            is_active=True
+        )
+
+        if valid_students.count() != len(student_ids):
+            invalid_ids = set(student_ids) - set(valid_students.values_list('id', flat=True))
+            return Response({
+                'error': f'Invalid student IDs: {list(invalid_ids)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Add students to section
         section.students.add(*student_ids)
-        return Response({'message': f'Added {len(student_ids)} students to section {section.name}.'},
-                        status=status.HTTP_200_OK)
+
+        return Response({
+            'message': f'Successfully added {len(student_ids)} students to section {section.name}.',
+            'added_students': len(student_ids)
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'], url_path='students')
     def students(self, request, pk=None):
@@ -1464,8 +1847,10 @@ class SectionViewSet(viewsets.ModelViewSet):
         serializer = UserSerializer(students, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
     def create(self, request, *args, **kwargs):
+        """Create section(s) with proper authorization"""
+        self._check_permissions(request)
+        
         data = request.data
 
         if isinstance(data, list):
@@ -1473,10 +1858,16 @@ class SectionViewSet(viewsets.ModelViewSet):
             failed_sections = []
 
             for section_data in data:
-                serializer = self.get_serializer(data=section_data)
-                serializer.is_valid(raise_exception=True)
-                created_section = serializer.save()
-                created_sections.append(created_section)
+                try:
+                    serializer = self.get_serializer(data=section_data)
+                    serializer.is_valid(raise_exception=True)
+                    created_section = serializer.save()
+                    created_sections.append(created_section)
+                except ValidationError as e:
+                    failed_sections.append({
+                        "error": e.detail,
+                        "data": section_data,
+                    })
 
             if failed_sections:
                 raise ValidationError({
@@ -1491,137 +1882,362 @@ class SectionViewSet(viewsets.ModelViewSet):
 
         return super().create(request, *args, **kwargs)
 
-# Retention vs Responses Regression API
+    def update(self, request, *args, **kwargs):
+        """Update section with proper authorization"""
+        self._check_permissions(request)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete section with proper authorization"""
+        self._check_permissions(request)
+        return super().destroy(request, *args, **kwargs)
+
+# Retention vs Responses Regression API (multi-series using ScatterPlotAnalytics)
+import logging
+
+logger = logging.getLogger('hrapp.analytics')
+
+
+def _linear_regression_improved(points_xy):
+    """
+    Improved linear regression with better error handling and validation.
+    """
+    if not points_xy or len(points_xy) < 2:
+        return None
+
+    try:
+        xs = [float(p['x']) for p in points_xy]
+        ys = [float(p['y']) for p in points_xy]
+        n = float(len(points_xy))
+
+        # Check for valid data
+        if n == 0 or any(x is None or y is None for x, y in zip(xs, ys)):
+            return None
+
+        mean_x = sum(xs) / n
+        mean_y = sum(ys) / n
+
+        # Calculate variance and covariance
+        var_x = sum((x - mean_x) ** 2 for x in xs)
+        if var_x == 0:  # All x values are the same
+            return None
+
+        cov_xy = sum((xs[i] - mean_x) * (ys[i] - mean_y) for i in range(len(xs)))
+
+        # Calculate slope and intercept
+        b = cov_xy / var_x  # slope
+        a = mean_y - b * mean_x  # intercept
+
+        # Calculate R-squared
+        ss_tot = sum((y - mean_y) ** 2 for y in ys)
+        ss_res = sum((ys[i] - (a + b * xs[i])) ** 2 for i in range(len(xs)))
+        r2 = 1.0 - (ss_res / ss_tot) if ss_tot != 0 else 0.0
+
+        return {
+            'slope': float(b),
+            'intercept': float(a),
+            'r2': float(r2),
+            'formula': f"y = {a:.4f} + {b:.4f}x",
+            'n_points': int(n)
+        }
+    except Exception as e:
+        print(f"[ERROR] Linear regression calculation failed: {e}")
+        return None
+
+
+def _score_response_for_group_improved(resp):
+    """
+    Improved scoring function with better error handling and fallbacks.
+    """
+    q = resp.student_eval_question
+    qtype = (q.type or '').strip().upper() if q else ''
+    ans = resp.answer
+    mode = 'unknown'
+    pts = 0.0
+
+    # First, try to use stored sentiment score if available
+    if hasattr(resp, 'sentiment_score') and resp.sentiment_score:
+        try:
+            sentiment_data = resp.sentiment_score
+            if isinstance(sentiment_data, dict):
+                pts = float(sentiment_data.get('points', 0.0))
+                label = sentiment_data.get('label', 'UNKNOWN')
+                score_type = sentiment_data.get('type', qtype.lower())
+                mode = f"{score_type}:stored_{label.lower()}"
+                return float(pts), mode
+        except Exception as e:
+            print(f"[DEBUG] Error reading stored sentiment score: {e}")
+
+    # Fallback to real-time analysis if no stored sentiment score
+    if qtype == 'MCQ':
+        if callable(score_mcq_answer):
+            try:
+                pts, meta = score_mcq_answer(q, ans)
+                mode = f"mcq:{meta.get('mode', 'unknown')}"
+            except Exception as e:
+                print(f"[DEBUG] MCQ scoring error: {e}")
+                mode = 'mcq:error'
+        else:
+            # Simple letter mapping fallback
+            letter_map = {'A': 1.0, 'B': 0.5, 'C': 0.0, 'D': -0.5, 'E': -1.0}
+            ans_upper = str(ans).strip().upper() if ans else ''
+            if ans_upper in letter_map:
+                pts = letter_map[ans_upper]
+                mode = 'mcq:letter_fallback'
+            else:
+                # Try to extract letter from longer answers
+                for letter in ['A', 'B', 'C', 'D', 'E']:
+                    if letter in ans_upper:
+                        pts = letter_map[letter]
+                        mode = f'mcq:extracted_{letter}'
+                        break
+
+    elif qtype == 'TEXT':
+        if callable(analyze_text_sentiment):
+            try:
+                text_input = f"Question: {q.question}\nAnswer: {ans}" if q and q.question else str(ans)
+                res = analyze_text_sentiment(text_input) or {}
+                pts = float(res.get('points', 0.0))
+                mode = f"text:{res.get('label', 'unknown')}"
+            except Exception as e:
+                print(f"[DEBUG] Text sentiment analysis error: {e}")
+                mode = 'text:error'
+        else:
+            # Simple heuristic fallback
+            s = str(ans or '').lower()
+            positive_words = ['excellent', 'good', 'satisfied', 'great', 'helpful', 'amazing', 'wonderful',
+                              'outstanding']
+            negative_words = ['bad', 'poor', 'unsatisfied', 'terrible', 'unhelpful', 'awful', 'horrible',
+                              'disappointing']
+
+            if any(word in s for word in positive_words):
+                pts = 1.0
+                mode = 'text:heuristic_pos'
+            elif any(word in s for word in negative_words):
+                pts = -1.0
+                mode = 'text:heuristic_neg'
+            else:
+                pts = 0.0
+                mode = 'text:heuristic_neu'
+
+    elif qtype == 'RATING':
+        # Handle rating questions (1-5 scale typically)
+        try:
+            rating = float(ans) if ans else 0
+            if 1 <= rating <= 5:
+                # Convert 1-5 scale to -1 to 1 scale
+                pts = (rating - 3) / 2  # 1->-1, 2->-0.5, 3->0, 4->0.5, 5->1
+                mode = f'rating:scale_{rating}'
+            else:
+                pts = 0.0
+                mode = 'rating:out_of_range'
+        except (ValueError, TypeError):
+            pts = 0.0
+            mode = 'rating:invalid'
+
+    return float(pts), mode
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def scatterplot_analytics_save_improved(request):
+    """
+    Upsert ScatterPlotAnalytics entries.
+    Supports payloads:
+    1) Single entry: {year, semester, retention_rate}
+    2) Year with multiple semesters: {year, semesters: [...], retention_rate}
+    3) List of entries: [{year, semester, retention_rate}, ...]
+    """
+    def validate_year(y):
+        valid_years = dict(ScatterPlotAnalytics.YEAR_CHOICES)
+        if y not in valid_years:
+            raise ValidationError({"error": f"Invalid year. Must be one of: {list(valid_years.keys())}"})
+
+    def validate_semester(s):
+        valid_semesters = dict(ScatterPlotAnalytics.SEMESTER_CHOICES)
+        if s not in valid_semesters:
+            raise ValidationError({"error": f"Invalid semester. Must be one of: {list(valid_semesters.keys())}"})
+
+    def validate_rate(r):
+        try:
+            rr = float(r)
+        except (ValueError, TypeError):
+            raise ValidationError({"error": "retention_rate must be a valid number"})
+        if not (0 <= rr <= 100):
+            raise ValidationError({"error": "Retention rate must be between 0 and 100"})
+        return rr
+
+    try:
+        payload = request.data
+        entries = []
+
+        # Case 3: list of entries
+        if isinstance(payload, list):
+            entries = payload
+        # Case 2: dict with semesters list
+        elif isinstance(payload, dict) and isinstance(payload.get('semesters'), list):
+            year = payload.get('year')
+            rr = payload.get('retention_rate')
+            validate_year(year)
+            rr = validate_rate(rr)
+            semesters = payload.get('semesters')
+            if not semesters:
+                return Response({"error": "semesters list cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
+            for s in semesters:
+                validate_semester(s)
+                entries.append({"year": year, "semester": s, "retention_rate": rr})
+        # Case 1: single dict
+        elif isinstance(payload, dict):
+            year = payload.get('year')
+            semester = payload.get('semester')
+            rr = payload.get('retention_rate')
+            validate_year(year)
+            validate_semester(semester)
+            rr = validate_rate(rr)
+            entries = [{"year": year, "semester": semester, "retention_rate": rr}]
+        else:
+            return Response({"error": "Invalid payload format"}, status=status.HTTP_400_BAD_REQUEST)
+
+        results = []
+        for item in entries:
+            year = item['year']
+            semester = item['semester']
+            rr = float(item['retention_rate'])
+            obj, created = ScatterPlotAnalytics.objects.update_or_create(
+                year=year, semester=semester,
+                defaults={"retention_rate": rr}
+            )
+            results.append({
+                "id": obj.id,
+                "year": obj.year,
+                "semester": obj.semester,
+                "retention_rate": obj.retention_rate,
+                "created_at": getattr(obj, 'created_at', None),
+                "action": "created" if created else "updated"
+            })
+
+        # Return 200 always for upsert with list of results
+        return Response({"results": results}, status=status.HTTP_200_OK)
+
+    except ValidationError as ve:
+        # When we raised one of our validations above
+        return Response(ve.detail if hasattr(ve, 'detail') else {"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        print(f"[ERROR] Failed to save retention entry: {e}")
+        return Response({
+            "error": f"Failed to save retention entry: {str(e)}"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def retention_regression(request):
+def retention_regression_improved(request):
     """
-    Returns scatter data and linear regression between student evaluation response points (independent variable)
-    and retention rate (dependent variable). Since no retention field is present in the DB, this endpoint computes
-    a proxy retention rate = ((avg_points + 1) / 2) * 100 where avg_points is the average points per response in an
-    evaluation (points in [-1,1]). When a real retention field becomes available, replace the proxy with actual values.
-
-    Response JSON example:
-    {
-      "points": [
-        {"evaluation_id": 12, "x": 0.35, "y": 67.5, "n": 20},
-        ...
-      ],
-      "regression": {"slope": b, "intercept": a, "r2": r2, "formula": "y = a + b x"},
-      "meta": {"uses_proxy_retention": true}
-    }
+    Improved retention regression with better debugging and error handling.
     """
-    # Build per-evaluation aggregates
-    agg = {}
-    # Fetch all responses; optional filter by faculty/evaluation ids could be added later
-    responses = StudentEvaluationResponse.objects.all().select_related('student_eval_question', 'student_evaluation')
+    # Aggregate X by group (year_level, semester) from StudentEvaluationResponse
+    responses = StudentEvaluationResponse.objects.select_related(
+        'student_eval_question', 'student_evaluation__schedule__section', 'student_evaluation__schedule'
+    )
 
-    def _score_resp(resp):
-        q = resp.student_eval_question
-        qtype = (q.type or '').strip().upper() if q else ''
-        ans = resp.answer
-        # Prefer helper functions if available
-        if qtype == 'MCQ':
-            if callable(score_mcq_answer):
-                try:
-                    pts, _meta = score_mcq_answer(q, ans)
-                    return float(pts)
-                except Exception:
-                    pass
-            # Fallback simple letter mapping
-            letter_map = {'A': 1.0, 'B': 0.5, 'C': 0.0, 'D': -0.5, 'E': -1.0}
-            if isinstance(ans, str) and ans.strip().upper() in letter_map:
-                return letter_map[ans.strip().upper()]
-            return 0.0
-        elif qtype == 'TEXT':
-            if callable(analyze_text_sentiment):
-                try:
-                    text_input = f"Question: {q.question}\nAnswer: {ans}" if q and q.question else str(ans)
-                    res = analyze_text_sentiment(text_input) or {}
-                    return float(res.get('points', 0.0))
-                except Exception:
-                    pass
-            # Simple heuristic fallback
-            s = (ans or '').lower()
-            if any(k in s for k in ['excellent', 'good', 'satisfied', 'great', 'helpful']):
-                return 1.0
-            if any(k in s for k in ['bad', 'poor', 'unsatisfied', 'terrible', 'unhelpful']):
-                return -1.0
-            return 0.0
-        else:
-            # ignore rating/unknown
-            return 0.0
+    group_stats = {}  # (year, semester) -> {sum, n, responses_count}
+    mode_counts = defaultdict(int)
 
+    total_responses = responses.count()
+    print(f"[DEBUG] Processing {total_responses} total responses for retention regression")
+
+    processed_count = 0
     for resp in responses:
-        ev_id = getattr(resp.student_evaluation, 'id', None)
-        if not ev_id:
+        sched = getattr(resp.student_evaluation, 'schedule', None)
+        if not sched or not sched.section:
             continue
-        pts = _score_resp(resp)
-        if ev_id not in agg:
-            agg[ev_id] = {'sum': 0.0, 'n': 0}
-        agg[ev_id]['sum'] += pts
-        agg[ev_id]['n'] += 1
 
-    # Build points array (x = avg_points, y = proxy retention)
-    points = []
-    for ev_id, v in agg.items():
-        n = v['n']
-        if n <= 0:
+        # Map Schedule/Section to ScatterPlotAnalytics choice values
+        year_level = getattr(sched.section, 'year_level', None)  # e.g., '1','2','3','4'
+        if year_level not in ('1', '2', '3', '4'):
             continue
-        avg_points = v['sum'] / n
-        y_proxy = (avg_points + 1.0) / 2.0 * 100.0
-        points.append({'evaluation_id': ev_id, 'x': avg_points, 'y': y_proxy, 'n': n})
+        year_key = {'1': '1st', '2': '2nd', '3': '3rd', '4': '4th'}[year_level]
 
-    # Compute linear regression y = a + b x
-    if len(points) < 2:
-        return Response({
-            'points': points,
-            'regression': None,
-            'meta': {
-                'uses_proxy_retention': True,
-                'note': 'Not enough data points to fit regression.'
-            }
-        }, status=status.HTTP_200_OK)
+        sem_sched = getattr(sched, 'semester', None)  # 'First','Second','Summer'
+        if sem_sched not in ('First', 'Second', 'Summer'):
+            continue
+        sem_key = {'First': '1st', 'Second': '2nd', 'Summer': 'Summer'}[sem_sched]
 
-    xs = [p['x'] for p in points]
-    ys = [p['y'] for p in points]
-    n = float(len(points))
-    mean_x = sum(xs) / n
-    mean_y = sum(ys) / n
+        pts, mode = _score_response_for_group_improved(resp)
+        mode_counts[mode] += 1
+        key = (year_key, sem_key)
 
-    # variance and covariance
-    var_x = sum((x - mean_x) ** 2 for x in xs)
-    if var_x == 0:
-        # vertical line; slope undefined, return None
-        return Response({
-            'points': points,
-            'regression': None,
-            'meta': {
-                'uses_proxy_retention': True,
-                'note': 'Variance of X is zero; cannot fit linear regression.'
-            }
-        }, status=status.HTTP_200_OK)
+        if key not in group_stats:
+            group_stats[key] = {'sum': 0.0, 'n': 0, 'responses_count': 0}
+        group_stats[key]['sum'] += pts
+        group_stats[key]['n'] += 1
+        group_stats[key]['responses_count'] += 1
+        processed_count += 1
 
-    cov_xy = sum((xs[i] - mean_x) * (ys[i] - mean_y) for i in range(len(xs)))
-    b = cov_xy / var_x
-    a = mean_y - b * mean_x
+    # Log scoring distribution and group stats
+    print(f"[DEBUG] Processed {processed_count}/{total_responses} responses")
+    print(f"[DEBUG] Sentiment/MCQ scoring modes: {dict(mode_counts)}")
+    print(f"[DEBUG] Group statistics: {group_stats}")
 
-    # R^2
-    ss_tot = sum((y - mean_y) ** 2 for y in ys)
-    ss_res = sum((ys[i] - (a + b * xs[i])) ** 2 for i in range(len(xs)))
-    r2 = 1.0 - (ss_res / ss_tot) if ss_tot != 0 else 0.0
+    # Prepare series using saved ScatterPlotAnalytics entries
+    entries = ScatterPlotAnalytics.objects.all().order_by('created_at')
+    print(f"[DEBUG] Found {entries.count()} ScatterPlotAnalytics entries")
 
-    formula = f"y = {a:.4f} + {b:.4f} x"
+    series_map = {}  # (year, semester) -> list of points
+    for e in entries:
+        key = (e.year, e.semester)
+        stats = group_stats.get(key, None)
 
+        # Allow plotting even if no responses, but use 0 as X value
+        if not stats or stats['n'] == 0:
+            print(f"[DEBUG] No responses for {key}, using X=0")
+            avg_x = 0.0
+        else:
+            avg_x = stats['sum'] / stats['n']
+            print(f"[DEBUG] Group {key}: avg_x={avg_x:.3f} from {stats['n']} responses")
+
+        try:
+            t_iso = (e.created_at or timezone.now()).isoformat()
+        except Exception:
+            t_iso = str(timezone.now())
+
+        pt = {'x': avg_x, 'y': float(e.retention_rate or 0.0), 't': t_iso}
+        if key not in series_map:
+            series_map[key] = []
+        series_map[key].append(pt)
+
+    # Build response structure
+    series = []
+    for (y, s), pts in series_map.items():
+        print(f"[DEBUG] Series {y}-{s}: {len(pts)} points")
+        if len(pts) >= 2:
+            reg = _linear_regression_improved(pts)
+            if reg:
+                print(
+                    f"[DEBUG] Regression for {y}-{s}: slope={reg['slope']:.4f}, intercept={reg['intercept']:.4f}, r2={reg['r2']:.4f}")
+            else:
+                print(f"[DEBUG] Failed to calculate regression for {y}-{s}")
+        else:
+            reg = None
+            print(f"[DEBUG] Not enough points for regression in {y}-{s}")
+
+        series.append({
+            'label': f"{y} - {s}",
+            'key': {'year': y, 'semester': s},
+            'points': pts,
+            'regression': reg,
+        })
+
+    print(f"[DEBUG] Returning {len(series)} series")
     return Response({
-        'points': points,
-        'regression': {
-            'slope': b,
-            'intercept': a,
-            'r2': r2,
-            'formula': formula,
-        },
+        'series': series,
         'meta': {
-            'uses_proxy_retention': True,
+            'grouped_by': ['year', 'semester'],
+            'uses_scatterplot_analytics': True,
+            'scoring_logged': True,
+            'total_responses': sum(stats['n'] for stats in group_stats.values()),
+            'total_entries': len(entries),
+            'processed_responses': processed_count,
+            'mode_distribution': dict(mode_counts)
         }
     }, status=status.HTTP_200_OK)
+

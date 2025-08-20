@@ -4,6 +4,7 @@ import DataTable, { Column } from "../../../Components/Evaluation Components/Dat
 import ProgramCards from "../../../Components/Evaluation Components/ProgramCards.tsx";
 import SffDataDisplay from "../../../Components/Evaluation Components/SffDataDisplay";
 import ResponsesChartsTable from "../../../Components/Evaluation Components/ResponsesChartsTable.tsx";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 // Simple skeleton loader components
 const SkeletonBox = ({ width = '100%', height = 24, className = '' }) => (
   <div
@@ -322,19 +323,21 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   // UI rendering
   return (
     <div className="custom-container gap-y-6 h-screen overflow-y-auto">
-      <div className="breadcrumbs">
-        <ul>
-          <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
-          </li>
-          <li>
-            <a onClick={() => setActiveView("evaluation")}>Evaluation</a>
-          </li>
-          <li>Student Evaluations</li>
-        </ul>
-      </div>
-      <h2 className="mt-4 text-3xl font-bold text-white">Student Evaluation</h2>
+      <BreadAndLogout
+        setActiveView={setActiveView}
+        breadcrumbs={[
+          { label: "Home", view: "home" },
+          { label: "Evaluation", view: "evaluation" },
+          { label: "Student Evaluation View" },
+        ]}
+      />
 
+      <h2 className="mt-4 text-3xl font-bold text-white">
+        Student Evaluations
+      </h2>
+      <span className="font-thin text-[#888888] block mb-2">
+        This is where you can track student evaluation submissions, see participation rates, and analyze recurring themes in real time.
+      </span>
       {/* Step 1: Program Tiles */}
       {/* Step 1: Faculty-wide summary (if faculty_id is available) */}
       {!selectedProgram && (

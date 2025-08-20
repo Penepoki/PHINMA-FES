@@ -11,6 +11,7 @@ import DataTable, {
   Column,
 } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 
 interface SchedulesProps {
   setActiveView: (view: string) => void;
@@ -400,21 +401,20 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
   return (
     <div className="custom-container gap-y-6">
-      <div className="breadcrumbs">
-        <ul>
-          <li>
-            <a onClick={() => setActiveView("home")}>Home</a>
-          </li>
-          <li>
-            <a onClick={() => setActiveView("resourceGroup")}>
-              Resource Group
-            </a>
-          </li>
-          <li>Schedules</li>
-        </ul>
-      </div>
+      <BreadAndLogout
+        setActiveView={setActiveView}
+        breadcrumbs={[
+          { label: "Home", view: "home" },
+          { label: "Resource Group" },
+          { label: "Schedules" },
+        ]}
+      />
+
 
       <h2 className="mt-4 text-3xl font-bold text-white">Schedules</h2>
+      <span className="font-thin text-[#888888] block mx-6">
+        This is where you can coordinate teaching schedules, classrooms, and evaluations to avoid conflicts and keep everything running on time.
+      </span>
 
       <div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
         {/* New Schedule Button */}
@@ -886,69 +886,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
         </dialog>
 
         <div className="flex flex-row justify-center">
-          {/* Import Schedules Button */}
-          <button
-            onClick={() =>
-              (
-                document.getElementById(
-                  "modal_import_schedule",
-                ) as HTMLDialogElement
-              )?.showModal()
-            }
-            className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
-          >
-            Import Schedule
-          </button>
-
-          <dialog id="modal_import_schedule" className="modal">
-            <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="mb-4 text-center text-2xl font-bold">
-                Import Schedule
-              </h3>
-
-              <form
-                method="dialog"
-                className="flex flex-col gap-6"
-              >
-                {/* CSV Upload */}
-                <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-left text-lg font-bold md:w-1/6">
-                    File:
-                  </label>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    className="file-input file-input-bordered w-full"
-                    required
-                  />
-                </div>
-
-                {/* Action Buttons */}
-                <div className="modal-action">
-                  <button
-                    type="submit"
-                    className="btn btn-success text-white"
-                  >
-                    Upload
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-cancel"
-                    onClick={() =>
-                      (
-                        document.getElementById(
-                          "modal_import_schedule",
-                        ) as HTMLDialogElement
-                      )?.close()
-                    }
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </dialog>
-
           {/* Export Schedules Button */}
           <button
             onClick={() =>
@@ -958,7 +895,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
                 ) as HTMLDialogElement
               )?.showModal()
             }
-            className="w-full rounded-lg bg-[#d4c351] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
+            className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
           >
             Export Schedule
           </button>

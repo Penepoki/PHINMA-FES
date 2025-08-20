@@ -45,7 +45,8 @@ urlpatterns = [
     path('section/', include(section_router.urls)),
     path('subject/', include(subject_router.urls)),
     path('room/', include(room_router.urls)),
-    path('analytics/retention-regression/', retention_regression, name='retention-regression'),
+    path('analytics/retention-regression/', retention_regression_improved, name='retention-regression'),
+    path('analytics/scatterplot-analytics/', scatterplot_analytics_save_improved, name='scatterplot-analytics-save'),
     path('program/', include(program_router.urls)),
     path('program-professor/', include(program_professor_router.urls)),
     path('schedule/', include(schedule_router.urls)),
@@ -78,8 +79,8 @@ urlpatterns = [
 
     path('users/professors/', get_professors, name='get-professors'),
 
+    path('users/students/', get_students, name='get-students'),
+
     path('copus/bulk-tallies/', copus_bulk_tallies, name='copus-bulk-tallies'),
-
-
 
 ]
