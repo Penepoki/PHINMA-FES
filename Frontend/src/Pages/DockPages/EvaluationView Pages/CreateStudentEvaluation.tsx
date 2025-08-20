@@ -315,7 +315,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Create Student Evaluation</h2>
-      <span className="block mb-2 font-thin text-[#888888]">
+      <span className="block mb-2 font-thin text-[#888888] mx-6 ">
         This is where you can design and publish evaluation forms that follow the Student Feedback Framework (SFF), ensuring feedback is clear, consistent, and aligned with standards.
       </span>
 

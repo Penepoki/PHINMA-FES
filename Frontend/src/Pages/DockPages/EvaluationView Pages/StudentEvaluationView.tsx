@@ -335,7 +335,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       <h2 className="mt-4 text-3xl font-bold text-white">
         Student Evaluations
       </h2>
-      <span className="font-thin text-[#888888] block mb-2">
+      <span className="font-thin text-[#888888] block mb-2 mx-6">
         This is where you can track student evaluation submissions, see participation rates, and analyze recurring themes in real time.
       </span>
       {/* Step 1: Program Tiles */}
