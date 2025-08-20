@@ -137,6 +137,7 @@ class TimestampViewSet(viewsets.ModelViewSet):
     queryset = Timestamp.objects.all()
     serializer_class = TimestampSerializer
     filter_backends = [DjangoFilterBackend]
+    permission_classes = [IsAuthenticated]
     filterset_fields = ['evaluation']
 
     def get_queryset(self):
@@ -153,14 +154,14 @@ class TimestampViewSet(viewsets.ModelViewSet):
 
         if evaluation_id:
             queryset = queryset.filter(evaluation_id=evaluation_id)
-
             try:
                 evaluation = Evaluation.objects.get(id=evaluation_id)
-                if not user_can_access_evaluation(self.request.user, evaluation):
+                allowed = user_can_access_evaluation(self.request.user, evaluation)
+                print("DEBUG TimestampViewSet:", self.request.user, "→ allowed?", allowed)
+                if not allowed:
                     return Timestamp.objects.none()
             except Evaluation.DoesNotExist:
                 return Timestamp.objects.none()
-
         return queryset
 
     @action(detail=False, methods=['get'], url_path='options')

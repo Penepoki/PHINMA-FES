@@ -104,12 +104,18 @@ def user_can_access_evaluation(user, evaluation):
     Returns:
         bool: True if the user can access the evaluation, False otherwise
     """
+    if not getattr(user, "is_authenticated", False):
+        return False
+
     # HR, Dean, and Program Head can access all evaluations
     if user.groups.filter(name__in=['HR', 'Dean', 'Program Head']).exists():
         return True
 
     # The evaluator of the evaluation can access it
     if evaluation.evaluator == user:
+        return True
+
+    if getattr(evaluation, "instructor_id", None) == user.id:
         return True
 
     # If the evaluation has a schedule, check if the user is the instructor
