@@ -273,7 +273,7 @@ function Evaluation({ setActiveView }: EvalProps) {
       {/* Professors Table */}
       <div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg">
         <table className="table">
-          <thead className="bg-[#1c402a]/50 text-xl font-bold text-white shadow-xl">
+          <thead className="bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 text-xl font-bold text-white shadow-xl">
             <tr>
               <th>Course and Professor</th>
             </tr>
@@ -285,12 +285,12 @@ function Evaluation({ setActiveView }: EvalProps) {
                   <td>
                     <div className="collapse-arrow collapse rounded-md shadow-2xl backdrop-blur-lg">
                       <input type="checkbox" />
-                      <div className="collapse-title bg-[#1c402a]/50 text-xl font-semibold">
+                      <div className="collapse-title bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 text-xl font-semibold">
                         <div className="skeleton h-8 w-56 rounded-2xl"></div>
                       </div>
 
                       {/* Skeleton buttons row */}
-                      <div className="z-50 flex items-center justify-center gap-x-3 bg-[#1c402a]/50 py-3">
+                      <div className="z-50 flex items-center justify-center gap-x-3 bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 py-3">
                         <div className="skeleton h-10 w-36 rounded-2xl"></div>
                         <div className="skeleton h-10 w-32 rounded-2xl"></div>
                         <div className="skeleton h-10 w-32 rounded-2xl"></div>
@@ -321,10 +321,10 @@ function Evaluation({ setActiveView }: EvalProps) {
                                 {[...Array(2)].map((_, j) => (
                                   <tr key={j}>
                                     <td>
-                                      <div className="skeleton h-5 w-32 rounded bg-primary/20"></div>
+                                      <div className="skeleton h-5 w-32 rounded"></div>
                                     </td>
                                     <td>
-                                      <div className="skeleton h-5 w-20 rounded bg-primary/20"></div>
+                                      <div className="skeleton h-5 w-20 rounded"></div>
                                     </td>
                                   </tr>
                                 ))}
@@ -356,13 +356,13 @@ function Evaluation({ setActiveView }: EvalProps) {
                     <td>
                       <div className="collapse-arrow collapse rounded-md shadow-2xl backdrop-blur-lg">
                         <input type="checkbox" />
-                        <div className="collapse-title bg-[#1c402a]/50 text-xl font-semibold">
+                        <div className="collapse-title bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 text-xl font-semibold">
                           {prof.first_name} {prof.last_name}
                         </div>
 
                         {/* Button Row */}
                         <div
-                          className="z-50 flex items-center justify-center gap-x-3 bg-[#1c402a]/50 py-3"
+                          className="z-50 flex items-center justify-center gap-x-3 bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 py-3"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {/* Copus Summary */}

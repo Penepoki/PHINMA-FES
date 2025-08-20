@@ -376,7 +376,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             filterType="program"
             filterId={selectedProgram.id}
           />
-          <button className="btn btn-neutral mb-4" onClick={() => setSelectedProgram(null)}>
+          <button className="btn btn-primary text-white mb-4" onClick={() => setSelectedProgram(null)}>
             Back to Programs
           </button>
           <h3 className="text-2xl font-semibold text-white mb-4">Professors for {selectedProgram.name}</h3>
@@ -386,7 +386,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             columns={professorColumns}
             getRowKey={(prof) => prof.id}
             actions={(prof) => (
-              <button className="btn btn-sm btn-primary" onClick={() => {
+              <button className="btn btn-md text-white btn-primary" onClick={() => {
                 console.log("Clicked professor id:", prof.id);
                 setSelectedProfessor(prof);
               }}>
@@ -406,7 +406,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             filterType="professor"
             filterId={selectedProfessor.id}
           />
-          <button className="btn btn-neutral mb-4" onClick={() => setSelectedProfessor(null)}>
+          <button className="btn btn-primary text-white mb-4" onClick={() => setSelectedProfessor(null)}>
             Back to Professors
           </button>
           <h3 className="text-2xl font-semibold text-white mb-4">Schedules for {selectedProfessor.full_name}</h3>
@@ -418,7 +418,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               columns={scheduleColumns}
               getRowKey={(s) => s.id}
               actions={(s) => (
-                <button className="btn btn-sm btn-primary" onClick={() => {
+                <button className="btn btn-md text-white btn-primary" onClick={() => {
                   console.log("Clicked schedule id:", s.id);
                   setSelectedSchedule(s);
                 }}>
@@ -445,7 +445,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               columns={sectionColumns}
               getRowKey={(sec) => sec.id}
               actions={(sec) => (
-                <button className="btn btn-sm btn-primary" onClick={() => {
+                <button className="btn btn-md text-white btn-primary" onClick={() => {
                   console.log("Clicked section id:", sec.id);
                   setSelectedSection(sec);
                 }}>
@@ -485,7 +485,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               getRowKey={(stu) => stu.id}
               actions={(stu) => (
                 <button
-                  className="btn btn-sm btn-primary"
+                  className="btn btn-md text-white btn-primary"
                   onClick={() => {
                     setViewingStudent(stu);
                     if (studentDialogRef.current) studentDialogRef.current.showModal();

@@ -61,7 +61,7 @@ function DataTable<T>({
                 ))}
                 {actions && (
                   <td>
-                    <div className="skeleton h-8 w-12"></div>
+                    <div className="skeleton h-6 w-12"></div>
                   </td>
                 )}
               </tr>

@@ -58,7 +58,7 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
         setActiveView={setActiveView}
         breadcrumbs={[
           { label: "Home", view: "home" },
-          { label: "Response Group" },
+          { label: "Resource Group" },
         ]}
       />
 
