@@ -35,7 +35,7 @@ interface TimestampData {
 export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnlyProps) {
   // Use 0–60 to cover legacy 00:00:00 and 01:00:00
   const MIN_MINUTE = 0;
-  const MAX_MINUTE = 60;
+  const MAX_MINUTE = 58;
   const INCREMENT = 2;
 
   const [minute, setMinute] = useState<number>(MIN_MINUTE);

@@ -184,6 +184,15 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   const [regression, setRegression] = useState<any | null>(null);
   const [retentionLoading, setRetentionLoading] = useState(false);
   const [retentionError, setRetentionError] = useState<string | null>(null);
+  // Retention save dialog state
+  const [savingRetention, setSavingRetention] = useState(false);
+  const [retentionSaveError, setRetentionSaveError] = useState<string | null>(null);
+  const [formSemesters, setFormSemesters] = useState<string[]>(['1st', '2nd']);
+  // Filters for comparison (year levels and semesters)
+  const yearLevelOptions = ['1st','2nd','3rd','4th'] as const;
+  const semesterOptions = ['1st','2nd','Summer'] as const;
+  const [visibleYearLevels, setVisibleYearLevels] = useState<string[]>([...yearLevelOptions]);
+  const [visibleSemesters, setVisibleSemesters] = useState<string[]>([...semesterOptions]);
 
   // Sentiment Analysis Summary state
   const [sentimentSummary, setSentimentSummary] = useState<any>(null);
@@ -347,7 +356,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
             {
               label: "Professor → Activity",
               data: flows,
-              colorFrom: "blue",
+              colorFrom: "red",
               colorTo: "orange",
               colorMode: "gradient",
             },
@@ -515,7 +524,11 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   const scatterData = useMemo(() => {
     if (!Array.isArray(retentionPoints)) return null;
     const datasets: any[] = [];
-    (retentionPoints as any[]).forEach((series: any, idx: number) => {
+    const filtered = (retentionPoints as any[]).filter((series: any) =>
+      (!series?.key?.year || visibleYearLevels.includes(series.key.year)) &&
+      (!series?.key?.semester || visibleSemesters.includes(series.key.semester))
+    );
+    filtered.forEach((series: any, idx: number) => {
       const color = colorPool[idx % colorPool.length];
       datasets.push({
         label: series?.label || `Series ${idx + 1}`,
@@ -856,6 +869,42 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         </div>
         <div className="mt-6 flex w-full items-center justify-center rounded-lg p-4 shadow-2xl backdrop-blur-lg">
           <div className="w-full">
+            {/* Comparison filters */}
+            <div className="mb-4 flex flex-wrap items-center gap-3 text-white">
+              <span className="opacity-80">Compare Year Levels:</span>
+              {yearLevelOptions.map((yl) => (
+                <label key={yl} className="cursor-pointer flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-sm"
+                    checked={visibleYearLevels.includes(yl)}
+                    onChange={() =>
+                      setVisibleYearLevels((prev) =>
+                        prev.includes(yl) ? prev.filter((v) => v !== yl) : [...prev, yl]
+                      )
+                    }
+                  />
+                  <span>{yl}</span>
+                </label>
+              ))}
+              <span className="ml-4 opacity-80">Semesters:</span>
+              {semesterOptions.map((s) => (
+                <label key={s} className="cursor-pointer flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-sm"
+                    checked={visibleSemesters.includes(s)}
+                    onChange={() =>
+                      setVisibleSemesters((prev) =>
+                        prev.includes(s) ? prev.filter((v) => v !== s) : [...prev, s]
+                      )
+                    }
+                  />
+                  <span>{s}</span>
+                </label>
+              ))}
+            </div>
+
             {retentionLoading && <p className="text-white">Loading regression...</p>}
             {retentionError && <p className="text-red-400">{retentionError}</p>}
             {scatterData ? (
@@ -1016,14 +1065,24 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
               </select>
             </div>
             <div className="mb-3">
-              <label className="mb-1 block text-sm text-gray-300">Semester</label>
-              <select className="select select-bordered w-full"
-                value={formSemester}
-                onChange={(e) => setFormSemester(e.target.value as any)}>
-                <option value="1st">1st Semester</option>
-                <option value="2nd">2nd Semester</option>
-                <option value="Summer">Summer</option>
-              </select>
+              <label className="mb-1 block text-sm text-gray-300">Semesters</label>
+              <div className="flex flex-wrap gap-3">
+                {['1st','2nd','Summer'].map((s) => (
+                  <label key={s} className="cursor-pointer flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-sm"
+                      checked={formSemesters.includes(s)}
+                      onChange={() =>
+                        setFormSemesters((prev) =>
+                          prev.includes(s) ? prev.filter((v) => v !== s) : [...prev, s]
+                        )
+                      }
+                    />
+                    <span>{s}</span>
+                  </label>
+                ))}
+              </div>
             </div>
             <div className="mb-4">
               <label className="mb-1 block text-sm text-gray-300">Retention Rate (%)</label>
@@ -1035,11 +1094,25 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                 onChange={(e) => setFormRetention(e.target.value)}
               />
             </div>
+            {retentionSaveError && (
+              <div className="text-red-400 text-sm mb-2">{retentionSaveError}</div>
+            )}
             <div className="flex justify-end gap-2">
-              <button className="btn" onClick={() => setShowRetentionDialog(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={async () => {
+              <button className="btn" onClick={() => setShowRetentionDialog(false)} disabled={savingRetention}>Cancel</button>
+              <button className="btn btn-primary" disabled={savingRetention} onClick={async () => {
+                setRetentionSaveError(null);
+                const rr = Number(formRetention);
+                if (isNaN(rr) || rr < 0 || rr > 100) {
+                  setRetentionSaveError('Retention rate must be a number between 0 and 100');
+                  return;
+                }
+                if (!formSemesters.length) {
+                  setRetentionSaveError('Select at least one semester');
+                  return;
+                }
+                setSavingRetention(true);
                 try {
-                  const payload = { year: formYear, semester: formSemester, retention_rate: Number(formRetention) };
+                  const payload: any = { year: formYear, semesters: formSemesters, retention_rate: rr };
                   await api.post('/analytics/scatterplot-analytics/', payload);
                   // Reload series
                   const res = await api.get('/analytics/retention-regression/');
@@ -1047,10 +1120,14 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                   setRetentionPoints(series);
                   setShowRetentionDialog(false);
                   setFormRetention("");
+                  setFormSemesters(['1st','2nd']);
                 } catch (e: any) {
-                  alert(e?.response?.data?.error || e?.message || 'Failed to save');
+                  const msg = e?.response?.data?.error || e?.message || 'Failed to save';
+                  setRetentionSaveError(String(msg));
+                } finally {
+                  setSavingRetention(false);
                 }
-              }}>Save</button>
+              }}>{savingRetention ? <span className="loading loading-spinner loading-sm"></span> : 'Save'}</button>
             </div>
           </div>
         </div>
