@@ -69,7 +69,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
   // Errors
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
 
-  // ---- NEW: modal refs (always-mounted dialogs) ----
+  // ---- ALWAYS-MOUNTED MODAL refs ----
   const createModalRef = useRef<HTMLDialogElement>(null);
   const editModalRef = useRef<HTMLDialogElement>(null);
   const importModalRef = useRef<HTMLDialogElement>(null);
@@ -116,7 +116,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
     }
   };
 
-  // Open edit modal for an evaluation (now uses showModal)
+  // Open edit modal for an evaluation
   const handleEditEvaluation = async (evalItem: StudentEvaluation) => {
     setEditEval(evalItem);
     setEditEvalInfo({ title: evalItem.title ?? "", description: evalItem.description ?? "" });
@@ -150,7 +150,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
         id: q.id,
       }));
     }
-    setQuestions(allQuestions); // (if you still need the unified list)
+    setQuestions(allQuestions); // if you still need the unified list
     setEditEvalQuestions(allQuestions);
 
     // Schedule
@@ -170,7 +170,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
     openEditModal();
   };
 
-  // Import question (unchanged logic, but close import dialog via ref)
+  // Import question
   const handleImportQuestion = (q: any) => {
     if (importTarget === "create") {
       if (!importedQuestionIds.includes(q.id)) {
@@ -320,7 +320,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
         setActiveView={setActiveView}
         breadcrumbs={[
           { label: "Home", view: "home" },
-          { label: "Evalustion", view: "evaluation" },
+          { label: "Evaluation", view: "evaluation" },
           { label: "Create Student Evaluation" },
         ]}
       />
@@ -339,6 +339,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
             openCreateModal();
           }}
           className="flex w-auto whitespace-nowrap rounded-lg bg-[#1c402a] px-5 py-2 text-white shadow-xl transition-transform hover:scale-105"
+          type="button"
         >
           Create New Student Evaluation
         </button>
@@ -354,6 +355,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
           <button
             className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
             onClick={() => handleEditEvaluation(item)}
+            type="button"
           >
             <PencilSquareIcon className="h-4 w-4" />
             Edit
@@ -553,10 +555,11 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                             setEditQuestionIndex(i);
                             setEditQuestionModalOpen(true);
                           }}
+                          type="button"
                         >
                           Edit
                         </button>
-                        <button className="btn btn-xs btn-error" onClick={() => handleEditEvalDeleteQuestion(i)}>
+                        <button className="btn btn-xs btn-error" onClick={() => handleEditEvalDeleteQuestion(i)} type="button">
                           Delete
                         </button>
                       </td>
@@ -583,7 +586,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
             </button>
           </div>
 
-          {/* Keep your nested CreateStudentQuestion controlled by prop */}
+          {/* Nested CreateStudentQuestion for EDIT flow */}
           <CreateStudentQuestion
             open={editQuestionModalOpen}
             onClose={() => {
@@ -612,7 +615,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
               <div key={q.id}>
                 <li className="flex items-center justify-between py-2">
                   <span>{q.question}</span>
-                  <button className="btn btn-md text-white btn-primary" onClick={() => handleImportQuestion(q)}>
+                  <button className="btn btn-md text-white btn-primary" onClick={() => handleImportQuestion(q)} type="button">
                     Import
                   </button>
                 </li>
@@ -620,7 +623,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
               </div>
             ))}
           </ul>
-          <button className="btn btn-md btn-cancel text-white mt-4" onClick={closeImportModal}>
+          <button className="btn btn-md btn-cancel text-white mt-4" onClick={closeImportModal} type="button">
             Close
           </button>
         </div>
@@ -630,13 +633,12 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
         </form>
       </dialog>
 
-      {/* Question Modal (create flow) – keep at bottom so it isn’t clipped */}
+      {/* Question Modal (CREATE flow) – keep at bottom so it isn’t clipped */}
       <CreateStudentQuestion
         open={isQuestionModalOpen}
         onClose={() => {
+          // These setters don't exist in create flow, so only close the modal.
           setIsQuestionModalOpen(false);
-          setQuestionToEdit(null);
-          setEditIndex(null);
         }}
         onAdd={handleAddQuestion}
         onUpdate={() => { }}

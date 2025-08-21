@@ -5,42 +5,57 @@ import ProgramCards from "../../../Components/Evaluation Components/ProgramCards
 import SffDataDisplay from "../../../Components/Evaluation Components/SffDataDisplay";
 import ResponsesChartsTable from "../../../Components/Evaluation Components/ResponsesChartsTable.tsx";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
-// Simple skeleton loader components
-const SkeletonBox = ({ width = '100%', height = 24, className = '' }) => (
+
+/* ---------------------------
+   Minimal Skeletons (daisyUI)
+----------------------------*/
+// Simple box skeleton using daisyUI only (no gradient)
+const SkeletonBox = ({
+  width = "100%",
+  height = 24,
+  className = "",
+}: {
+  width?: number | string;
+  height?: number | string;
+  className?: string;
+}) => (
   <div
-    className={`bg-gray-300 animate-pulse rounded ${className}`}
-    style={{ width, height, margin: '0.25rem 0' }}
+    className={`skeleton ${className}`}
+    style={{ width, height }}
   />
 );
 
-const SkeletonProgramCards = () => (
-  <div className="w-full rounded-xl bg-black/20">
-    <div className="flex flex-col items-center">
-      <p className="mt-6 text-xl text-gray-300">Program List:</p>
-      <div className="flex flex-wrap justify-center gap-6 px-6 py-6 md:mt-6 md:px-0">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="w-full sm:w-1/2 lg:w-1/4">
-            <SkeletonBox height={96} />
-          </div>
-        ))}
-      </div>
+// 6 green rectangles for Program List
+const ProgramListSkeleton = () => (
+  <div className="w-full rounded-xl bg-black/20 p-6">
+    <div className="text-white text-xl mb-4">
+      Program List:
+    </div>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="rounded-2xl">
+          {/* Green rectangle card */}
+          <div className="skeleton h-28 w-full rounded-2xl bg-success/40" />
+        </div>
+      ))}
     </div>
   </div>
 );
 
-const SkeletonTable = ({ rows = 4, cols = 2 }) => (
-  <table className="w-full">
-    <tbody>
-      {Array.from({ length: rows }).map((_, i) => (
-        <tr key={i}>
-          {Array.from({ length: cols }).map((_, j) => (
-            <td key={j} className="px-2 py-2"><SkeletonBox height={20} /></td>
-          ))}
-        </tr>
-      ))}
-    </tbody>
-  </table>
+// Faculty Response Charts skeleton: title + 2 chart panels
+const FacultyChartsSkeleton = () => (
+  <div className="flex-col w-full justify-center items-center">
+    <div className="justify-center items-start h-12 bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
+      Faculty Response Charts
+    </div>
+    <div className="bg-black/20 h-15">
+    </div>
+  </div>
 );
+
+/* ---------------------------
+   Types
+----------------------------*/
 interface StudentEvalProps {
   setActiveView: (view: string) => void;
 }
@@ -60,28 +75,27 @@ interface Professor {
 interface Schedule {
   id: number;
   name: string;
-  // Add more fields as needed
 }
 
 interface Section {
   id: number;
   name: string;
-  // Add more fields as needed
 }
 
 interface SFFData {
-  // Define SFF data structure
   [key: string]: any;
 }
 
+/* ---------------------------
+   Component
+----------------------------*/
 function StudentEvaluation({ setActiveView }: StudentEvalProps) {
-  // Step state
+  // Step selection state
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [selectedProfessor, setSelectedProfessor] = useState<Professor | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
-  const sffDialogRef = React.useRef(null);
-  const studentDialogRef = useRef<HTMLDialogElement>(null);
+
   // Data state
   const [programs, setPrograms] = useState<Program[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
@@ -90,43 +104,51 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   const [sffData, setSffData] = useState<SFFData | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [studentResponses, setStudentResponses] = useState<{ [userId: string]: any[] }>({});
-  const [studentLoading, setStudentLoading] = useState(false);
   const [studentDialogResponses, setStudentDialogResponses] = useState<any[]>([]);
 
-  // Modal state
-  const [viewingStudent, setViewingStudent] = useState<any | null>(null);
-  const [showSffDialog, setShowSffDialog] = useState(false);
-
-  // Loading state
-  const [loading, setLoading] = useState(false);
+  // Loading flags
+  const [programsLoading, setProgramsLoading] = useState(false);
+  const [professorsLoading, setProfessorsLoading] = useState(false);
+  const [schedulesLoading, setSchedulesLoading] = useState(false);
   const [sectionsLoading, setSectionsLoading] = useState(false);
+  const [sffLoading, setSffLoading] = useState(false);
   const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentLoading, setStudentLoading] = useState(false);
 
-  // Fetch programs for the faculty on mount
+  // Dialog state/refs
+  const [viewingStudent, setViewingStudent] = useState<any | null>(null);
+  const studentDialogRef = useRef<HTMLDialogElement>(null);
+
+  /* ---------------------------
+     Fetch: Programs (on mount)
+  ----------------------------*/
   useEffect(() => {
     const fetchPrograms = async () => {
-      setLoading(true);
+      setProgramsLoading(true);
       try {
         const token = localStorage.getItem("token");
         const faculty_id = localStorage.getItem("faculty_id");
         if (!token) return;
         const params: any = {};
         if (faculty_id) params.faculty_id = faculty_id;
+
         const response = await api.get("/program/programs/", {
           params,
           headers: { Authorization: `Bearer ${token}` },
         });
-        setPrograms(response.data);
-      } catch (e) {
+        setPrograms(response.data || []);
+      } catch {
         setPrograms([]);
       } finally {
-        setLoading(false);
+        setProgramsLoading(false);
       }
     };
     fetchPrograms();
   }, []);
 
-  // Fetch professors for selected program
+  /* ---------------------------
+     Fetch: Professors (on program)
+  ----------------------------*/
   useEffect(() => {
     if (!selectedProgram) return;
     setSelectedProfessor(null);
@@ -134,7 +156,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     setSelectedSection(null);
     setSffData(null);
     const fetchProfessors = async () => {
-      setLoading(false);
+      setProfessorsLoading(true);
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
@@ -143,30 +165,32 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
           headers: { Authorization: `Bearer ${token}` },
         });
         setProfessors(
-          res.data.map((item: any) => ({
+          (res.data || []).map((item: any) => ({
             id: item.professor,
             full_name: item.professor_details?.full_name || `Professor ID: ${item.professor}`,
             first_name: item.professor_details?.first_name,
             last_name: item.professor_details?.last_name,
           }))
         );
-      } catch (e) {
+      } catch {
         setProfessors([]);
       } finally {
-        setLoading(false);
+        setProfessorsLoading(false);
       }
     };
     fetchProfessors();
   }, [selectedProgram]);
 
-  // Fetch schedules for selected professor
+  /* ---------------------------
+     Fetch: Schedules (on professor+program)
+  ----------------------------*/
   useEffect(() => {
     if (!selectedProfessor || !selectedProgram) return;
     setSelectedSchedule(null);
     setSelectedSection(null);
     setSffData(null);
     const fetchSchedules = async () => {
-      setLoading(true);
+      setSchedulesLoading(true);
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
@@ -174,17 +198,19 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
           params: { professor: selectedProfessor.id, program: selectedProgram.id },
           headers: { Authorization: `Bearer ${token}` },
         });
-        setSchedules(res.data);
-      } catch (e) {
+        setSchedules(res.data || []);
+      } catch {
         setSchedules([]);
       } finally {
-        setLoading(false);
+        setSchedulesLoading(false);
       }
     };
     fetchSchedules();
   }, [selectedProfessor, selectedProgram]);
 
-  // Fetch sections for selected schedule
+  /* ---------------------------
+     Fetch: Sections (on schedule)
+  ----------------------------*/
   useEffect(() => {
     if (!selectedSchedule) return;
     setSelectedSection(null);
@@ -195,12 +221,11 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
-        // Adjust endpoint as needed
         const res = await api.get(`/schedule/schedules/${selectedSchedule.id}/sections/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setSections(res.data);
-      } catch (e) {
+        setSections(res.data || []);
+      } catch {
         setSections([]);
       } finally {
         setSectionsLoading(false);
@@ -209,30 +234,34 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchSections();
   }, [selectedSchedule]);
 
-  // Fetch SFF data for selected section
+  /* ---------------------------
+     Fetch: SFF (on section)
+  ----------------------------*/
   useEffect(() => {
-    if (!selectedSection) return;
+    if (!selectedSection || !selectedSchedule) return;
     setSffData(null);
     const fetchSFF = async () => {
-      setLoading(true);
+      setSffLoading(true);
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
-        if (!selectedSchedule) return; // or handle the null case appropriately
-        const res = await api.get(`/studentevaluation/studentevaluation/all-by-schedule/${selectedSchedule.id}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setSffData(res.data);
-      } catch (e) {
+        const res = await api.get(
+          `/studentevaluation/studentevaluation/all-by-schedule/${selectedSchedule.id}/`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setSffData(res.data || null);
+      } catch {
         setSffData(null);
       } finally {
-        setLoading(false);
+        setSffLoading(false);
       }
     };
     fetchSFF();
-  }, [selectedSection]);
+  }, [selectedSection, selectedSchedule]);
 
-  // Fetch students for selected section
+  /* ---------------------------
+     Fetch: Students (on section)
+  ----------------------------*/
   useEffect(() => {
     if (!selectedSection) return;
     setStudents([]);
@@ -245,8 +274,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         const res = await api.get(`/section/sections/${selectedSection.id}/students/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setStudents(res.data);
-      } catch (e) {
+        setStudents(res.data || []);
+      } catch {
         setStudents([]);
       } finally {
         setStudentsLoading(false);
@@ -255,7 +284,9 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchStudents();
   }, [selectedSection]);
 
-  // Fetch responses for each student for the current evaluation (for table preview, not dialog)
+  /* ---------------------------
+     Fetch: Responses (preview per student)
+  ----------------------------*/
   useEffect(() => {
     if (!students.length || !sffData?.id) return;
     const fetchResponses = async () => {
@@ -269,7 +300,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               `/studentevaluation/studentevaluation/${sffData.id}/responses/?user=${student.id}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
-            responsesMap[student.id] = res.data;
+            responsesMap[student.id] = res.data || [];
           } catch {
             responsesMap[student.id] = [];
           }
@@ -280,12 +311,12 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchResponses();
   }, [students, sffData]);
 
-
-
-  // Fetch responses for the selected student when dialog opens
+  /* ---------------------------
+     Fetch: Responses for dialog
+  ----------------------------*/
   useEffect(() => {
     const fetchStudentDialogResponses = async () => {
-      const evaluationId = Array.isArray(sffData) && sffData.length > 0 ? sffData[0].id : sffData?.id;
+      const evaluationId = Array.isArray(sffData) && sffData.length > 0 ? sffData[0].id : (sffData as any)?.id;
       if (!viewingStudent || !evaluationId) return;
       setStudentLoading(true);
       try {
@@ -295,7 +326,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
           `/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-user?student_evaluation=${evaluationId}&user=${viewingStudent.id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setStudentDialogResponses(res.data);
+        setStudentDialogResponses(res.data || []);
       } catch {
         setStudentDialogResponses([]);
       } finally {
@@ -305,24 +336,22 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     fetchStudentDialogResponses();
   }, [viewingStudent, sffData]);
 
-  // Columns for DataTable
-  const professorColumns: Column<Professor>[] = [
-    { header: "Name", accessor: (prof) => prof.full_name },
-  ];
-  const scheduleColumns: Column<Schedule>[] = [
-    { header: "Schedule Name", accessor: (s) => s.name },
-  ];
-  const sectionColumns: Column<Section>[] = [
-    { header: "Section Name", accessor: (sec) => sec.name },
-  ];
+  /* ---------------------------
+     Columns
+  ----------------------------*/
+  const professorColumns: Column<Professor>[] = [{ header: "Name", accessor: (prof) => prof.full_name }];
+  const scheduleColumns: Column<Schedule>[] = [{ header: "Schedule Name", accessor: (s) => s.name }];
+  const sectionColumns: Column<Section>[] = [{ header: "Section Name", accessor: (sec) => sec.name }];
   const studentColumns: Column<any>[] = [
     { header: "Student Name", accessor: (stu) => `${stu.first_name} ${stu.last_name}` },
     { header: "Email", accessor: (stu) => stu.email },
   ];
 
-  // UI rendering
+  /* ---------------------------
+     UI
+  ----------------------------*/
   return (
-    <div className="custom-container gap-y-6 h-screen overflow-y-auto">
+    <div className="custom-container h-screen overflow-y-auto gap-y-6">
       <BreadAndLogout
         setActiveView={setActiveView}
         breadcrumbs={[
@@ -332,64 +361,69 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         ]}
       />
 
-      <h2 className="mt-4 text-3xl font-bold text-white">
-        Student Evaluations
-      </h2>
-      <span className="font-thin text-[#888888] block mb-2 mx-6">
-        This is where you can track student evaluation submissions, see participation rates, and analyze recurring themes in real time.
+      <h2 className="mt-4 text-3xl font-bold text-white">Student Evaluations</h2>
+      <span className="mx-6 mb-2 block font-thin text-[#888888]">
+        This is where you can track student evaluation submissions, see participation rates, and analyze recurring
+        themes in real time.
       </span>
-      {/* Step 1: Program Tiles */}
-      {/* Step 1: Faculty-wide summary (if faculty_id is available) */}
+
+      {/* Step 1: Program Tiles + (optional) Faculty summary */}
       {!selectedProgram && (
         <>
-          {/* Faculty summary charts */}
+          {/* Faculty summary charts (show skeleton while programs are loading) */}
           {(() => {
             const faculty_id = localStorage.getItem("faculty_id");
-            // You may want to get evaluationId from context or let user select
-            // For demo, only show if faculty_id and programs exist
-            if (faculty_id && programs.length > 0) {
-              // Use the first program's first evaluation as a sample (customize as needed)
-              // You may want to fetch a faculty-wide evaluationId if available
-              return (
+            if (faculty_id) {
+              return programsLoading ? (
+                <FacultyChartsSkeleton />
+              ) : programs.length > 0 ? (
                 <ResponsesChartsTable
-                  evaluationId={programs[0]?.id} // Replace with correct evaluationId for faculty
+                  evaluationId={programs[0]?.id /* TODO: replace with the correct eval ID */}
                   filterType="faculty"
                   filterId={parseInt(faculty_id)}
                 />
-              );
+              ) : null;
             }
             return null;
           })()}
-          <ProgramCards programs={programs} onClick={(program) => {
-            console.log("Clicked program id:", program.id);
-            setSelectedProgram(program);
-          }} />
+
+          {/* Programs: either 6 green skeletons or actual cards */}
+          {programsLoading ? (
+            <ProgramListSkeleton />
+          ) : (
+            <ProgramCards
+              programs={programs}
+              onClick={(program) => {
+                setSelectedProgram(program);
+              }}
+            />
+          )}
         </>
       )}
 
       {/* Step 2: Professors Table */}
       {selectedProgram && !selectedProfessor && (
         <>
-          {/* Program-wide summary charts */}
           <ResponsesChartsTable
-            evaluationId={selectedProgram.id} // Replace with correct evaluationId for program
+            evaluationId={selectedProgram.id /* TODO: replace with correct program eval ID */}
             filterType="program"
             filterId={selectedProgram.id}
           />
-          <button className="btn btn-primary text-white mb-4" onClick={() => setSelectedProgram(null)}>
+          <button className="btn btn-primary mb-4 text-white" onClick={() => setSelectedProgram(null)}>
             Back to Programs
           </button>
-          <h3 className="text-2xl font-semibold text-white mb-4">Professors for {selectedProgram.name}</h3>
+          <h3 className="mb-4 text-2xl font-semibold text-white">Professors for {selectedProgram.name}</h3>
 
           <DataTable
             data={professors}
             columns={professorColumns}
             getRowKey={(prof) => prof.id}
+            loading={professorsLoading}
             actions={(prof) => (
-              <button className="btn btn-md text-white btn-primary" onClick={() => {
-                console.log("Clicked professor id:", prof.id);
-                setSelectedProfessor(prof);
-              }}>
+              <button
+                className="btn btn-md btn-primary text-white"
+                onClick={() => setSelectedProfessor(prof)}
+              >
                 View Schedules
               </button>
             )}
@@ -400,150 +434,152 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       {/* Step 3: Schedules Table */}
       {selectedProgram && selectedProfessor && !selectedSchedule && (
         <>
-          {/* Professor-wide summary charts */}
           <ResponsesChartsTable
-            evaluationId={selectedProfessor.id} // Replace with correct evaluationId for professor
+            evaluationId={selectedProfessor.id /* TODO: replace with correct professor eval ID */}
             filterType="professor"
             filterId={selectedProfessor.id}
           />
-          <button className="btn btn-primary text-white mb-4" onClick={() => setSelectedProfessor(null)}>
+          <button className="btn btn-primary mb-4 text-white" onClick={() => setSelectedProfessor(null)}>
             Back to Professors
           </button>
-          <h3 className="text-2xl font-semibold text-white mb-4">Schedules for {selectedProfessor.full_name}</h3>
-          {loading ? (
-            <SkeletonTable rows={4} cols={2} />
-          ) : (
-            <DataTable
-              data={schedules}
-              columns={scheduleColumns}
-              getRowKey={(s) => s.id}
-              actions={(s) => (
-                <button className="btn btn-md text-white btn-primary" onClick={() => {
-                  console.log("Clicked schedule id:", s.id);
-                  setSelectedSchedule(s);
-                }}>
-                  View Sections
-                </button>
-              )}
-            />
-          )}
+          <h3 className="mb-4 text-2xl font-semibold text-white">
+            Schedules for {selectedProfessor.full_name}
+          </h3>
+
+          <DataTable
+            data={schedules}
+            columns={scheduleColumns}
+            getRowKey={(s) => s.id}
+            loading={schedulesLoading}
+            actions={(s) => (
+              <button className="btn btn-md btn-primary text-white" onClick={() => setSelectedSchedule(s)}>
+                View Sections
+              </button>
+            )}
+          />
         </>
       )}
 
       {/* Step 4: Sections Table */}
       {selectedProgram && selectedProfessor && selectedSchedule && !selectedSection && (
         <>
-          <button className="btn btn-neutral mb-4" onClick={() => setSelectedSchedule(null)}>
+          <button className="btn btn-primary text-white mb-4" onClick={() => setSelectedSchedule(null)}>
             Back to Schedules
           </button>
-          <h3 className="text-2xl font-semibold text-white mb-4">Sections for {selectedSchedule.name}</h3>
-          {sectionsLoading ? (
-            <SkeletonTable rows={4} cols={1} />
-          ) : (
-            <DataTable
-              data={sections}
-              columns={sectionColumns}
-              getRowKey={(sec) => sec.id}
-              actions={(sec) => (
-                <button className="btn btn-md text-white btn-primary" onClick={() => {
-                  console.log("Clicked section id:", sec.id);
-                  setSelectedSection(sec);
-                }}>
-                  View SFF
-                </button>
-              )}
-            />
-          )}
+          <h3 className="mb-4 text-2xl font-semibold text-white">Sections for {selectedSchedule.name}</h3>
+
+          <DataTable
+            data={sections}
+            columns={sectionColumns}
+            getRowKey={(sec) => sec.id}
+            loading={sectionsLoading}
+            actions={(sec) => (
+              <button className="btn btn-md btn-primary text-white" onClick={() => setSelectedSection(sec)}>
+                View SFF
+              </button>
+            )}
+          />
         </>
       )}
 
-      {/* Step 5: SFF Data */}
+      {/* Step 5: SFF + Students Table */}
       {selectedProgram && selectedProfessor && selectedSchedule && selectedSection && (
         <>
-          <button className="btn btn-neutral mb-4" onClick={() => setSelectedSection(null)}>
+          <button className="btn btn-primary text-white mb-4" onClick={() => setSelectedSection(null)}>
             Back to Sections
           </button>
-          <h3 className="text-2xl font-semibold text-white mb-4">SFF Data for {selectedSection.name}</h3>
-          {/* Section-wide charts for rating and MCQ questions */}
-          {sffData && selectedSection && (
-            <React.Suspense fallback={<div>Loading charts...</div>}>
-              <ResponsesChartsTable
-                evaluationId={Array.isArray(sffData) ? sffData[0]?.id : sffData.id}
-                filterType="section"
-                filterId={selectedSection.id}
-              />
-            </React.Suspense>
-          )}
-          {/* Step 6: Students and their responses */}
-          <h3 className="text-2xl font-semibold text-white mb-4 mt-8">Student Responses for {selectedSection.name}</h3>
-          {studentsLoading ? (
-            <SkeletonTable rows={4} cols={3} />
+          <h3 className="mb-4 text-2xl font-semibold text-white">
+            SFF Data for {selectedSection.name}
+          </h3>
+
+          {/* Section-wide charts */}
+          {sffLoading ? (
+            <FacultyChartsSkeleton />
           ) : (
-            <DataTable
-              data={students}
-              columns={studentColumns}
-              getRowKey={(stu) => stu.id}
-              actions={(stu) => (
-                <button
-                  className="btn btn-md text-white btn-primary"
-                  onClick={() => {
-                    setViewingStudent(stu);
-                    if (studentDialogRef.current) studentDialogRef.current.showModal();
-                  }}
-                >
-                  View Responses
-                </button>
-              )}
-            />
-          )}{/* Student Responses Dialog using <dialog> */}
-          <dialog ref={studentDialogRef} className=" modal"
+            sffData && (
+              <React.Suspense fallback={<FacultyChartsSkeleton />}>
+                <ResponsesChartsTable
+                  evaluationId={Array.isArray(sffData) ? (sffData[0]?.id as number) : (sffData as any)?.id}
+                  filterType="section"
+                  filterId={selectedSection.id}
+                />
+              </React.Suspense>
+            )
+          )}
+
+          <h3 className="mt-8 mb-4 text-2xl font-semibold text-white">
+            Student Responses for {selectedSection.name}
+          </h3>
+
+          <DataTable
+            data={students}
+            columns={studentColumns}
+            getRowKey={(stu) => stu.id}
+            loading={studentsLoading}
+            actions={(stu) => (
+              <button
+                className="btn btn-md btn-primary text-white"
+                onClick={() => {
+                  setViewingStudent(stu);
+                  studentDialogRef.current?.showModal();
+                }}
+              >
+                View Responses
+              </button>
+            )}
+          />
+
+          {/* Student Responses Dialog */}
+          <dialog
+            ref={studentDialogRef}
+            className="modal"
             onClose={() => {
               setViewingStudent(null);
               setStudentDialogResponses([]);
             }}
           >
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl relative">
+            <div className="relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
               <button
-                className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+                className="absolute right-2 top-2 text-gray-500 hover:text-gray-800"
                 onClick={() => {
-                  if (studentDialogRef.current) studentDialogRef.current.close();
+                  studentDialogRef.current?.close();
                   setViewingStudent(null);
                   setStudentDialogResponses([]);
                 }}
               >
                 &times;
               </button>
+
               {viewingStudent && (
                 <>
-                  <h4 className="text-xl font-bold mb-4">
+                  <h4 className="mb-4 text-xl font-bold">
                     Responses for {viewingStudent.first_name} {viewingStudent.last_name}
                   </h4>
-                  <h5 className="text-lg font-semibold mb-2">SFF Data for {selectedSection.name}</h5>
-                  {loading ? (
-                    <>
-                      <SkeletonBox height={24} width="60%" />
-                      <SkeletonBox height={16} width="90%" />
-                      <SkeletonBox height={16} width="80%" />
-                      <SkeletonBox height={16} width="70%" />
-                    </>
+
+                  <h5 className="mb-2 text-lg font-semibold">SFF Data for {selectedSection.name}</h5>
+                  {sffLoading ? (
+                    <FacultyChartsSkeleton />
                   ) : (
                     <SffDataDisplay sffData={sffData} />
                   )}
-                  <h5 className="text-lg font-semibold mt-4 mb-2">Student Answers</h5>
+
+                  <h5 className="mt-4 mb-2 text-lg font-semibold">Student Answers</h5>
                   {studentLoading ? (
-                    <SkeletonTable rows={4} cols={1} />
+                    <>
+                      <SkeletonBox height={22} width="80%" />
+                      <SkeletonBox height={22} width="70%" />
+                      <SkeletonBox height={22} width="65%" />
+                    </>
+                  ) : (studentDialogResponses && studentDialogResponses.length > 0) ? (
+                    <ul className="list-disc pl-5">
+                      {studentDialogResponses.map((resp, idx) => (
+                        <li key={idx} className="mb-2">
+                          <strong>Q{resp.student_eval_question}:</strong> {resp.answer}
+                        </li>
+                      ))}
+                    </ul>
                   ) : (
-                    (studentDialogResponses && studentDialogResponses.length > 0) ? (
-                      <ul className="list-disc pl-5">
-                        {studentDialogResponses.map((resp, idx) => (
-                          <li key={idx} className="mb-2">
-                            <strong>Q{resp.student_eval_question}:</strong> {resp.answer}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>No responses found for this student.</p>
-                    )
+                    <p>No responses found for this student.</p>
                   )}
                 </>
               )}
