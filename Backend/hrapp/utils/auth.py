@@ -16,6 +16,7 @@ from hrapp.models import User, Token
 def authenticate_user(data):
     username_or_email = data.get('username') or data.get('email')
     password = data.get('password')
+    temp_faculty_id = data.get('temp_faculty_id')  # Add support for temporary faculty
 
     try:
         user_obj = User.objects.get(email=username_or_email)
@@ -29,15 +30,19 @@ def authenticate_user(data):
         token = Token.objects.create(user=user)
         roles = list(user.groups.values_list('name', flat=True))
 
-        # Get faculty_id if available
+        # Get faculty_id based on user role and context
         faculty_id = None
         if hasattr(user, 'faculty') and user.faculty:
             faculty_id = user.faculty.id
+        elif 'HR' in roles and temp_faculty_id:
+            faculty_id = temp_faculty_id
 
         return {
             'token': token.key,
             'roles': roles,
-            'faculty_id': faculty_id,  # <-- Add this line
+            'faculty_id': faculty_id,
+            'is_temp_faculty': bool('HR' in roles and temp_faculty_id),
+            'debug': print("FACULTY ID:", faculty_id)
         }
     else:
         return {'error': 'Incorrect username or password, Please try again.'}

@@ -340,8 +340,16 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         # Scope by role/faculty first
         if hasattr(user, "Dean") and user.Dean:
             pass  # Dean can see all in qs
-        elif hasattr(user, 'faculty') and user.faculty:
-            qs = qs.filter(schedule__program__faculty=user.faculty)
+        else:
+            # HR: check for temp faculty context
+            if user.groups.filter(name='HR').exists():
+                temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+                if temp_faculty_id:
+                    qs = qs.filter(schedule__program__faculty_id=temp_faculty_id)
+                elif hasattr(user, 'faculty') and user.faculty:
+                    qs = qs.filter(schedule__program__faculty=user.faculty)
+            elif hasattr(user, 'faculty') and user.faculty:
+                qs = qs.filter(schedule__program__faculty=user.faculty)
         # Optional filters by semester and year (from related Schedule)
         semester = self.request.query_params.get('semester')
         year = self.request.query_params.get('year')
@@ -529,13 +537,21 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         # Usage: /api/evaluation/evaluations/latest-with-tallies/?limit=3
         from .models import Timestamp
 
-        # How many to return
+        user = request.user
         limit = int(request.query_params.get("limit", 3))
 
-        # Fetch latest evaluations with related instructor
-        latest_evals = Evaluation.objects.filter(deleted_at__isnull=True) \
-                           .select_related("instructor") \
-                           .order_by("-created_at")[:limit]
+        # Filter by faculty if not superuser
+        if user.is_superuser:
+            latest_evals = Evaluation.objects.filter(deleted_at__isnull=True) \
+                               .select_related("instructor") \
+                               .order_by("-created_at")[:limit]
+        elif hasattr(user, 'faculty') and user.faculty:
+            latest_evals = Evaluation.objects.filter(
+                deleted_at__isnull=True,
+                schedule__program__faculty=user.faculty
+            ).select_related("instructor").order_by("-created_at")[:limit]
+        else:
+            return Response([], status=200)
 
         if not latest_evals:
             return Response([], status=200)
@@ -1596,7 +1612,14 @@ class ProgramProfessorViewSet(viewsets.ModelViewSet):
     serializer_class = ProgramProfessorSerializer
 
     def get_queryset(self):
-        queryset = ProgramProfessor.objects.select_related('professor')
+        user = self.request.user
+        queryset = ProgramProfessor.objects.select_related('professor', 'program')
+        if user.is_superuser:
+            pass  # Return all
+        elif hasattr(user, 'faculty') and user.faculty:
+            queryset = queryset.filter(program__faculty=user.faculty)
+        else:
+            return ProgramProfessor.objects.none()
         program_id = self.request.query_params.get('program_id')
         if program_id:
             queryset = queryset.filter(program_id=program_id)
@@ -2241,3 +2264,37 @@ def retention_regression_improved(request):
         }
     }, status=status.HTTP_200_OK)
 
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_faculty_context_view(request):
+    """
+    Allows an HR user to set a temporary faculty context for their session.
+    POST body: {"faculty_id": <faculty_id>}
+    """
+    user = request.user
+    if not user.groups.filter(name='HR').exists():
+        return Response({'error': 'Only HR users can set faculty context.'}, status=status.HTTP_403_FORBIDDEN)
+    faculty_id = request.data.get('faculty_id')
+    if not faculty_id:
+        return Response({'error': 'faculty_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    cache.set(f"hr_temp_faculty_{user.id}", faculty_id, timeout=3600)  # 1 hour
+    print("FACULTY:", faculty_id)
+    return Response({'message': f'Temporary faculty context set to {faculty_id}.'}, status=status.HTTP_200_OK)
+
+
+class FacultyViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing Faculty objects.
+Supports CRUD operations with soft delete functionality.
+    """
+    queryset = Faculty.objects.all()
+    serializer_class = FacultySerializer
+    permission_classes = [IsAuthenticated, IsHR | IsDean | IsProgramHead]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return super().get_queryset()
+        if hasattr(user, 'faculty'):
+            return super().get_queryset().filter(id=user.faculty.id)
+        return super().get_queryset().none()

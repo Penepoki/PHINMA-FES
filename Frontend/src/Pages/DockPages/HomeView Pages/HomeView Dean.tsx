@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, {useState, useEffect} from "react";
+import {useLocation} from "react-router-dom";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import YearCard from "../../../Components/Dashboard Components/Dean Components/Year Card";
 import Clock from "../../../Components/Dashboard Components/Dean Components/Clock";
@@ -10,6 +11,27 @@ interface HomeProps {
 }
 
 const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
+    const location = useLocation();
+    const [facultyId, setFacultyId] = useState<number | null>(null);
+    const [collegeName, setCollegeName] = useState<string | null>(null);
+    const [isTempDean, setIsTempDean] = useState(false);
+
+    useEffect(() => {
+        const isTemp = localStorage.getItem('isTempFaculty') === 'true';
+        const storedFacultyId = localStorage.getItem('facultyId');
+        setIsTempDean(isTemp);
+        if (isTemp && storedFacultyId) {
+            setFacultyId(Number(storedFacultyId));
+        }
+        // If navigated with state, prefer that
+        if (location.state && (location.state as any).facultyId) {
+            setFacultyId((location.state as any).facultyId);
+        }
+        if (location.state && (location.state as any).collegeName) {
+            setCollegeName((location.state as any).collegeName);
+        }
+    }, [location.state]);
+
 	console.log("Active View:", activeView); // Debugging line
 
 	const yearData = [
@@ -49,9 +71,15 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
 		<div className="home-page z-10 flex h-full w-full flex-col items-center justify-center">
 			<DashboardHeader />
 
-			{/*Recently Evaluated*/}
+            {/* HR as Dean Banner */}
+            {isTempDean && (
+                <div className="mb-2 w-full bg-yellow-200 py-2 text-center text-sm font-bold text-yellow-900">
+                    Viewing as Dean{collegeName ? ` of ${collegeName}` : facultyId ? ` (Faculty ID: ${facultyId})` : ''}
+                </div>
+            )}
 
-			<RecentlyEvaluatedFaculty setActiveView={setActiveView} />
+			{/*Recently Evaluated*/}
+            <RecentlyEvaluatedFaculty setActiveView={setActiveView} facultyId={facultyId}/>
 
 			<div className="mt-5 text-center">
 				<Clock />
