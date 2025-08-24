@@ -1,4 +1,5 @@
 import {useState, useEffect} from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import SchoolCards from "../../../Components/Dashboard Components/HR Components/School Cards";
 import api from "../../../utils/api";
@@ -6,6 +7,7 @@ import api from "../../../utils/api";
 function Home() {
 	const [schools, setSchools] = useState<any[]>([]);
 	const [selectedSchool, setSelectedSchool] = useState<any | null>(null);
+	const navigate = useNavigate();
 
 	// Fetch faculties (schools) from backend
 	useEffect(() => {
@@ -36,6 +38,33 @@ function Home() {
 		setSelectedSchool(school);
 	};
 
+	// When HR clicks a school, set temporary faculty context then navigate to Dean view
+	const handleSchoolClick = async (schoolNameOrId: any) => {
+		try {
+			const schoolObj = schools.find(
+				(s) => s.name === schoolNameOrId || s.id === schoolNameOrId,
+			);
+			if (!schoolObj) return;
+
+			const token = localStorage.getItem('token');
+			await api.post(
+				'/set-faculty-context/',
+				{ faculty_id: schoolObj.id },
+				{ headers: { Authorization: `Token ${token}` } },
+			);
+
+			// Flag this session as temporarily viewing as Dean for a faculty
+			localStorage.setItem('isTempFaculty', 'true');
+			localStorage.setItem('facultyId', String(schoolObj.id));
+
+			navigate('/Dashboard/dean', {
+				state: { facultyId: schoolObj.id, collegeName: schoolObj.name },
+			});
+		} catch (err) {
+			console.error('Failed to set temporary faculty context:', err);
+		}
+	};
+
 	return (
 		<div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
 			<DashboardHeader />
@@ -58,8 +87,7 @@ function Home() {
 					<SchoolCards
 						school={schools}
 						onSchoolClick={(schoolNameOrId: any) => {
-							const schoolObj = schools.find(s => s.name === schoolNameOrId || s.id === schoolNameOrId);
-							if (schoolObj) handleSchoolSelect(schoolObj);
+							handleSchoolClick(schoolNameOrId);
 						}}
 					/>
 				)}
