@@ -540,11 +540,25 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         user = request.user
         limit = int(request.query_params.get("limit", 3))
 
-        # Filter by faculty if not superuser
+        # Filter by faculty or HR temp context if not superuser
         if user.is_superuser:
             latest_evals = Evaluation.objects.filter(deleted_at__isnull=True) \
                                .select_related("instructor") \
                                .order_by("-created_at")[:limit]
+        elif user.groups.filter(name='HR').exists():
+            temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+            if temp_faculty_id:
+                latest_evals = Evaluation.objects.filter(
+                    deleted_at__isnull=True,
+                    schedule__program__faculty_id=temp_faculty_id
+                ).select_related("instructor").order_by("-created_at")[:limit]
+            elif hasattr(user, 'faculty') and user.faculty:
+                latest_evals = Evaluation.objects.filter(
+                    deleted_at__isnull=True,
+                    schedule__program__faculty=user.faculty
+                ).select_related("instructor").order_by("-created_at")[:limit]
+            else:
+                return Response([], status=200)
         elif hasattr(user, 'faculty') and user.faculty:
             latest_evals = Evaluation.objects.filter(
                 deleted_at__isnull=True,
@@ -626,7 +640,23 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
     serializer_class = StudentEvaluationSerializer
 
     def get_queryset(self):
+        user = self.request.user
         qs = super().get_queryset()
+        # Scope by role/faculty
+        if user.is_superuser:
+            pass
+        elif user.groups.filter(name='HR').exists():
+            temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+            if temp_faculty_id:
+                qs = qs.filter(schedule__program__faculty_id=temp_faculty_id)
+            elif hasattr(user, 'faculty') and user.faculty:
+                qs = qs.filter(schedule__program__faculty=user.faculty)
+            else:
+                return qs.none()
+        elif hasattr(user, 'faculty') and user.faculty:
+            qs = qs.filter(schedule__program__faculty=user.faculty)
+        else:
+            return qs.none()
         semester = self.request.query_params.get('semester')
         year = self.request.query_params.get('year')
         if semester:
@@ -769,7 +799,23 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
     serializer_class = StudentEvaluationResponseSerializer
 
     def get_queryset(self):
+        user = self.request.user
         qs = super().get_queryset()
+        # Scope by role/faculty
+        if user.is_superuser:
+            pass
+        elif user.groups.filter(name='HR').exists():
+            temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+            if temp_faculty_id:
+                qs = qs.filter(student_evaluation__schedule__program__faculty_id=temp_faculty_id)
+            elif hasattr(user, 'faculty') and user.faculty:
+                qs = qs.filter(student_evaluation__schedule__program__faculty=user.faculty)
+            else:
+                return qs.none()
+        elif hasattr(user, 'faculty') and user.faculty:
+            qs = qs.filter(student_evaluation__schedule__program__faculty=user.faculty)
+        else:
+            return qs.none()
         semester = self.request.query_params.get('semester')
         year = self.request.query_params.get('year')
         if semester:
@@ -1464,6 +1510,13 @@ class ProgramViewSet(viewsets.ModelViewSet):
         base_qs = super().get_queryset()  # This is Program.objects.all()
         if user.is_superuser:
             return base_qs
+        if user.groups.filter(name='HR').exists():
+            temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+            if temp_faculty_id:
+                return base_qs.filter(faculty_id=temp_faculty_id)
+            if hasattr(user, 'faculty') and user.faculty:
+                return base_qs.filter(faculty=user.faculty)
+            return base_qs.none()
         if hasattr(user, 'faculty') and user.faculty:
             return base_qs.filter(faculty=user.faculty)
         return base_qs.none()
@@ -1616,6 +1669,14 @@ class ProgramProfessorViewSet(viewsets.ModelViewSet):
         queryset = ProgramProfessor.objects.select_related('professor', 'program')
         if user.is_superuser:
             pass  # Return all
+        elif user.groups.filter(name='HR').exists():
+            temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+            if temp_faculty_id:
+                queryset = queryset.filter(program__faculty_id=temp_faculty_id)
+            elif hasattr(user, 'faculty') and user.faculty:
+                queryset = queryset.filter(program__faculty=user.faculty)
+            else:
+                return ProgramProfessor.objects.none()
         elif hasattr(user, 'faculty') and user.faculty:
             queryset = queryset.filter(program__faculty=user.faculty)
         else:
@@ -1638,6 +1699,17 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         base_qs = super().get_queryset()
         if user.is_superuser:
             return base_qs
+        if user.groups.filter(name='HR').exists():
+            temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+            if temp_faculty_id:
+                qs = base_qs.filter(program__faculty_id=temp_faculty_id)
+                print("DEBUG: Schedule for HR user", user, "temp faculty", temp_faculty_id, ":", list(qs))
+                return qs
+            if hasattr(user, 'faculty') and user.faculty:
+                qs = base_qs.filter(program__faculty=user.faculty)
+                print("DEBUG: Schedule for HR user", user, ":", list(qs))
+                return qs
+            return base_qs.none()
         if hasattr(user, 'faculty') and user.faculty:
             qs = base_qs.filter(program__faculty=user.faculty)
             print("DEBUG: Schedule for user", user, ":", list(qs))
@@ -1794,13 +1866,25 @@ def get_students(request):
             Q(email__icontains=search)
         )
 
-    # Scope by faculty if user has one
+    # Scope by faculty if user has one or HR temp context
     faculty = getattr(user, 'faculty', None)
-    if faculty and not user.is_superuser:
-        # Get students that are already in sections within this faculty
+    if user.is_superuser:
+        pass
+    elif user.groups.filter(name='HR').exists():
+        temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+        if temp_faculty_id:
+            student_ids = Section.objects.filter(program__faculty_id=temp_faculty_id).values_list('students__id', flat=True).distinct()
+            qs = qs.filter(id__in=student_ids)
+        elif faculty:
+            student_ids = Section.objects.filter(program__faculty=faculty).values_list('students__id', flat=True).distinct()
+            qs = qs.filter(id__in=student_ids)
+        else:
+            qs = qs.none()
+    elif faculty:
         student_ids = Section.objects.filter(program__faculty=faculty).values_list('students__id', flat=True).distinct()
-        # Include all students for now, but this could be restricted if needed
-        # qs = qs.filter(id__in=student_ids)
+        qs = qs.filter(id__in=student_ids)
+    else:
+        qs = qs.none()
 
     data = [{'id': u.id, 'name': (u.get_full_name() or u.email)} for u in qs.order_by('first_name', 'last_name')[:50]]
     return Response(data, status=status.HTTP_200_OK)
@@ -2161,6 +2245,22 @@ def retention_regression_improved(request):
     responses = StudentEvaluationResponse.objects.select_related(
         'student_eval_question', 'student_evaluation__schedule__section', 'student_evaluation__schedule'
     )
+    # Scope by role/faculty (HR uses temp faculty context)
+    user = request.user
+    if user.is_superuser:
+        pass
+    elif user.groups.filter(name='HR').exists():
+        temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+        if temp_faculty_id:
+            responses = responses.filter(student_evaluation__schedule__program__faculty_id=temp_faculty_id)
+        elif hasattr(user, 'faculty') and user.faculty:
+            responses = responses.filter(student_evaluation__schedule__program__faculty=user.faculty)
+        else:
+            responses = responses.none()
+    elif hasattr(user, 'faculty') and user.faculty:
+        responses = responses.filter(student_evaluation__schedule__program__faculty=user.faculty)
+    else:
+        responses = responses.none()
 
     group_stats = {}  # (year, semester) -> {sum, n, responses_count}
     mode_counts = defaultdict(int)
@@ -2293,8 +2393,12 @@ Supports CRUD operations with soft delete functionality.
 
     def get_queryset(self):
         user = self.request.user
+        qs = super().get_queryset()
         if user.is_superuser:
-            return super().get_queryset()
-        if hasattr(user, 'faculty'):
-            return super().get_queryset().filter(id=user.faculty.id)
-        return super().get_queryset().none()
+            return qs
+        if user.groups.filter(name='HR').exists():
+            # HR must list all faculties to display dynamic faculty/college cards
+            return qs
+        if hasattr(user, 'faculty') and user.faculty:
+            return qs.filter(id=user.faculty.id)
+        return qs.none()
