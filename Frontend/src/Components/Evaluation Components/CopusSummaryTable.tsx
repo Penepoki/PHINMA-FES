@@ -69,7 +69,8 @@ const COLORS = {
   green: "#16a34a",   // success
   yellow: "#f59e0b",  // warning
   red: "#ef4444",     // error
-  blueHeader: "bg-blue-600", // table header background
+  //blueHeader:"bg-blue-600", // table header background changed due to html2canvas format compatibility
+  blueHeader: "#2563eb", // hex for Tailwind blue-600 
 };
 
 const CopusSummaryTable: React.FC<CopusSummaryTableProps> = ({
@@ -187,7 +188,9 @@ const CopusSummaryTable: React.FC<CopusSummaryTableProps> = ({
 
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="table">
-              <thead className={`${COLORS.blueHeader} text-white`}>
+              {/* Commented out to avoid issues with html2canvas*/}
+              {/*<thead className={`${COLORS.blueHeader} text-white`}>*/}
+              <thead style={{ backgroundColor: COLORS.blueHeader, color: '#fff' }}>
                 <tr>
                   <th className="font-bold">Activity</th>
                   <th className="font-bold text-right">Student Avg</th>
@@ -220,7 +223,9 @@ const CopusSummaryTable: React.FC<CopusSummaryTableProps> = ({
 
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="table">
-              <thead className={`${COLORS.blueHeader} text-white`}>
+              {/* Commented out to avoid issues with html2canvas*/}
+              {/*<thead className={`${COLORS.blueHeader} text-white`}>*/}
+              <thead style={{ backgroundColor: COLORS.blueHeader, color: '#fff' }}>
                 <tr>
                   <th className="font-bold">Activity</th>
                   <th className="font-bold text-right">Teacher Avg</th>

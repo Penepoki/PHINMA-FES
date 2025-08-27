@@ -4,7 +4,7 @@ import PieChartWithTable from "../../../Components/Evaluation Components/Piechar
 import api from "../../../utils/api";
 import { ActivityData } from "../../../Components/Evaluation Components/Copus Matrix";
 import CreateEvaluationForm from "../../../Components/Evaluation Components/CreateEvaluationForm";
-import CopusSummaryTable from "../../../Components/Evaluation Components/CopusSummaryTable.tsx";
+import CopusSummaryTableWithPDF from "../../../Components/Evaluation Components/CopusSummaryTableWithPDF";
 import { generateAIFeedback } from "../../../utils/api";
 import * as Fetcher from "../../../utils/fetcher.ts";
 import * as Interfaces from "../../../Types/Interfaces.ts";
@@ -696,13 +696,14 @@ function Evaluation({ setActiveView }: EvalProps) {
               <h3 className="mt-2 mb-6 text-xl font-bold">
                 {selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Summary
               </h3>
-              <CopusSummaryTable
+              <CopusSummaryTableWithPDF
                 evaluations={getProfessorEvaluations(selectedProfessor).filter((e) =>
                   ["copus_1", "copus_2", "copus_3"].includes(e.evaluation_type),
                 )}
                 evaluationTallies={evaluationTallies}
                 studentOptions={studentOptions}
                 teacherOptions={teacherOptions}
+                professorName={`${selectedProfessor.first_name} ${selectedProfessor.last_name}`}
               />
               <div className="modal-action">
                 <button

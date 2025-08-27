@@ -1,3 +1,4 @@
+import React, { forwardRef } from "react";
 import { Pie } from "react-chartjs-2";
 import {
 	Chart as ChartJS,
@@ -15,10 +16,7 @@ interface PieChartProps {
 	teacherTallies: Record<string, ActivityData>;
 }
 
-const PieChartWithTable = ({
-	studentTallies,
-	teacherTallies,
-}: PieChartProps) => {
+const PieChartWithTable = forwardRef<any, PieChartProps>(({ studentTallies, teacherTallies }, ref) => {
 	// Transform student data for chart
 	const studentPieData = {
 		labels: Object.keys(studentTallies),
@@ -84,7 +82,7 @@ const PieChartWithTable = ({
 					Student Doing
 				</h3>
 				<div className="w-full max-w-xs">
-					<Pie data={studentPieData} options={pieOptions} />
+					<Pie ref={ref} data={studentPieData} options={pieOptions} />
 				</div>
 				<table className="table w-full max-w-md border border-gray-600 text-center text-white">
 					<thead className="bg-[#1c402a]/80 text-white">
@@ -142,6 +140,6 @@ const PieChartWithTable = ({
 			</div>
 		</div>
 	);
-};
+});
 
 export default PieChartWithTable;
