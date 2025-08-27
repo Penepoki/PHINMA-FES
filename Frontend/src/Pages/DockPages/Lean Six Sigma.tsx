@@ -343,6 +343,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
           datasets: [
             {
               label: "Professor → Activity",
+              color: "white",
               data: flows,
               colorFrom: "#1c402a",
               colorTo: "#1b2e3e",
@@ -355,6 +356,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
               labels: {
                 enabled: true,
                 font: sankeyLabelFont,
+                color: "white",
                 padding: 8,
                 format: (v: any) =>
                   typeof v === "string" && v.length > 28 ? v.slice(0, 25) + "…" : v,
@@ -574,6 +576,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
     plugins: {
       legend: {
         labels: {
+          color: "white",
           font: { family: "'Cabin', sans-serif" },
         },
       },
