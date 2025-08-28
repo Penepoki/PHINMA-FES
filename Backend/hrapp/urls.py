@@ -88,5 +88,8 @@ urlpatterns = [
 
     path('set-faculty-context/', set_faculty_context_view, name='set-faculty-context-view'),
 
+    path('clear-faculty-context/', clear_faculty_context_view),
+    path('get-faculty-context/', get_faculty_context_view),
+
     path('faculty/', include(faculty_router.urls)),
 ]

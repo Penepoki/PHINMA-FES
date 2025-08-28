@@ -5,6 +5,7 @@ import ProgramCards from "../../../Components/Evaluation Components/ProgramCards
 import SffDataDisplay from "../../../Components/Evaluation Components/SffDataDisplay";
 import ResponsesChartsTable from "../../../Components/Evaluation Components/ResponsesChartsTable.tsx";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import {resolveFacultyId} from "../../../utils/facultyContext";
 
 /* ---------------------------
    Minimal Skeletons (daisyUI)
@@ -127,7 +128,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       setProgramsLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const faculty_id = localStorage.getItem("faculty_id");
+        const faculty_id = await resolveFacultyId();
         if (!token) return;
         const params: any = {};
         if (faculty_id) params.faculty_id = faculty_id;
@@ -372,15 +373,20 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         <>
           {/* Faculty summary charts (show skeleton while programs are loading) */}
           {(() => {
-            const faculty_id = localStorage.getItem("faculty_id");
-            if (faculty_id) {
+            const [facultyId, setFacultyId] = useState<string | null>(null);
+            useEffect(() => {
+              (async () => {
+                setFacultyId(await resolveFacultyId());
+              })();
+            }, []);
+            if (facultyId) {
               return programsLoading ? (
                 <FacultyChartsSkeleton />
               ) : programs.length > 0 ? (
                 <ResponsesChartsTable
                   evaluationId={programs[0]?.id /* TODO: replace with the correct eval ID */}
                   filterType="faculty"
-                  filterId={parseInt(faculty_id)}
+                  filterId={parseInt(facultyId)}
                 />
               ) : null;
             }

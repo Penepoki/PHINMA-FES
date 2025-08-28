@@ -11,57 +11,44 @@ function Home() {
 
 	// Fetch faculties (schools) from backend
 	useEffect(() => {
-		const fetchFaculties = async () => {
+		(async () => {
 			try {
 				const token = localStorage.getItem('token');
-				const response = await api.get('/faculty/faculties/', {
-					headers: {
-						'Authorization': `Token ${token}`,
-					},
+				const res = await api.get('/faculty/faculties/', {
+					headers: {Authorization: `Token ${token}`},
 				});
-				const schoolCards = response.data.map((faculty: any) => ({
-					id: faculty.id,
-					name: faculty.name,
-					fullname: faculty.name, // If you have a fullname field, use it
-					image: null, // Add image if available in backend
+				const schoolCards = res.data.map((f: any) => ({
+					id: f.id, name: f.name, fullname: f.name, image: null
 				}));
 				setSchools(schoolCards);
-			} catch (error) {
-				console.error('Failed to fetch faculties:', error);
+			} catch (e) {
+				console.error('Failed to fetch faculties:', e);
 			}
-		};
-		fetchFaculties();
+		})();
 	}, []);
 
-	// Function to handle school (faculty) selection
-	const handleSchoolSelect = (school: any) => {
-		setSelectedSchool(school);
-	};
-
-	// When HR clicks a school, set temporary faculty context then navigate to Dean view
 	const handleSchoolClick = async (schoolNameOrId: any) => {
 		try {
-			const schoolObj = schools.find(
-				(s) => s.name === schoolNameOrId || s.id === schoolNameOrId,
-			);
-			if (!schoolObj) return;
+			const picked = schools.find((s) => s.name === schoolNameOrId || s.id === schoolNameOrId);
+			if (!picked) return;
 
 			const token = localStorage.getItem('token');
-			await api.post(
-				'/set-faculty-context/',
-				{ faculty_id: schoolObj.id },
-				{ headers: { Authorization: `Token ${token}` } },
-			);
 
-			// Flag this session as temporarily viewing as Dean for a faculty
+			// 1) Clear any previous temp context (safe if none)
+			await api.post('/clear-faculty-context/', {}, {headers: {Authorization: `Token ${token}`}});
+
+			// 2) Set the new context
+			await api.post('/set-faculty-context/', {faculty_id: picked.id}, {headers: {Authorization: `Token ${token}`}});
+
+			// 3) Mark this session as “viewing as Dean”
 			localStorage.setItem('isTempFaculty', 'true');
-			localStorage.setItem('facultyId', String(schoolObj.id));
+			localStorage.setItem('facultyId', String(picked.id));
+			localStorage.setItem('faculty_id', String(picked.id));
 
-			navigate('/Dashboard/dean', {
-				state: { facultyId: schoolObj.id, collegeName: schoolObj.name },
-			});
+			// 4) Navigate to the Dean dashboard for that faculty
+			navigate('/Dashboard/dean', {state: {facultyId: picked.id, collegeName: picked.name}});
 		} catch (err) {
-			console.error('Failed to set temporary faculty context:', err);
+			console.error('Failed to switch faculty context:', err);
 		}
 	};
 

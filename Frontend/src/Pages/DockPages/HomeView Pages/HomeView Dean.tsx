@@ -1,36 +1,45 @@
 import React, {useState, useEffect} from "react";
-import {useLocation} from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import YearCard from "../../../Components/Dashboard Components/Dean Components/Year Card";
 import Clock from "../../../Components/Dashboard Components/Dean Components/Clock";
 import RecentlyEvaluatedFaculty from "../../../Components/Dashboard Components/Dean Components/Recently Evaluated";
+import api from "../../../utils/api.ts";
 
 interface HomeProps {
 	activeView: string;
 	setActiveView: (view: string) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
-    const location = useLocation();
-    const [facultyId, setFacultyId] = useState<number | null>(null);
-    const [collegeName, setCollegeName] = useState<string | null>(null);
-    const [isTempDean, setIsTempDean] = useState(false);
+const Home: React.FC<any> = ({activeView, setActiveView}) => {
+	const location = useLocation();
+	const navigate = useNavigate();
+	const [facultyId, setFacultyId] = useState<number | null>(null);
+	const [collegeName, setCollegeName] = useState<string | null>(null);
+	const [isTempDean, setIsTempDean] = useState(false);
 
-    useEffect(() => {
-        const isTemp = localStorage.getItem('isTempFaculty') === 'true';
-        const storedFacultyId = localStorage.getItem('facultyId');
-        setIsTempDean(isTemp);
-        if (isTemp && storedFacultyId) {
-            setFacultyId(Number(storedFacultyId));
-        }
-        // If navigated with state, prefer that
-        if (location.state && (location.state as any).facultyId) {
-            setFacultyId((location.state as any).facultyId);
-        }
-        if (location.state && (location.state as any).collegeName) {
-            setCollegeName((location.state as any).collegeName);
-        }
-    }, [location.state]);
+	useEffect(() => {
+		const isTemp = localStorage.getItem('isTempFaculty') === 'true';
+		const storedFacultyId = localStorage.getItem('facultyId');
+		setIsTempDean(isTemp);
+		if (isTemp && storedFacultyId) setFacultyId(Number(storedFacultyId));
+		if (location.state?.facultyId) setFacultyId(location.state.facultyId);
+		if (location.state?.collegeName) setCollegeName(location.state.collegeName);
+	}, [location.state]);
+
+	const handleBackToHR = async () => {
+		try {
+			const token = localStorage.getItem('token');
+			await api.post('/clear-faculty-context/', {}, {headers: {Authorization: `Token ${token}`}});
+		} catch (e) {
+			console.warn('Clear faculty context failed (continuing anyway):', e);
+		} finally {
+			localStorage.removeItem('isTempFaculty');
+			localStorage.removeItem('facultyId');
+			// Adjust this route if your HR dashboard path differs
+			navigate('/Dashboard/hr');
+		}
+	};
 
 	console.log("Active View:", activeView); // Debugging line
 
@@ -73,10 +82,20 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
 
             {/* HR as Dean Banner */}
             {isTempDean && (
-                <div className="mb-2 w-full bg-yellow-200 py-2 text-center text-sm font-bold text-yellow-900">
-                    Viewing as Dean{collegeName ? ` of ${collegeName}` : facultyId ? ` (Faculty ID: ${facultyId})` : ''}
-                </div>
-            )}
+				<div
+					className="mb-2 flex w-full items-center justify-center gap-4 bg-yellow-200 py-2 text-center text-sm font-bold text-yellow-900">
+				  <span>
+					Viewing as Dean{collegeName ? ` of ${collegeName}` : facultyId ? ` (Faculty ID: ${facultyId})` : ''}
+				  </span>
+					<button
+						className="rounded bg-yellow-800 px-3 py-1 text-white hover:opacity-90"
+						onClick={handleBackToHR}
+						title="Return to HR dashboard and clear faculty context"
+					>
+						← Back to HR Dashboard
+					</button>
+				</div>
+			)}
 
 			{/*Recently Evaluated*/}
             <RecentlyEvaluatedFaculty setActiveView={setActiveView} facultyId={facultyId}/>

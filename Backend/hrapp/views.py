@@ -486,7 +486,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         evals = Evaluation.objects.filter(schedule__program__faculty_id=faculty_id, deleted_at__isnull=True)
         eval_ids = [e.id for e in evals]
         if not eval_ids:
-            return Response({'error': 'No evaluations found for this faculty'}, status=status.HTTP_404_BAD_REQUEST)
+            return Response({'error': 'No evaluations found for this faculty'}, status=status.HTTP_404_NOT_FOUND)
         result = get_copus_bulk_tallies_data(eval_ids)
         return Response(result)
 
@@ -2367,21 +2367,60 @@ def retention_regression_improved(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def clear_faculty_context_view(request):
+    """
+    Clears the temporary faculty context for the current HR user.
+    """
+    user = request.user
+    if not user.groups.filter(name='HR').exists():
+        return Response({'error': 'Only HR users can clear faculty context.'}, status=status.HTTP_403_FORBIDDEN)
+    cache.delete(f"hr_temp_faculty_{user.id}")
+    return Response({'message': 'Temporary faculty context cleared.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_faculty_context_view(request):
+    """
+    Returns the current temp faculty context (if any) for HR.
+    """
+    user = request.user
+    if not user.groups.filter(name='HR').exists():
+        return Response({'error': 'Only HR users can read faculty context.'}, status=status.HTTP_403_FORBIDDEN)
+    temp_id = cache.get(f"hr_temp_faculty_{user.id}")
+    print("Current temp faculty context for user", user.id, "is", temp_id)
+    return Response({'faculty_id': temp_id}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def set_faculty_context_view(request):
     """
-    Allows an HR user to set a temporary faculty context for their session.
-    POST body: {"faculty_id": <faculty_id>}
+    Allows an HR user to set (or clear) a temporary faculty context for their session.
+    POST body:
+      {"faculty_id": <int>} to set   OR   {"faculty_id": null} / {"faculty_id": "clear"} to clear
     """
     user = request.user
     if not user.groups.filter(name='HR').exists():
         return Response({'error': 'Only HR users can set faculty context.'}, status=status.HTTP_403_FORBIDDEN)
-    faculty_id = request.data.get('faculty_id')
-    if not faculty_id:
-        return Response({'error': 'faculty_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
-    cache.set(f"hr_temp_faculty_{user.id}", faculty_id, timeout=3600)  # 1 hour
-    print("FACULTY:", faculty_id)
-    return Response({'message': f'Temporary faculty context set to {faculty_id}.'}, status=status.HTTP_200_OK)
 
+    faculty_id = request.data.get('faculty_id', None)
+    cache_key = f"hr_temp_faculty_{user.id}"
+
+    # Clear explicitly when None/"clear"
+    if faculty_id in (None, "", "clear"):
+        cache.delete(cache_key)
+        print("Current temp faculty context for user", user.id, "is", faculty_id)
+        return Response({'message': 'Temporary faculty context cleared.'}, status=status.HTTP_200_OK)
+
+    try:
+        fid = int(faculty_id)
+    except (TypeError, ValueError):
+        return Response({'error': 'faculty_id must be an integer or null to clear.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    # Replace old context with new one, refresh TTL to 1 hour
+    cache.set(cache_key, fid, timeout=3600)
+    return Response({'message': f'Temporary faculty context set to {fid}.'}, status=status.HTTP_200_OK)
 
 class FacultyViewSet(viewsets.ModelViewSet):
     """ViewSet for managing Faculty objects.
@@ -2402,3 +2441,31 @@ Supports CRUD operations with soft delete functionality.
         if hasattr(user, 'faculty') and user.faculty:
             return qs.filter(id=user.faculty.id)
         return qs.none()
+
+
+def _resolve_faculty_from_request_or_hr_temp(request):
+    """Return an int faculty_id if available, else None.
+       Order: explicit ?faculty= → HR temp cache → user's own faculty (if Dean) → None"""
+    fid = request.query_params.get('faculty')
+    if fid:
+        try:
+            return int(fid)
+        except ValueError:
+            pass
+
+    user = request.user
+    # HR: use borrowed faculty from cache
+    if user.groups.filter(name='HR').exists():
+        temp = cache.get(f"hr_temp_faculty_{user.id}")
+        if temp:
+            try:
+                return int(temp)
+            except ValueError:
+                return None
+
+    # Dean: if your User has a faculty relation/id, use that
+    # (adjust if you store this differently)
+    if hasattr(user, 'faculty') and getattr(user, 'faculty', None):
+        return getattr(user.faculty, 'id', None)
+
+    return None
