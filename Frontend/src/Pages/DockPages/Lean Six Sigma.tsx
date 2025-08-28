@@ -18,6 +18,7 @@ import { Chart } from "react-chartjs-2";
 import { useEffect, useMemo, useState } from "react";
 import api from "../../utils/api.ts";
 import BreadAndLogout from "../../Components/Bread and Logout.tsx";
+import {resolveFacultyId} from "../../utils/facultyContext.ts";
 
 // --- Register once ---
 ChartJS.register(
@@ -245,21 +246,12 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       setCopusError(null);
       try {
         const token = localStorage.getItem("token");
-        const faculty_id = localStorage.getItem("faculty_id");
         const isSuperuser = localStorage.getItem("is_superuser") === "true";
-        let endpoint = "";
+        const faculty_id = await resolveFacultyId();
         const params: any = {};
-
-        if (isSuperuser) {
-          endpoint = "/evaluation/evaluations/copus-summary-by-faculty/";
-        } else if (faculty_id) {
-          endpoint = "/evaluation/evaluations/copus-summary-by-faculty/";
-          params.faculty = faculty_id;
-        } else {
-          setCopusError("No faculty_id found for user");
-          return;
-        }
-
+        let endpoint = "/evaluation/evaluations/copus-summary-by-faculty";
+        if (!isSuperuser && faculty_id) params.faculty = faculty_id;
+        else if (isSuperuser) endpoint = "/evaluation/evaluations/latest-with-tallies";
         const response = await api.get(endpoint, { params });
         const raw = response.data || {};
 
@@ -380,22 +372,12 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
     const fetchSFF = async () => {
       try {
         const token = localStorage.getItem("token");
-        const faculty_id = localStorage.getItem("faculty_id");
+        const faculty_id = await resolveFacultyId();
         const isSuperuser = localStorage.getItem("is_superuser") === "true";
-
-        const endpointEvals = "/studentevaluation/studentevaluation/by-faculty";
-        const endpointResponses =
-          "/studentevaluationresponse/studentevaluationresponse/by-faculty";
         const params: any = {};
-
-        if (isSuperuser && !faculty_id) {
-          return;
-        }
-        if (!faculty_id) {
-          return;
-        }
-        params.faculty = faculty_id;
-
+        if (!isSuperuser && faculty_id) params.faculty = faculty_id;
+        const endpointEvals = "/studentevaluation/studentevaluation/by-faculty";
+        const endpointResponses = "/studentevaluationresponse/studentevaluationresponse/by-faculty";
         const evalsRes = await api.get(`${endpointEvals}`, { params });
         const evaluations = Array.isArray(evalsRes.data) ? evalsRes.data : [];
         const evaluationIds = evaluations.map((e: any) => e.id);
@@ -410,7 +392,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         const allQuestions = questionsResults.flatMap((res: any) => res.data || []);
 
         const responsesRes = await api.get(`${endpointResponses}`, { params });
-        const responses = Array.isArray(responsesRes.data) ? res.data : [];
+        const responses = Array.isArray(responsesRes.data) ? responsesRes.data : [];
 
         if (evaluations.length) console.log("[DEBUG] SFF Sample Evaluation:", evaluations[0]);
         if (allQuestions.length) console.log("[DEBUG] SFF Sample Question:", allQuestions[0]);
