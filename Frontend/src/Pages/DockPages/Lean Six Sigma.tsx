@@ -18,7 +18,7 @@ import { Chart } from "react-chartjs-2";
 import { useEffect, useMemo, useState } from "react";
 import api from "../../utils/api.ts";
 import BreadAndLogout from "../../Components/Bread and Logout.tsx";
-import {resolveFacultyId} from "../../utils/facultyContext.ts";
+import { resolveFacultyId } from "../../utils/facultyContext.ts";
 
 // --- Register once ---
 ChartJS.register(
@@ -34,10 +34,6 @@ ChartJS.register(
   Flow,
   SankeyController,
 );
-
-// ---- Global Chart.js defaults: Cabin everywhere ----
-ChartJS.defaults.font.family = "'Cabin', sans-serif";
-ChartJS.defaults.color = "#e5e7eb"; // optional, keeps chart text readable on dark bg
 
 interface ResourceGroupProps {
   setActiveView: (view: string) => void;
@@ -613,13 +609,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         ]}
       />
       <h2 className="mt-4 text-3xl font-bold text-white">Lean Six Sigma Statistics</h2>
-      <span className="mb-6 block font-thin text-[#888888]">
+      <span className="py-6 px-6 block font-thin text-[#888888]">
         This is where you can explore performance dashboards based on Lean Six Sigma
         practices, helping you identify gaps, reduce inefficiencies, and focus on
         continuous improvement.
       </span>
 
-      <div className="mt-4 flex w-full flex-row items-center justify-center gap-4 border-b border-gray-600 pb-4 text-white shadow-2xl">
+      <div className="flex w-full flex-row items-center justify-center gap-4 border-b border-gray-600 pb-4 text-white shadow-2xl">
         Filter:
         <button className="btn btn-primary text-white">College</button>
         <button className="btn btn-primary text-white">Semester</button>
@@ -707,7 +703,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         </div>
 
         <div className="flex h-full flex-row gap-6">
-          <div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg p-6 shadow-2xl backdrop-blur-lg">
+          <div className="flex h-full w-1/2 flex-col items-start bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 justify-start overflow-y-auto rounded-lg p-6 shadow-2xl backdrop-blur-lg">
             <table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
               <thead>
                 <tr className="border border-gray-600">
@@ -735,7 +731,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
             </table>
           </div>
 
-          <div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg p-6 shadow-2xl backdrop-blur-lg">
+          <div className="flex bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg p-6 shadow-2xl backdrop-blur-lg">
             <table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
               <thead>
                 <tr className="border border-gray-600">

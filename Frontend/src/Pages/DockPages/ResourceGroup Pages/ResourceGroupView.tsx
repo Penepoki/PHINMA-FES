@@ -73,14 +73,14 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
         Resource Group Overview
       </h2>
       <div className="border-b-2 border-gray-600 shadow-2xl w-full">
-        <span className="font-thin text-[#888888] block my-6">
+        <span className="font-thin text-[#888888] block my-6 mx-6">
           This is where you can access and organize your institution’s resources—programs, subjects, rooms, sections, and schedules—so that evaluation and classroom management run smoothly.
         </span>
       </div>
 
-      <div className="z-10 flex h-full w-full flex-col items-center justify-center gap-6 p-0 md:flex-row md:p-6">
+      <div className="z-10 flex overflow-auto h-full w-full flex-col items-center justify-center gap-6 p-0 md:flex-row p-6">
         {/* Programs */}
-        <div className="rg-container bg-black/20 flex flex-col items-center md:gap-y-6 md:p-6">
+        <div className="rg-container bg-[#1c402a]/40 flex flex-col items-center md:gap-y-6 md:p-6">
           <BuildingLibraryIcon className="h-12 w-12 text-blue-400 mb-2" />
           <h2 className="mb-2 text-2xl font-bold">Programs</h2>
           <span className="text-xl text-gray-300">Number of current programs:</span>
@@ -88,7 +88,7 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
         </div>
 
         {/* Subjects */}
-        <div className="rg-container bg-black/20 flex flex-col items-center md:gap-y-6 md:p-6">
+        <div className="rg-container bg-[#1c3c2f]/40 flex flex-col items-center md:gap-y-6 md:p-6">
           <BookOpenIcon className="h-12 w-12 text-purple-400 mb-2" />
           <h2 className="mb-2 text-2xl font-bold">Subjects</h2>
           <span className="text-xl text-gray-300">Number of current subjects:</span>
@@ -96,7 +96,7 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
         </div>
 
         {/* Rooms */}
-        <div className="rg-container bg-black/20 flex flex-col items-center md:gap-y-6 md:p-6">
+        <div className="rg-container bg-[#1c3734]/40 flex flex-col items-center md:gap-y-6 md:p-6">
           <BuildingOffice2Icon className="h-12 w-12 text-pink-400 mb-2" />
           <h2 className="mb-2 text-2xl font-bold">Rooms</h2>
           <span className="text-xl text-gray-300">Number of current rooms:</span>
@@ -104,7 +104,7 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
         </div>
 
         {/* Sections */}
-        <div className="rg-container bg-black/20 flex flex-col items-center md:gap-y-6 md:p-6">
+        <div className="rg-container bg-[#1b3239]/40 flex flex-col items-center md:gap-y-6 md:p-6">
           <RectangleStackIcon className="h-12 w-12 text-red-400 mb-2" />
           <h2 className="mb-2 text-2xl font-bold">Sections</h2>
           <span className="text-xl text-gray-300">Number of current sections:</span>
@@ -112,7 +112,7 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
         </div>
 
         {/* Schedules */}
-        <div className="rg-container bg-black/20 flex flex-col items-center md:gap-y-6 md:p-6">
+        <div className="rg-container bg-[#1b2e3e]/40 flex flex-col items-center md:gap-y-6 md:p-6">
           <CalendarDaysIcon className="h-12 w-12 text-emerald-400 mb-2" />
           <h2 className="mb-2 text-2xl font-bold">Schedules</h2>
           <span className="text-xl text-gray-300">Number of current schedules:</span>
