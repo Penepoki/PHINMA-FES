@@ -214,7 +214,7 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
         <p className="mt-35 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
           Recently Evaluated Faculty:
         </p>
-        <div className="flex h-1/3 w-full items-center justify-center rounded-xl bg-base-100/20 p-6 sm:h-[30vh]">
+        <div className="flex h-1/3 w-full items-center justify-center rounded-xl bg-black/20 p-6 sm:h-[30vh]">
           <span className="text-gray-400">No recent evaluations found.</span>
         </div>
       </>

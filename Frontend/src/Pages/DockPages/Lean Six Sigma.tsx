@@ -11,11 +11,11 @@ import {
   LineController,
 } from "chart.js";
 ChartJS.defaults.font.family = "'Cabin', sans-serif";
-ChartJS.defaults.color = "#fff"; // <- makes Sankey node labels white
-import { Scatter } from "react-chartjs-2";
+ChartJS.defaults.color = "#fff"; // <- keeps chart text readable on dark bg
+
+import { Scatter, Chart } from "react-chartjs-2";
 import { SankeyController, Flow } from "chartjs-chart-sankey";
-import { Chart } from "react-chartjs-2";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import api from "../../utils/api.ts";
 import BreadAndLogout from "../../Components/Bread and Logout.tsx";
 import { resolveFacultyId } from "../../utils/facultyContext.ts";
@@ -154,10 +154,28 @@ const fetchEvaluationProfessorMapByFaculty = async (
 };
 
 function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
+  // --- Modal state + ref ---
   const [showRetentionDialog, setShowRetentionDialog] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+  // Keep <dialog> in sync with state
+  useEffect(() => {
+    const d = dialogRef.current;
+    if (!d) return;
+    if (showRetentionDialog) {
+      if (!d.open) d.showModal();
+    } else {
+      if (d.open) d.close();
+    }
+  }, [showRetentionDialog]);
+
+  // --- Form state ---
   const [formYear, setFormYear] = useState<"1st" | "2nd" | "3rd" | "4th">("1st");
   const [formSemester, setFormSemester] = useState<"1st" | "2nd" | "Summer">("1st");
   const [formRetention, setFormRetention] = useState<string>("");
+  const [formSemesters, setFormSemesters] = useState<string[]>(["1st", "2nd"]);
+
+  // --- Data state ---
   const [copusData, setCopusData] = useState<any>(null);
   const [copusLoading, setCopusLoading] = useState(false);
   const [copusError, setCopusError] = useState<string | null>(null);
@@ -177,7 +195,6 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   const [retentionError, setRetentionError] = useState<string | null>(null);
   const [savingRetention, setSavingRetention] = useState(false);
   const [retentionSaveError, setRetentionSaveError] = useState<string | null>(null);
-  const [formSemesters, setFormSemesters] = useState<string[]>(["1st", "2nd"]);
 
   const yearLevelOptions = ["1st", "2nd", "3rd", "4th"] as const;
   const semesterOptions = ["1st", "2nd", "Summer"] as const;
@@ -241,7 +258,6 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       setCopusLoading(true);
       setCopusError(null);
       try {
-        const token = localStorage.getItem("token");
         const isSuperuser = localStorage.getItem("is_superuser") === "true";
         const faculty_id = await resolveFacultyId();
         const params: any = {};
@@ -367,7 +383,6 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   useEffect(() => {
     const fetchSFF = async () => {
       try {
-        const token = localStorage.getItem("token");
         const faculty_id = await resolveFacultyId();
         const isSuperuser = localStorage.getItem("is_superuser") === "true";
         const params: any = {};
@@ -388,7 +403,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         const allQuestions = questionsResults.flatMap((res: any) => res.data || []);
 
         const responsesRes = await api.get(`${endpointResponses}`, { params });
-        const responses = Array.isArray(responsesRes.data) ? responsesRes.data : [];
+        const responses = Array.isArray(responsesRes.data) ? res.data : [];
 
         if (evaluations.length) console.log("[DEBUG] SFF Sample Evaluation:", evaluations[0]);
         if (allQuestions.length) console.log("[DEBUG] SFF Sample Question:", allQuestions[0]);
@@ -426,7 +441,6 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       setSentimentLoading(true);
       setSentimentError(null);
       try {
-        const token = localStorage.getItem("token");
         const faculty_id = localStorage.getItem("faculty_id");
         const isSuperuser = localStorage.getItem("is_superuser") === "true";
 
@@ -572,7 +586,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
     },
   } as const;
 
-  // (Optional) Example for other charts still here
+  // (Optional) Example line chart
   const lineData = {
     labels: ["January", "February", "March", "April", "May"],
     datasets: [
@@ -621,7 +635,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         <button className="btn btn-primary text-white">Semester</button>
         <button className="btn btn-primary text-white">School Year</button>
         <button
-          className="btn btn-secondary text-white"
+          className="btn btn-primary text-white"
           onClick={() => setShowRetentionDialog(true)}
         >
           Add Retention
@@ -629,70 +643,86 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       </div>
 
       <div className="mt-6 flex h-full w-full flex-col gap-6 overflow-y-auto px-6">
-        <div className="stats shrink-0 bg-[#1c402a]/20 p-0 shadow-2xl">
-          <div className="stat">
-            <div className="stat-figure text-gray-400">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block h-8 w-8 stroke-current">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        {/* Stat panels (fill width, large numbers) */}
+        <div className="flex flex-col md:flex-row gap-4 w-full">
+          {/* Total Professors */}
+          <div className="flex flex-1 items-center gap-4 rounded-xl bg-[#1c402a]/40 p-6 shadow-xl">
+            <div className="text-gray-400 shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-10 w-10 stroke-current">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="stat-title text-gray-400">Total Professors</div>
-            <div className="stat-value">{professorCount}</div>
-          </div>
-
-          <div className="stat">
-            <div className="stat-figure text-gray=400">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block h-8 w-8 stroke-current">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
-              </svg>
-            </div>
-            <div className="stat-title text-gray-400">Average Active Learning Percentage</div>
-            <div className="stat-value">
-              {avgActiveLearning !== null ? `${avgActiveLearning}%` : "—"}
+            <div className="flex flex-col">
+              <div className="text-base text-gray-400">Total Professors</div>
+              <div className="text-4xl md:text-7xl py-4 font-bold text-white">{professorCount}</div>
             </div>
           </div>
 
-          <div className="stat">
-            <div className="stat-figure text-gray-400">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block h-8 w-8 stroke-current">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+          {/* Average Active Learning */}
+          <div className="flex flex-1 items-center gap-4 rounded-xl bg-[#1c3932]/40 p-6 shadow-xl">
+            <div className="text-gray-400 shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-10 w-10 stroke-current">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
             </div>
-            <div className="stat-title text-gray-400">Max count per Activity points</div>
-            <div className="stat-value">{maxActivityPoints}</div>
+            <div className="flex flex-col">
+              <div className="text-base text-gray-400">Average Active Learning Percentage</div>
+              <div className="text-4xl md:text-7xl py-4 font-bold text-white">
+                {avgActiveLearning !== null ? `${avgActiveLearning}%` : "—"}
+              </div>
+            </div>
           </div>
 
-          <div className="stat">
-            <div className="stat-figure text-gray-400">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block h-8 w-8 stroke-current">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          {/* Max Activity Points */}
+          <div className="flex flex-1 items-center gap-4 rounded-xl bg-[#1b3339]/40 p-6 shadow-xl">
+            <div className="text-gray-400 shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-10 w-10 stroke-current">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
               </svg>
             </div>
-            <div className="stat-title text-gray-400">Average Sentiment Score</div>
-            <div className="stat-value">
-              {sentimentLoading ? (
-                <span className="loading loading-spinner loading-sm"></span>
-              ) : sentimentError ? (
-                <span className="text-red-400">Error</span>
-              ) : sentimentSummary ? (
-                <span
-                  className={`${sentimentSummary.average_sentiment_score > 0
-                    ? "text-green-400"
-                    : sentimentSummary.average_sentiment_score < 0
-                      ? "text-red-400"
-                      : "text-yellow-400"
-                    }`}
-                >
-                  {sentimentSummary.average_sentiment_score > 0 ? "+" : ""}
-                  {sentimentSummary.average_sentiment_score}
-                </span>
-              ) : (
-                "—"
-              )}
+            <div className="flex flex-col">
+              <div className="text-base text-gray-400">Max count per Activity points</div>
+              <div className="text-4xl md:text-7xl py-4 text-white font-bold">{maxActivityPoints}</div>
             </div>
-            <div className="stat-desc text-gray-500">
-              {sentimentSummary &&
-                `${sentimentSummary.total_responses} responses analyzed`}
+          </div>
+
+          {/* Average Sentiment */}
+          <div className="flex flex-1 flex-col justify-between rounded-xl bg-[#1b2e3e]/40 p-6 shadow-xl">
+            <div className="flex items-center gap-4">
+              <div className="text-gray-400 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-10 w-10 stroke-current">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <div className="text-base text-gray-400">Average Sentiment Score</div>
+                <div className="text-md text-gray-500 mt-2">
+                  {sentimentSummary &&
+                    `${sentimentSummary.total_responses} responses analyzed`}
+                </div>
+                <div className="text-4xl md:text-7xl font-bold">
+                  {sentimentLoading ? (
+                    <span className="loading text-white loading-spinner loading-sm"></span>
+                  ) : sentimentError ? (
+                    <span className="text-red-400">Error</span>
+                  ) : sentimentSummary ? (
+                    <span
+                      className={
+                        sentimentSummary.average_sentiment_score > 0
+                          ? "text-green-400"
+                          : sentimentSummary.average_sentiment_score < 0
+                            ? "text-red-400"
+                            : "text-yellow-400"
+                      }
+                    >
+                      {sentimentSummary.average_sentiment_score > 0 ? "+" : ""}
+                      {sentimentSummary.average_sentiment_score}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -761,11 +791,8 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         </div>
 
         {/* --- Responsive + Scrollable Sankey wrapper --- */}
-        <div className="flex w-full items-center justify-center rounded-lg p-4 shadow-2xl backdrop-blur-lg">
+        <div className="flex w-full items-center justify-center rounded-lg p-4 shadow-2xl bg-black/20 backdrop-blur-lg">
           <div className="w-full overflow-x-auto">
-            {/* The inner container controls the canvas height and minimum width.
-                On small screens, horizontal scroll appears.
-                On larger screens, it grows with viewport height. */}
             <div className="relative h-[50vh] min-h-[360px] lg:h-[60vh] min-w-[900px]">
               {sankeyData ? (
                 <Chart type="sankey" data={sankeyData} options={sankeyOptions} />
@@ -776,7 +803,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
           </div>
         </div>
 
-        <div className="mt-6 flex w-full items-center justify-center rounded-lg p-4 shadow-2xl backdrop-blur-lg">
+        <div className="mt-6 flex w-full items-center justify-center bg-black/20 rounded-lg p-4 shadow-2xl backdrop-blur-lg">
           <div className="w-full">
             {/* Comparison filters */}
             <div className="mb-4 flex flex-wrap items-center gap-3 text-white">
@@ -860,8 +887,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       <div className="stat-desc text-green-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                            ((sentimentSummary.sentiment_distribution?.POSITIVE ||
-                              0) /
+                            ((sentimentSummary.sentiment_distribution?.POSITIVE || 0) /
                               sentimentSummary.total_responses) *
                             100
                           )
@@ -877,8 +903,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       <div className="stat-desc text-yellow-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                            ((sentimentSummary.sentiment_distribution?.NEUTRAL ||
-                              0) /
+                            ((sentimentSummary.sentiment_distribution?.NEUTRAL || 0) /
                               sentimentSummary.total_responses) *
                             100
                           )
@@ -894,8 +919,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       <div className="stat-desc text-red-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                            ((sentimentSummary.sentiment_distribution?.NEGATIVE ||
-                              0) /
+                            ((sentimentSummary.sentiment_distribution?.NEGATIVE || 0) /
                               sentimentSummary.total_responses) *
                             100
                           )
@@ -904,7 +928,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-4 text-sm text-gray-300">
+                  <div className="mt-4 text-md text-gray-300">
                     <p>
                       Question Types: MCQ (
                       {sentimentSummary.question_type_breakdown?.mcq || 0}), Text (
@@ -1018,13 +1042,15 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         </div>
       </div>
 
-      {/* Retention Input Dialog */}
-      {showRetentionDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="w-full max-w-md rounded-lg bg-[#1f2937] p-6 text-white shadow-2xl">
-            <h3 className="mb-4 text-xl font-semibold">Add Retention Entry</h3>
-            <div className="mb-3">
-              <label className="mb-1 block text-sm text-gray-300">Year</label>
+      {/* Retention Input Dialog (full-screen, Rooms-style) */}
+      <dialog ref={dialogRef} className="modal z-[9995]">
+        <div className="modal-box w-11/12 max-w-3xl">
+          <h3 className="mb-4 text-center text-2xl font-bold">Add Retention Entry</h3>
+
+          <div className="flex flex-col gap-6">
+            {/* Year */}
+            <div>
+              <label className="mb-1 block text-md font-medium text-gray-700">Year</label>
               <select
                 className="select select-bordered w-full"
                 value={formYear}
@@ -1036,8 +1062,10 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                 <option value="4th">4th Year</option>
               </select>
             </div>
-            <div className="mb-3">
-              <label className="mb-1 block text-sm text-gray-300">Semesters</label>
+
+            {/* Semesters */}
+            <div>
+              <label className="mb-1 block text-md font-medium text-gray-700">Semesters</label>
               <div className="flex flex-wrap gap-3">
                 {["1st", "2nd", "Summer"].map((s) => (
                   <label key={s} className="flex cursor-pointer items-center gap-2">
@@ -1047,9 +1075,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       checked={formSemesters.includes(s)}
                       onChange={() =>
                         setFormSemesters((prev) =>
-                          prev.includes(s)
-                            ? prev.filter((v) => v !== s)
-                            : [...prev, s]
+                          prev.includes(s) ? prev.filter((v) => v !== s) : [...prev, s]
                         )
                       }
                     />
@@ -1058,10 +1084,10 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                 ))}
               </div>
             </div>
-            <div className="mb-4">
-              <label className="mb-1 block text-sm text-gray-300">
-                Retention Rate (%)
-              </label>
+
+            {/* Retention */}
+            <div>
+              <label className="mb-1 block text-md font-medium text-gray-700">Retention Rate (%)</label>
               <input
                 type="number"
                 className="input input-bordered w-full"
@@ -1069,69 +1095,73 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                 value={formRetention}
                 onChange={(e) => setFormRetention(e.target.value)}
               />
-            </div>
-            {retentionSaveError && (
-              <div className="mb-2 text-sm text-red-400">{retentionSaveError}</div>
-            )}
-            <div className="flex justify-end gap-2">
-              <button
-                className="btn"
-                onClick={() => setShowRetentionDialog(false)}
-                disabled={savingRetention}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                disabled={savingRetention}
-                onClick={async () => {
-                  setRetentionSaveError(null);
-                  const rr = Number(formRetention);
-                  if (isNaN(rr) || rr < 0 || rr > 100) {
-                    setRetentionSaveError(
-                      "Retention rate must be a number between 0 and 100"
-                    );
-                    return;
-                  }
-                  if (!formSemesters.length) {
-                    setRetentionSaveError("Select at least one semester");
-                    return;
-                  }
-                  setSavingRetention(true);
-                  try {
-                    const payload: any = {
-                      year: formYear,
-                      semesters: formSemesters,
-                      retention_rate: rr,
-                    };
-                    await api.post("/analytics/scatterplot-analytics/", payload);
-                    const res = await api.get("/analytics/retention-regression/");
-                    const series = Array.isArray(res.data?.series)
-                      ? res.data.series
-                      : [];
-                    setRetentionPoints(series);
-                    setShowRetentionDialog(false);
-                    setFormRetention("");
-                    setFormSemesters(["1st", "2nd"]);
-                  } catch (e: any) {
-                    const msg =
-                      e?.response?.data?.error || e?.message || "Failed to save";
-                    setRetentionSaveError(String(msg));
-                  } finally {
-                    setSavingRetention(false);
-                  }
-                }}
-              >
-                {savingRetention ? (
-                  <span className="loading loading-spinner loading-sm"></span>
-                ) : (
-                  "Save"
-                )}
-              </button>
+              {retentionSaveError && (
+                <div className="mt-2 text-md text-red-500">{retentionSaveError}</div>
+              )}
             </div>
           </div>
+
+          {/* Footer actions */}
+          <div className="modal-action">
+            <button
+              className="btn btn-primary text-white"
+              type="button"
+              disabled={savingRetention}
+              onClick={async () => {
+                setRetentionSaveError(null);
+                const rr = Number(formRetention);
+                if (isNaN(rr) || rr < 0 || rr > 100) {
+                  setRetentionSaveError("Retention rate must be a number between 0 and 100");
+                  return;
+                }
+                if (!formSemesters.length) {
+                  setRetentionSaveError("Select at least one semester");
+                  return;
+                }
+                setSavingRetention(true);
+                try {
+                  const payload: any = {
+                    year: formYear,
+                    semesters: formSemesters,
+                    retention_rate: rr,
+                  };
+                  await api.post("/analytics/scatterplot-analytics/", payload);
+                  const res = await api.get("/analytics/retention-regression/");
+                  const series = Array.isArray(res.data?.series) ? res.data.series : [];
+                  setRetentionPoints(series);
+                  setShowRetentionDialog(false);
+                  setFormRetention("");
+                  setFormSemesters(["1st", "2nd"]);
+                } catch (e: any) {
+                  const msg = e?.response?.data?.error || e?.message || "Failed to save";
+                  setRetentionSaveError(String(msg));
+                } finally {
+                  setSavingRetention(false);
+                }
+              }}
+            >
+              {savingRetention ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                "Save"
+              )}
+            </button>
+            <button
+              className="btn btn-cancel"
+              type="button"
+              onClick={() => setShowRetentionDialog(false)}
+              disabled={savingRetention}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
-      )}
+
+        {/* DaisyUI backdrop */}
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
     </div>
   );
 }
