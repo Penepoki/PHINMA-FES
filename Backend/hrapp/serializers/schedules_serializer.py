@@ -3,7 +3,9 @@ from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
 
 from hrapp.models.schedules_models import *
-from .user_serializer import UserProgramProfessorSerializer
+from hrapp.models.evaluation_models import Evaluation, StudentEvaluation
+from hrapp.models.user_models import User  # Adjust if User is in a different module
+from .user_serializer import UserProgramProfessorSerializer, UserSerializer
 
 
 
@@ -210,5 +212,22 @@ class ScheduleSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class FacultySerializer(serializers.ModelSerializer):
+    dean = UserSerializer(read_only=True)
+    dean_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='dean', write_only=True, required=False
+    )
+    professors = UserSerializer(many=True, read_only=True)
+    professor_ids = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), many=True, source='professors', write_only=True, required=False
+    )
+    evaluations = serializers.PrimaryKeyRelatedField(
+        queryset=Evaluation.objects.all(), many=True, required=False
+    )
+    student_evaluations = serializers.PrimaryKeyRelatedField(
+        queryset=StudentEvaluation.objects.all(), many=True, required=False
+    )
 
-
+    class Meta:
+        model = Faculty
+        fields = ['id', 'name', 'dean', 'dean_id', 'professors', 'professor_ids', 'evaluations', 'student_evaluations']

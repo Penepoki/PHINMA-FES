@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../../../utils/api";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import {
+  BuildingLibraryIcon,
+  BookOpenIcon,
+  BuildingOffice2Icon,
+  RectangleStackIcon,
+  CalendarDaysIcon,
+} from "@heroicons/react/24/solid";
 
 interface ResourceGroupProps {
   setActiveView: (view: string) => void;
@@ -41,7 +48,7 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
 
   // Simple spinner component
   const Spinner = () => (
-    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-white border-t-transparent"></div>
+    <div className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-solid border-white border-t-transparent"></div>
   );
 
   const renderCount = (count: number) => {
@@ -58,52 +65,58 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
         setActiveView={setActiveView}
         breadcrumbs={[
           { label: "Home", view: "home" },
-          { label: "Response Group" },
+          { label: "Resource Group" },
         ]}
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">
         Resource Group Overview
       </h2>
-      <span className="font-thin text-[#888888] block my-6">
-        This is where you can access and organize your institution’s resources—programs, subjects, rooms, sections, and schedules—so that evaluation and classroom management run smoothly.
-      </span>
+      <div className="border-b-2 border-gray-600 shadow-2xl w-full">
+        <span className="font-thin text-[#888888] block my-6">
+          This is where you can access and organize your institution’s resources—programs, subjects, rooms, sections, and schedules—so that evaluation and classroom management run smoothly.
+        </span>
+      </div>
+
       <div className="z-10 flex h-full w-full flex-col items-center justify-center gap-6 p-0 md:flex-row md:p-6">
-        <div className="rg-container md:gap-y-6 md:p-6">
-          <h2 className="mb-4 text-4xl font-bold">Courses</h2>
-          <span className="text-xl text-gray-300">
-            Number of current programs:
-          </span>
-          <span className="text-8xl text-white">
-            {renderCount(programs.length)}
-          </span>
+        {/* Programs */}
+        <div className="rg-container bg-black/20 flex flex-col items-center md:gap-y-6 md:p-6">
+          <BuildingLibraryIcon className="h-12 w-12 text-blue-400 mb-2" />
+          <h2 className="mb-2 text-2xl font-bold">Programs</h2>
+          <span className="text-xl text-gray-300">Number of current programs:</span>
+          <span className="text-9xl text-white">{renderCount(programs.length)}</span>
         </div>
-        <div className="rg-container md:gap-y-6 md:p-6">
-          <h2 className="mb-4 text-4xl font-bold">Subjects</h2>
-          <span className="text-xl text-gray-300">
-            Number of current subjects:
-          </span>
-          <span className="text-8xl text-white">
-            {renderCount(subjects.length)}
-          </span>
+
+        {/* Subjects */}
+        <div className="rg-container bg-black/20 flex flex-col items-center md:gap-y-6 md:p-6">
+          <BookOpenIcon className="h-12 w-12 text-purple-400 mb-2" />
+          <h2 className="mb-2 text-2xl font-bold">Subjects</h2>
+          <span className="text-xl text-gray-300">Number of current subjects:</span>
+          <span className="text-9xl text-white">{renderCount(subjects.length)}</span>
         </div>
-        <div className="rg-container md:gap-y-6 md:p-6">
-          <h2 className="mb-4 text-4xl font-bold">Rooms</h2>
-          <span className="text-xl text-gray-300">
-            Number of current rooms:
-          </span>
-          <span className="text-8xl text-white">
-            {renderCount(rooms.length)}
-          </span>
+
+        {/* Rooms */}
+        <div className="rg-container bg-black/20 flex flex-col items-center md:gap-y-6 md:p-6">
+          <BuildingOffice2Icon className="h-12 w-12 text-pink-400 mb-2" />
+          <h2 className="mb-2 text-2xl font-bold">Rooms</h2>
+          <span className="text-xl text-gray-300">Number of current rooms:</span>
+          <span className="text-9xl text-white">{renderCount(rooms.length)}</span>
         </div>
-        <div className="rg-container md:gap-y-6 md:p-6">
-          <h2 className="mb-4 text-4xl font-bold">Schedules</h2>
-          <span className="text-xl text-gray-300">
-            Number of current schedules:
-          </span>
-          <span className="text-8xl text-white">
-            {renderCount(schedules.length)}
-          </span>
+
+        {/* Sections */}
+        <div className="rg-container bg-black/20 flex flex-col items-center md:gap-y-6 md:p-6">
+          <RectangleStackIcon className="h-12 w-12 text-red-400 mb-2" />
+          <h2 className="mb-2 text-2xl font-bold">Sections</h2>
+          <span className="text-xl text-gray-300">Number of current sections:</span>
+          <span className="text-9xl text-white">{renderCount(programs.length)}</span>
+        </div>
+
+        {/* Schedules */}
+        <div className="rg-container bg-black/20 flex flex-col items-center md:gap-y-6 md:p-6">
+          <CalendarDaysIcon className="h-12 w-12 text-emerald-400 mb-2" />
+          <h2 className="mb-2 text-2xl font-bold">Schedules</h2>
+          <span className="text-xl text-gray-300">Number of current schedules:</span>
+          <span className="text-9xl text-white">{renderCount(schedules.length)}</span>
         </div>
       </div>
     </div>

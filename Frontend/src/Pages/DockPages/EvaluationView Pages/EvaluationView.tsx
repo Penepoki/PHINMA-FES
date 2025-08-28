@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CopusMatrix from "../../../Components/Evaluation Components/Copus Matrix";
 import PieChartWithTable from "../../../Components/Evaluation Components/Piechart with Table";
 import api from "../../../utils/api";
 import { ActivityData } from "../../../Components/Evaluation Components/Copus Matrix";
 import CreateEvaluationForm from "../../../Components/Evaluation Components/CreateEvaluationForm";
-import CopusSummaryTable from "../../../Components/Evaluation Components/CopusSummaryTable.tsx";
+import CopusSummaryTableWithPDF from "../../../Components/Evaluation Components/CopusSummaryTableWithPDF";
 import { generateAIFeedback } from "../../../utils/api";
 import * as Fetcher from "../../../utils/fetcher.ts";
 import * as Interfaces from "../../../Types/Interfaces.ts";
@@ -27,7 +27,6 @@ function Evaluation({ setActiveView }: EvalProps) {
       teacherTallies: Record<string, ActivityData>;
     };
   }>({});
-  const [modalOpen, setModalOpen] = useState<string | null>(null);
   const [selectedProfessor, setSelectedProfessor] = useState<Interfaces.Professor | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<Interfaces.Schedule | null>(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState<Interfaces.Evaluation | null>(null);
@@ -35,6 +34,21 @@ function Evaluation({ setActiveView }: EvalProps) {
   const [searchProfessor, setSearchProfessor] = useState("");
   const [searchSemester, setSearchSemester] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // NEW: modal refs (always-mounted)
+  const viewModalRef = useRef<HTMLDialogElement>(null);
+  const summaryModalRef = useRef<HTMLDialogElement>(null);
+  const openViewModal = () => viewModalRef.current?.showModal();
+  const closeViewModal = () => viewModalRef.current?.close();
+  const openSummaryModal = () => {
+    setIsSummaryOpen(true);
+    summaryModalRef.current?.showModal();
+  };
+  const closeSummaryModal = () => {
+    setIsSummaryOpen(false);
+    summaryModalRef.current?.close();
+  };
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false); // only to trigger summary tallies effect
 
   const getToday = () => new Date().toISOString().split("T")[0];
 
@@ -60,7 +74,7 @@ function Evaluation({ setActiveView }: EvalProps) {
     })();
   }, []);
 
-  // Prefetch AI feedback when modal opens for an evaluation
+  // Prefetch AI feedback when a specific evaluation is selected (view modal path)
   useEffect(() => {
     if (selectedEvaluation?.id) {
       setAiFeedbackLoading(true);
@@ -104,7 +118,7 @@ function Evaluation({ setActiveView }: EvalProps) {
     setSelectedEvaluation(evaluation);
     const scheduleObj = schedules.find((s) => s.id === evaluation.schedule) || null;
     setSelectedSchedule(scheduleObj);
-    setModalOpen("copus-matrix");
+    openViewModal();
   };
 
   const updateEvaluation = async (id: number, evaluationData: Partial<Interfaces.Evaluation>) => {
@@ -187,9 +201,9 @@ function Evaluation({ setActiveView }: EvalProps) {
 
   const firstName = localStorage.getItem("firstName") || "User";
 
-  // Bulk tallies when opening summary
+  // Bulk tallies when opening summary (uses isSummaryOpen flag)
   useEffect(() => {
-    if (modalOpen === "copus-summary" && selectedProfessor) {
+    if (isSummaryOpen && selectedProfessor) {
       const copusEvals = getProfessorEvaluations(selectedProfessor).filter((e) =>
         ["copus_1", "copus_2", "copus_3"].includes(e.evaluation_type),
       );
@@ -201,11 +215,10 @@ function Evaluation({ setActiveView }: EvalProps) {
         })();
       }
     }
-  }, [modalOpen, selectedProfessor]);
+  }, [isSummaryOpen, selectedProfessor]);
 
-  // Shared classes to ensure NO BORDERS on COPUS buttons
-  const btnBase =
-    "btn mx-1 text-white border-0 ring-0 focus:ring-0 focus:outline-none";
+  // Shared classes (no borders)
+  const btnBase = "btn mx-1 text-white border-0 ring-0 focus:ring-0 focus:outline-none";
   const btnCopus = `${btnBase} bg-[#1b2e3e] hover:bg-[#4e6e88]`;
   const btnNew = `${btnBase} bg-gray-500 hover:bg-gray-400`;
 
@@ -220,7 +233,7 @@ function Evaluation({ setActiveView }: EvalProps) {
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Copus Evaluation Forms</h2>
-      <span className="mb-2 block font-thin text-[#888888] mx-6">
+      <span className="mb-2 block mx-6 font-thin text-[#888888]">
         This is where you can manage and review evaluations. You’ll be able to check active and
         past submissions, explore results with AI-driven sentiment analysis and NLP insights, and
         make sure all feedback is properly addressed.
@@ -251,18 +264,16 @@ function Evaluation({ setActiveView }: EvalProps) {
           list="year-semester-list"
         />
         <datalist id="year-semester-list">
-          {Array.from(new Set(schedules.map((s) => `${s.year} ${s.semester}`))).map(
-            (item, index) => (
-              <option key={index} value={item} />
-            ),
-          )}
+          {Array.from(new Set(schedules.map((s) => `${s.year} ${s.semester}`))).map((item, index) => (
+            <option key={index} value={item} />
+          ))}
         </datalist>
       </div>
 
       {/* Professors Table */}
       <div className="w-full overflow-x-auto text-white shadow-xl backdrop-blur-lg">
         <table className="table">
-          <thead className="bg-[#1c402a]/50 text-xl font-bold text-white shadow-xl">
+          <thead className="bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 text-xl font-bold text-white shadow-xl">
             <tr>
               <th>Course and Professor</th>
             </tr>
@@ -274,23 +285,17 @@ function Evaluation({ setActiveView }: EvalProps) {
                   <td>
                     <div className="collapse-arrow collapse rounded-md shadow-2xl backdrop-blur-lg">
                       <input type="checkbox" />
-                      <div className="collapse-title bg-[#1c402a]/50 text-xl font-semibold">
-                        <div className="skeleton h-6 w-1/3 rounded bg-primary/20"></div>
+                      <div className="collapse-title bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 text-xl font-semibold">
+                        <div className="skeleton h-8 w-56 rounded-2xl"></div>
                       </div>
 
-                      {/* --- SKELETON BUTTON ROW (matches real button sizes) --- */}
-                      <div className="z-50 flex items-center justify-center gap-x-3 bg-[#1c402a]/50 py-3">
-                        {/* Copus Summary (wider) */}
-                        <div className="skeleton h-10 w-36 rounded-md bg-primary/20"></div>
-
-                        {/* Divider intentionally HIDDEN during loading so it only appears when Summary is real */}
-                        {/* Edit COPUS 1 / 2 / 3 */}
-                        <div className="skeleton h-10 w-32 rounded-md bg-primary/20"></div>
-                        <div className="skeleton h-10 w-32 rounded-md bg-primary/20"></div>
-                        {/* New COPUS (slightly shorter) */}
-                        <div className="skeleton h-10 w-28 rounded-md bg-primary/20"></div>
+                      {/* Skeleton buttons row */}
+                      <div className="z-50 flex items-center justify-center gap-x-3 bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 py-3">
+                        <div className="skeleton h-10 w-36 rounded-2xl"></div>
+                        <div className="skeleton h-10 w-32 rounded-2xl"></div>
+                        <div className="skeleton h-10 w-32 rounded-2xl"></div>
+                        <div className="skeleton h-10 w-28 rounded-2xl"></div>
                       </div>
-                      {/* --- /SKELETON BUTTON ROW --- */}
 
                       <div className="collapse-content flex bg-black/20 text-lg">
                         <div className="flex h-full w-full flex-col justify-center">
@@ -316,10 +321,10 @@ function Evaluation({ setActiveView }: EvalProps) {
                                 {[...Array(2)].map((_, j) => (
                                   <tr key={j}>
                                     <td>
-                                      <div className="skeleton h-5 w-32 rounded bg-primary/20"></div>
+                                      <div className="skeleton h-5 w-32 rounded"></div>
                                     </td>
                                     <td>
-                                      <div className="skeleton h-5 w-20 rounded bg-primary/20"></div>
+                                      <div className="skeleton h-5 w-20 rounded"></div>
                                     </td>
                                   </tr>
                                 ))}
@@ -341,7 +346,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                   profEvaluations.some((e) => e.evaluation_type === copus.value),
                 );
 
-                // Find the first missing COPUS type for "New ..."
+                // Find first missing COPUS type
                 const firstMissingType = COPUS_TYPE_CHOICES.find(
                   (copus) => !getEvaluationByType(prof, copus.value),
                 );
@@ -351,23 +356,23 @@ function Evaluation({ setActiveView }: EvalProps) {
                     <td>
                       <div className="collapse-arrow collapse rounded-md shadow-2xl backdrop-blur-lg">
                         <input type="checkbox" />
-                        <div className="collapse-title bg-[#1c402a]/50 text-xl font-semibold">
+                        <div className="collapse-title bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 text-xl font-semibold">
                           {prof.first_name} {prof.last_name}
                         </div>
 
                         {/* Button Row */}
                         <div
-                          className="z-50 flex items-center justify-center gap-x-3 bg-[#1c402a]/50 py-3"
+                          className="z-50 flex items-center justify-center gap-x-3 bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 py-3"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {/* Copus Summary (no border) */}
+                          {/* Copus Summary */}
                           {hasAllCopus && (
                             <button
                               type="button"
                               className={btnCopus}
                               onClick={() => {
                                 setSelectedProfessor(prof);
-                                setModalOpen("copus-summary");
+                                openSummaryModal();
                               }}
                             >
                               Copus Summary
@@ -379,7 +384,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                             <div className="divider divider-horizontal divider-accent mx-2"></div>
                           )}
 
-                          {/* COPUS 1/2/3 (no borders) */}
+                          {/* COPUS 1/2/3 */}
                           {COPUS_TYPE_CHOICES.map((copus) => {
                             const evalForType = getEvaluationByType(prof, copus.value);
 
@@ -392,7 +397,6 @@ function Evaluation({ setActiveView }: EvalProps) {
                                   onClick={() => {
                                     setSelectedEvaluation(evalForType);
                                     setSelectedProfessor(prof);
-                                    setModalOpen("copus-matrix");
                                     handleOpenEvaluation(evalForType);
                                   }}
                                 >
@@ -401,7 +405,6 @@ function Evaluation({ setActiveView }: EvalProps) {
                               );
                             }
 
-                            // Only one "New ..." for the first missing type
                             if (copus.value === firstMissingType?.value) {
                               return (
                                 <button
@@ -410,9 +413,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                                   className={btnNew}
                                   onClick={() => {
                                     setSelectedProfessor(prof);
-                                    (document.getElementById(
-                                      "create_new_copus",
-                                    ) as HTMLDialogElement)?.showModal();
+                                    (document.getElementById("create_new_copus") as HTMLDialogElement)?.showModal();
                                   }}
                                 >
                                   {`New ${copus.label}`}
@@ -489,7 +490,7 @@ function Evaluation({ setActiveView }: EvalProps) {
         </table>
       </div>
 
-      {/* Create New Copus Modal */}
+      {/* Create New Copus Modal (kept as id-based) */}
       <dialog id="create_new_copus" className="modal">
         <div className="modal-box w-11/12 max-w-5xl">
           <h3 className="mb-4 text-center text-2xl font-bold">New Copus</h3>
@@ -506,13 +507,9 @@ function Evaluation({ setActiveView }: EvalProps) {
                   setEvaluations((prev) => [...prev, newEvaluation]);
                   if (newEvaluation.observation_date === getToday()) {
                     setSelectedEvaluation(newEvaluation);
-                    setSelectedProfessor(selectedProfessor);
-                    const scheduleObj =
-                      schedules.find((s) => s.id === newEvaluation.schedule) || null;
+                    const scheduleObj = schedules.find((s) => s.id === newEvaluation.schedule) || null;
                     setSelectedSchedule(scheduleObj);
-                    setModalOpen("copus-matrix");
-                  } else {
-                    setModalOpen(null);
+                    openViewModal(); // open the View/Edit modal
                   }
                   (document.getElementById("create_new_copus") as HTMLDialogElement)?.close();
                 }}
@@ -523,182 +520,208 @@ function Evaluation({ setActiveView }: EvalProps) {
             );
           })()}
         </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
       </dialog>
 
-      {/* View/Edit Copus Modal */}
-      {selectedEvaluation && selectedProfessor && (
-        <dialog open className="modal">
-          <div className="modal-box max-h-full w-full max-w-5xl text-black">
-            <h3 className="mt-2 mb-6 text-xl font-bold">
-              {selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Evaluation -{" "}
-              {selectedEvaluation.evaluation_type}
-            </h3>
+      {/* ALWAYS-MOUNTED: View/Edit Copus Modal */}
+      <dialog ref={viewModalRef} className="modal">
+        <div className="modal-box max-h-full w-full max-w-5xl text-black">
+          {selectedEvaluation && selectedProfessor && (
+            <>
+              <h3 className="mt-2 mb-6 text-xl font-bold">
+                {selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Evaluation -{" "}
+                {selectedEvaluation.evaluation_type}
+              </h3>
 
-            {/* Basic Information */}
-            <div className="collapse-arrow collapse mb-4 border border-gray-300">
-              <input type="checkbox" />
-              <div className="collapse-title text-lg font-semibold">Basic Information</div>
+              {/* Basic Information */}
+              <div className="collapse-arrow collapse mb-4 border border-gray-300">
+                <input type="checkbox" />
+                <div className="collapse-title text-lg font-semibold">Basic Information</div>
 
-              <div className="collapse-content space-y-2">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="input w-full bg-transparent">
-                    <span className="text-gray-400">Role:</span>
-                    <span className="text-black"> {firstName}</span>
-                  </div>
-                  <div className="input input-bordered w-full bg-transparent">
-                    <span className="text-gray-400">Date:</span>
-                    <span className="text-black"> {selectedEvaluation.observation_date}</span>
-                  </div>
+                <div className="collapse-content space-y-2">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="input w-full bg-transparent">
+                      <span className="text-gray-400">Role:</span>
+                      <span className="text-black"> {localStorage.getItem("firstName") || "User"}</span>
+                    </div>
+                    <div className="input input-bordered w-full bg-transparent">
+                      <span className="text-gray-400">Date:</span>
+                      <span className="text-black"> {selectedEvaluation.observation_date}</span>
+                    </div>
 
-                  <div className="input input-bordered w-full bg-transparent">
-                    <span className="text-gray-400">Name of Evaluated:</span>
-                    <span className="text-black">
-                      {" "}
-                      {`${selectedProfessor.first_name} ${selectedProfessor.last_name}`}
-                    </span>
-                  </div>
+                    <div className="input input-bordered w-full bg-transparent">
+                      <span className="text-gray-400">Name of Evaluated:</span>
+                      <span className="text-black">
+                        {" "}
+                        {`${selectedProfessor.first_name} ${selectedProfessor.last_name}`}
+                      </span>
+                    </div>
 
-                  <div className="input input-bordered w-full bg-transparent">
-                    <span className="text-gray-400">Section:</span>
-                    <span className="text-black"> {selectedSchedule?.section_name || ""}</span>
-                  </div>
-                  <div className="input input-bordered w-full bg-transparent">
-                    <span className="text-gray-400">Subject:</span>
-                    <span className="text-black"> {selectedSchedule?.subject_name || ""}</span>
-                  </div>
-                  <div className="input input-bordered w-full bg-transparent">
-                    <span className="text-gray-400">Room:</span>
-                    <span className="text-black"> {selectedSchedule?.room_name || ""}</span>
-                  </div>
-                  <div className="input input-bordered w-full bg-transparent">
-                    <span className="text-gray-400">Program:</span>
-                    <span className="text-black"> {selectedSchedule?.program_name || "Null"}</span>
-                  </div>
-                  <div className="input input-bordered w-full bg-transparent">
-                    <span className="text-gray-400">Start Time:</span>
-                    <span className="text-black"> {selectedSchedule?.start_time || ""}</span>
-                  </div>
-                  <div className="input input-bordered w-full bg-transparent">
-                    <span className="text-gray-400">End Time:</span>
-                    <span className="text-black"> {selectedSchedule?.end_time || ""}</span>
-                  </div>
-                  <div className="input input-bordered w-full bg-transparent">
-                    <span className="text-gray-400">Semester:</span>
-                    <span className="text-black"> {selectedSchedule?.semester || ""}</span>
+                    <div className="input input-bordered w-full bg-transparent">
+                      <span className="text-gray-400">Section:</span>
+                      <span className="text-black"> {selectedSchedule?.section_name || ""}</span>
+                    </div>
+                    <div className="input input-bordered w-full bg-transparent">
+                      <span className="text-gray-400">Subject:</span>
+                      <span className="text-black"> {selectedSchedule?.subject_name || ""}</span>
+                    </div>
+                    <div className="input input-bordered w-full bg-transparent">
+                      <span className="text-gray-400">Room:</span>
+                      <span className="text-black"> {selectedSchedule?.room_name || ""}</span>
+                    </div>
+                    <div className="input input-bordered w-full bg-transparent">
+                      <span className="text-gray-400">Program:</span>
+                      <span className="text-black"> {selectedSchedule?.program_name || "Null"}</span>
+                    </div>
+                    <div className="input input-bordered w-full bg-transparent">
+                      <span className="text-gray-400">Start Time:</span>
+                      <span className="text-black"> {selectedSchedule?.start_time || ""}</span>
+                    </div>
+                    <div className="input input-bordered w-full bg-transparent">
+                      <span className="text-gray-400">End Time:</span>
+                      <span className="text-black"> {selectedSchedule?.end_time || ""}</span>
+                    </div>
+                    <div className="input input-bordered w-full bg-transparent">
+                      <span className="text-gray-400">Semester:</span>
+                      <span className="text-black"> {selectedSchedule?.semester || ""}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* COPUS Matrix */}
-            <CopusMatrix
-              onTalliesUpdate={(student, teacher) => {
-                setEvaluationTallies((prev) => ({
-                  ...prev,
-                  [selectedEvaluation.id]: {
-                    studentTallies: student,
-                    teacherTallies: teacher,
-                  },
-                }));
-              }}
-              evaluationId={selectedEvaluation.id}
-            />
-
-            {/* COPUS Summary Chart */}
-            <div className="mt-6 flex flex-col items-center justify-center gap-6 md:flex-row">
-              <PieChartWithTable
-                studentTallies={evaluationTallies[selectedEvaluation.id]?.studentTallies || {}}
-                teacherTallies={evaluationTallies[selectedEvaluation.id]?.teacherTallies || {}}
+              {/* COPUS Matrix */}
+              <CopusMatrix
+                onTalliesUpdate={(student, teacher) => {
+                  setEvaluationTallies((prev) => ({
+                    ...prev,
+                    [selectedEvaluation.id]: {
+                      studentTallies: student,
+                      teacherTallies: teacher,
+                    },
+                  }));
+                }}
+                evaluationId={selectedEvaluation.id}
               />
-            </div>
 
-            {/* AI Feedback */}
-            <div className="collapse-arrow collapse mb-4 border border-gray-300">
-              <input type="checkbox" />
-              <div className="collapse-title text-lg font-semibold">
-                Assisted Summary
-                {aiFeedbackLoading && <span className="ml-4 text-sm text-gray-500">Loading...</span>}
-              </div>
-              <div className="collapse-content">
-                <div className="mb-2 flex items-center">
-                  {aiFeedback === null && !aiFeedbackLoading && (
-                    <button
-                      className="btn btn-primary btn-xs mr-4"
-                      onClick={handleGenerateAIFeedback}
-                      disabled={aiFeedbackLoading}
-                      type="button"
-                    >
-                      Generate AI Feedback
-                    </button>
-                  )}
-                  {aiFeedbackError && <div className="text-red-500">{aiFeedbackError}</div>}
-                </div>
-                <textarea
-                  id="ai-feedback-textarea"
-                  className="textarea min-h-[700px] w-full"
-                  placeholder="AI feedback will appear here..."
-                  value={aiFeedback || ""}
-                  readOnly
+              {/* COPUS Summary Chart */}
+              <div className="mt-6 flex flex-col items-center justify-center gap-6 md:flex-row">
+                <PieChartWithTable
+                  studentTallies={evaluationTallies[selectedEvaluation.id]?.studentTallies || {}}
+                  teacherTallies={evaluationTallies[selectedEvaluation.id]?.teacherTallies || {}}
                 />
               </div>
-            </div>
 
-            {/* Actions */}
-            <div className="modal-action">
-              <form method="dialog" className="flex flex-wrap gap-3">
-                <button
-                  className="btn btn-primary px-6 text-white"
-                  onClick={() => {
-                    setModalOpen(null);
-                    setSelectedEvaluation(null);
-                    setSelectedProfessor(null);
-                    setSelectedSchedule(null);
-                  }}
-                >
-                  Save and Exit
-                </button>
+              {/* AI Feedback */}
+              <div className="collapse-arrow collapse mb-4 border border-gray-300">
+                <input type="checkbox" />
+                <div className="collapse-title text-lg font-semibold">
+                  Assisted Summary
+                  {aiFeedbackLoading && <span className="ml-4 text-sm text-gray-500">Loading...</span>}
+                </div>
+                <div className="collapse-content">
+                  <div className="mb-2 flex items-center">
+                    {aiFeedback === null && !aiFeedbackLoading && (
+                      <button
+                        className="btn btn-primary btn-xs mr-4"
+                        onClick={handleGenerateAIFeedback}
+                        disabled={aiFeedbackLoading}
+                        type="button"
+                      >
+                        Generate AI Feedback
+                      </button>
+                    )}
+                    {aiFeedbackError && <div className="text-red-500">{aiFeedbackError}</div>}
+                  </div>
+                  <textarea
+                    id="ai-feedback-textarea"
+                    className="textarea min-h-[700px] w-full"
+                    placeholder="AI feedback will appear here..."
+                    value={aiFeedback || ""}
+                    readOnly
+                  />
+                </div>
+              </div>
 
+              {/* Actions */}
+              <div className="modal-action">
+                <form method="dialog" className="flex flex-wrap gap-3">
+                  <button
+                    className="btn btn-primary px-6 text-white"
+                    onClick={() => {
+                      setSelectedEvaluation(null);
+                      setSelectedProfessor(null);
+                      setSelectedSchedule(null);
+                      closeViewModal();
+                    }}
+                  >
+                    Save and Exit
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-cancel text-white"
+                    onClick={() => {
+                      setSelectedEvaluation(null);
+                      setSelectedProfessor(null);
+                      setSelectedSchedule(null);
+                      closeViewModal();
+                    }}
+                  >
+                    Close
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button
+            onClick={() => {
+              setSelectedEvaluation(null);
+              setSelectedProfessor(null);
+              setSelectedSchedule(null);
+            }}
+          >
+            close
+          </button>
+        </form>
+      </dialog>
+
+      {/* ALWAYS-MOUNTED: Copus Summary Modal */}
+      <dialog ref={summaryModalRef} className="modal">
+        <div className="modal-box max-h-full w-full max-w-5xl text-black">
+          {selectedProfessor && (
+            <>
+              <h3 className="mt-2 mb-6 text-xl font-bold">
+                {selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Summary
+              </h3>
+              <CopusSummaryTableWithPDF
+                evaluations={getProfessorEvaluations(selectedProfessor).filter((e) =>
+                  ["copus_1", "copus_2", "copus_3"].includes(e.evaluation_type),
+                )}
+                evaluationTallies={evaluationTallies}
+                studentOptions={studentOptions}
+                teacherOptions={teacherOptions}
+                professorName={`${selectedProfessor.first_name} ${selectedProfessor.last_name}`}
+              />
+              <div className="modal-action">
                 <button
-                  type="submit"
                   className="btn btn-cancel text-white"
                   onClick={() => {
-                    setModalOpen(null);
-                    setSelectedEvaluation(null);
-                    setSelectedProfessor(null);
-                    setSelectedSchedule(null);
+                    closeSummaryModal();
                   }}
                 >
                   Close
                 </button>
-              </form>
-            </div>
-          </div>
-        </dialog>
-      )}
-
-      {/* Copus Summary Modal */}
-      {modalOpen === "copus-summary" && selectedProfessor && (
-        <dialog open className="modal">
-          <div className="modal-box max-h-full w-full max-w-5xl text-black">
-            <h3 className="mt-2 mb-6 text-xl font-bold">
-              {selectedProfessor.first_name} {selectedProfessor.last_name} - COPUS Summary
-            </h3>
-            <CopusSummaryTable
-              evaluations={getProfessorEvaluations(selectedProfessor).filter((e) =>
-                ["copus_1", "copus_2", "copus_3"].includes(e.evaluation_type),
-              )}
-              evaluationTallies={evaluationTallies}
-              studentOptions={studentOptions}
-              teacherOptions={teacherOptions}
-            />
-            <div className="modal-action">
-              <button className="btn btn-cancel text-white" onClick={() => setModalOpen(null)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </dialog>
-      )}
+              </div>
+            </>
+          )}
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button onClick={closeSummaryModal}>close</button>
+        </form>
+      </dialog>
     </div>
   );
 }

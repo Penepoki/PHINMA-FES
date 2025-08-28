@@ -116,7 +116,6 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
           const [resResponses, resQuestions] = await Promise.all([
             api.get(endpointMap[filterType](evaluationId, filterId)),
             api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${evaluationId}`)
-
           ]);
           if (!isMounted) return;
           setResponses(resResponses.data);
@@ -139,11 +138,11 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
           }
           // Always fetch all questions for all evaluationIds
           const allQuestions = await Promise.all(
-              evaluationIds.map(eid =>
-                  api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${eid}`)
-              )
+            evaluationIds.map((eid) =>
+              api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${eid}`)
+            )
           );
-          const questions = allQuestions.flatMap(res => res.data);
+          const questions = allQuestions.flatMap((res) => res.data);
           // Fetch all responses for the context
           const resResponses = await api.get(endpointMap[filterType](evaluationId, filterId));
           if (!isMounted) return;
@@ -166,7 +165,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
     async function fetchUniqueCount() {
       setUniqueCountLoading(true);
       try {
-        let endpoint = '';
+        let endpoint = "";
 
         if (filterType === "section") {
           endpoint = `/studentevaluationresponse/studentevaluationresponse/unique-count-by-evaluation?student_evaluation=${evaluationId}`;
@@ -224,23 +223,25 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
   return (
     <div className="w-full overflow-x-auto text-white shadow-xl">
       <table className="table text-lg">
-        <thead className="sticky top-0 z-1 bg-[#1c402a] text-xl font-bold text-white">
+        <thead className="sticky top-0 z-1 bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
           <tr>
             <th>{tableTitle}</th>
           </tr>
         </thead>
         <tbody className="bg-black/20">
-          <tr className="transition-colors duration-500 hover:bg-[#1b2e3e]">
+          {/* Removed hover:bg to eliminate blue hover tint */}
+          <tr>
             <td>
               {/* DaisyUI Collapse for expandable row */}
-              <div className="collapse collapse-arrow rounded-md shadow-2xl backdrop-blur-lg">
-                <input type="checkbox" />
-                <div className="collapse-title bg-[#1c402a]/50 text-xl font-semibold">
+              <div className="collapse collapse-arrow rounded-md shadow-2xl backdrop-blur-lg overflow-visible">
+                <input type="checkbox" className="focus:outline-none focus:ring-0" />
+                <div className="collapse-title bg-[#1c402a]/50 text-xl font-semibold focus:outline-none focus:ring-0">
                   Click to view charts
                 </div>
                 <div className="collapse-content flex bg-black/20 text-lg">
                   <div className="w-full">
-                    <div className="max-h-[500px] overflow-y-auto p-2">
+                    {/* Taller dropdown view */}
+                    <div className="max-h-none overflow-y-auto p-2">
                       {loading && <div>Loading charts...</div>}
                       {error && <div className="text-red-500">{error}</div>}
 
@@ -250,7 +251,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                           <div className="flex items-center space-x-3">
                             <div className="p-2 rounded-full" style={{ backgroundColor: hexToRgba(PRIMARY_HEX, 0.25) }}>
                               <svg className="w-6 h-6" style={{ color: hexToRgba(PRIMARY_HEX, 0.9) }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0z" />
                               </svg>
                             </div>
                             <div>
@@ -277,10 +278,10 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                             ) : (
                               <div className="backdrop-blur-sm rounded-lg px-4 py-2 border" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.20)" }}>
                                 <div className="text-3xl font-bold text-white">
-                                  {uniqueStudentCount !== null ? uniqueStudentCount : '—'}
+                                  {uniqueStudentCount !== null ? uniqueStudentCount : "—"}
                                 </div>
                                 <div className="text-xs text-gray-300 uppercase tracking-wide">
-                                  {uniqueStudentCount === 1 ? 'Student' : 'Students'}
+                                  {uniqueStudentCount === 1 ? "Student" : "Students"}
                                 </div>
                               </div>
                             )}
@@ -354,7 +355,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                 ],
                               };
 
-                              const barOptions: ChartOptions<'bar'> = {
+                              const barOptions: ChartOptions<"bar"> = {
                                 ...baseDarkOptions,
                                 indexAxis: "y",
                                 plugins: {
@@ -364,10 +365,10 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                     ...baseDarkOptions.plugins.tooltip,
                                     callbacks: {
                                       label: function(context: any) {
-                                        const label = context.label || '';
+                                        const label = context.label || "";
                                         const value = context.parsed.x || 0;
                                         const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
                                         return `${label}: ${value} responses (${percentage}%)`;
                                       },
                                     },
@@ -420,23 +421,19 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                             {mcqQuestions.map((responses, idx) => {
                               const choices: string[] = responses[0]?.choices || [];
                               const answerCounts: Record<string, number> = {};
-                              choices.forEach((choice) => { answerCounts[choice] = 0; });
-                              responses.forEach((r) => { answerCounts[r.answer] = (answerCounts[r.answer] || 0) + 1; });
+                              choices.forEach((choice) => {
+                                answerCounts[choice] = 0;
+                              });
+                              responses.forEach((r) => {
+                                answerCounts[r.answer] = (answerCounts[r.answer] || 0) + 1;
+                              });
 
-                              // Build a monochrome (primary) palette across choices
-                              const pieBg = primaryAlphaScale(Math.max(choices.length, 1));
-                              const pieBorder = pieBg.map(() => hexToRgba(PRIMARY_HEX, 0.95));
-
+                              // Use Chart.js default colors by NOT setting any color props
                               const pieData = {
                                 labels: choices,
                                 datasets: [
                                   {
                                     data: choices.map((c) => answerCounts[c] || 0),
-                                    backgroundColor: pieBg,
-                                    borderWidth: 2,
-                                    borderColor: pieBorder,
-                                    hoverBackgroundColor: choices.map((_, i) => hexToRgba(PRIMARY_HEX, Math.min(1, 0.35 + (i * 0.08)))),
-                                    hoverBorderColor: pieBorder,
                                   },
                                 ],
                               };
@@ -453,16 +450,17 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                     ...baseDarkOptions.plugins.tooltip,
                                     callbacks: {
                                       label: function(context: any) {
-                                        const label = context.label || '';
+                                        const label = context.label || "";
                                         const value = context.parsed || 0;
                                         const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
                                         return `${label}: ${value} responses (${percentage}%)`;
                                       },
                                     },
                                   },
                                 },
-                                scales: undefined, // pies don’t use scales
+                                // pies don’t use scales
+                                scales: undefined,
                               };
 
                               return (
@@ -477,10 +475,8 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                     <div className="text-xs text-gray-400 space-y-1">
                                       {choices.map((choice, choiceIdx) => (
                                         <div key={choiceIdx} className="flex items-center">
-                                          <div
-                                            className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
-                                            style={{ backgroundColor: pieBg[choiceIdx % pieBg.length] }}
-                                          ></div>
+                                          {/* No color chips here since chart uses defaults */}
+                                          <div className="w-3 h-3 rounded-full mr-2 flex-shrink-0 bg-white/30"></div>
                                           <span className="truncate">{choice}</span>
                                         </div>
                                       ))}

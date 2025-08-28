@@ -20,6 +20,9 @@ section_router.register(r'sections', SectionViewSet, basename='section')
 schedule_router = DefaultRouter()
 schedule_router.register(r'schedules', ScheduleViewSet, basename='schedule')
 
+faculty_router = DefaultRouter()
+faculty_router.register(r'faculties', FacultyViewSet, basename='faculty')
+
 #EVALUATION ROUTER
 evaluation_router = DefaultRouter()
 evaluation_router.register(r'evaluations', EvaluationViewSet, basename='evaluation')
@@ -83,4 +86,7 @@ urlpatterns = [
 
     path('copus/bulk-tallies/', copus_bulk_tallies, name='copus-bulk-tallies'),
 
+    path('set-faculty-context/', set_faculty_context_view, name='set-faculty-context-view'),
+
+    path('faculty/', include(faculty_router.urls)),
 ]

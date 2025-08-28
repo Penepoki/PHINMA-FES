@@ -286,3 +286,6 @@ html {
 #ai-feedback-textarea {
 	@apply hover:scale-100;
 }
+.skeleton {
+  @apply bg-black/5;
+}

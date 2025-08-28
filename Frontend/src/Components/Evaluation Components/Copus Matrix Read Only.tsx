@@ -18,6 +18,7 @@ function ToggleBox({ label, active }: ToggleBoxProps) {
 
 interface CopusMatrixReadOnlyProps {
   evaluationId: number;
+  tallyData: Record<string, any>;
 }
 
 type Tallied = Record<string, { count: number; percentage: number }>;

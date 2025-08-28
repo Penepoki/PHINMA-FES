@@ -1,5 +1,6 @@
 export interface Evaluation {
   id: number;
+  name?: string;
   schedule: number;
   observation_date: string;
   evaluation_label: string;

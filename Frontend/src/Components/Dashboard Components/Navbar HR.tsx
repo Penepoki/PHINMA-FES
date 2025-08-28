@@ -8,6 +8,14 @@ import {
   ClipboardDocumentListIcon,
   FolderIcon,
   ChartBarIcon,
+  BookOpenIcon,
+  BuildingLibraryIcon,
+  BuildingOffice2Icon,
+  RectangleStackIcon,
+  CalendarDaysIcon,
+  PlusCircleIcon,
+  AcademicCapIcon,
+  // ChartPieIcon, // <- evalSummary icon (kept commented out)
 } from "@heroicons/react/24/solid";
 
 interface NavbarProps {
@@ -25,36 +33,31 @@ const iconMap: Record<string, JSX.Element> = {
   resourceGroup: <FolderIcon className="h-6 w-6 text-white" />,
   leansixsigma: <ChartBarIcon className="h-6 w-6 text-white" />,
 
-  createStudentEval: (
-    <ClipboardDocumentListIcon className="h-6 w-6 text-green-400" />
-  ),
-  studentEval: (
-    <ClipboardDocumentListIcon className="h-6 w-6 text-yellow-400" />
-  ),
-  //evalSummary: (
-  //  <ClipboardDocumentListIcon className="h-6 w-6 text-orange-400" />
-  //),
-  programs: <FolderIcon className="h-6 w-6 text-blue-400" />,
-  subjects: <FolderIcon className="h-6 w-6 text-purple-400" />,
-  rooms: <FolderIcon className="h-6 w-6 text-pink-400" />,
+  // ✅ Distinct Evaluation sub-icons
+  createStudentEval: <PlusCircleIcon className="h-6 w-6 text-green-400" />,
+  studentEval: <AcademicCapIcon className="h-6 w-6 text-yellow-400" />,
+  // evalSummary: <ChartPieIcon className="h-6 w-6 text-orange-400" />,
 
-  // Swapped positions will be controlled by RESOURCE_CHILDREN below
-  sections: <FolderIcon className="h-6 w-6 text-red-400" />,
-  schedules: <FolderIcon className="h-6 w-6 text-emerald-400" />,
+  // ✅ Resources (secondary dock)
+  programs: <BuildingLibraryIcon className="h-6 w-6 text-blue-400" />,
+  subjects: <BookOpenIcon className="h-6 w-6 text-purple-400" />,
+  rooms: <BuildingOffice2Icon className="h-6 w-6 text-pink-400" />,
+  sections: <RectangleStackIcon className="h-6 w-6 text-red-400" />,
+  schedules: <CalendarDaysIcon className="h-6 w-6 text-emerald-400" />,
 };
 
 // ---- DRY child groups ----
 const EVAL_CHILDREN = [
   "createStudentEval",
   "studentEval",
-  //"evalSummary",
+  // "evalSummary",
 ] as const;
 
 const RESOURCE_CHILDREN = [
   "programs",
   "subjects",
   "rooms",
-  "sections", // <- moved before schedules
+  "sections",
   "schedules",
 ] as const;
 
@@ -91,8 +94,7 @@ const NavbarHR: React.FC<NavbarProps> = ({
     setActiveView(page);
   };
 
-  // ✅ Mobile fix: icons are hidden on mobile; text always visible on mobile.
-  // Animations apply only on md+.
+  // Animated button (icon on md+, text always on mobile)
   const renderAnimatedButton = (key: string, label: string) => {
     const isActive = activeView === key;
     const isHovering = hoveredButton === key;
@@ -105,49 +107,48 @@ const NavbarHR: React.FC<NavbarProps> = ({
         onMouseEnter={() => setHoveredButton(key)}
         onMouseLeave={() => setHoveredButton(null)}
         className={`
-        group relative h-8 w-10 !px-1 rounded-xl flex items-center justify-center 
-        transition-all duration-300
-        ${isActive ? "ring-2 ring-white scale-125" : ""}
-        ${!isActive ? "hover:scale-[1.4] hover:mx-6" : ""}
-      `}
+          group relative h-8 w-10 !px-1 rounded-xl flex items-center justify-center 
+          transition-all duration-300
+          ${isActive ? "ring-2 ring-white scale-125" : ""}
+          ${!isActive ? "hover:scale-[1.4] hover:mx-6" : ""}
+        `}
       >
-        {/* Icon: hidden on mobile; same desktop animation as before */}
+        {/* Icon (hidden on mobile) */}
         <span
           className={`
-          absolute hidden md:block
-          transition-all duration-300 transform
-          ${isActive || isHovering ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"}
-        `}
+            absolute hidden md:block
+            transition-all duration-300 transform
+            ${isActive || isHovering ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"}
+          `}
         >
           {iconMap[key]}
         </span>
 
-        {/* Text: ALWAYS visible on mobile; desktop animates like before */}
+        {/* Text (always visible on mobile) */}
         <span
           className={`
-          text-white text-xs font-medium text-center px-1
-          /* mobile: visible, no animation */
-          block opacity-100 translate-y-0
-          /* desktop: same animation as before */
-          md:absolute md:transition-all md:duration-300 md:transform
-          ${isActive || isHovering ? "md:opacity-100 md:translate-y-0" : "md:opacity-0 md:translate-y-4"}
-          md:group-hover:opacity-100 md:group-hover:translate-y-0
-        `}
+            text-white text-xs font-medium text-center px-1
+            block opacity-100 translate-y-0
+            md:absolute md:transition-all md:duration-300 md:transform
+            ${isActive || isHovering ? "md:opacity-100 md:translate-y-0" : "md:opacity-0 md:translate-y-4"}
+            md:group-hover:opacity-100 md:group-hover:translate-y-0
+          `}
         >
           {label}
         </span>
       </button>
     );
   };
+
   // Map all possible active views to the same child arrays (DRY)
   const secondaryDockMap: Record<string, string[]> = {
     // Evaluation cluster
     evaluation: [...EVAL_CHILDREN],
     createStudentEval: [...EVAL_CHILDREN],
     studentEval: [...EVAL_CHILDREN],
-    //evalSummary: [...EVAL_CHILDREN],
+    // evalSummary: [...EVAL_CHILDREN],
 
-    // Resources cluster (using RESOURCE_CHILDREN order)
+    // Resources cluster
     resourceGroup: [...RESOURCE_CHILDREN],
     programs: [...RESOURCE_CHILDREN],
     subjects: [...RESOURCE_CHILDREN],
@@ -163,10 +164,10 @@ const NavbarHR: React.FC<NavbarProps> = ({
       {/* Toggle Dock Button */}
       <div
         className={`fixed -translate-y-1/2 transform transition-all duration-300 right-2 ${isDockVisible && secondaryDockVisible
-          ? "bottom-25 md:bottom-25"
-          : isDockVisible
-            ? "bottom-10"
-            : "bottom-0"
+            ? "bottom-25 md:bottom-25"
+            : isDockVisible
+              ? "bottom-10"
+              : "bottom-0"
           }`}
       >
         <div className="tooltip tooltip-left">
@@ -199,13 +200,13 @@ const NavbarHR: React.FC<NavbarProps> = ({
             motion-reduce:transition-none
           `}
         >
-          {[
+          {([
             ["home", "Home"],
             ["profile", "Profile"],
             ["evaluation", "Evaluation"],
             ["resourceGroup", "Resources"],
             ["leansixsigma", "Lean Six Sigma"],
-          ].map(([key, label]) => renderAnimatedButton(key, label))}
+          ] as const).map(([key, label]) => renderAnimatedButton(key, label))}
         </div>
 
         {/* Secondary Dock */}
@@ -228,9 +229,9 @@ const NavbarHR: React.FC<NavbarProps> = ({
                 case "studentEval":
                   label = "Student Evaluations";
                   break;
-                case "evalSummary":
-                  label = "Evaluation Summary";
-                  break;
+                // case "evalSummary":
+                //   label = "Evaluation Summary";
+                //   break;
                 case "programs":
                   label = "Programs";
                   break;

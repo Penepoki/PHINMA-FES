@@ -1,80 +1,78 @@
-
-import { useState } from "react";
+import {useState, useEffect} from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import SchoolCards from "../../../Components/Dashboard Components/HR Components/School Cards";
-import CollegeCards from "../../../Components/Dashboard Components/HR Components/College Cards";
-
+import api from "../../../utils/api";
 
 function Home() {
-	const colleges = [
-		{
-			name: "CITE",
-			fullname: "College of Information Technology Education",
-			image: null,
-		},
-		{
-			name: "CAHS",
-			fullname: "College of Allied Health Sciences",
-			image: null,
-		},
-		{
-			name: "CMA",
-			fullname: "College of Management and Accountancy",
-			image: null,
-		},
-		{
-			name: "CCJE",
-			fullname: "College of Criminal Justice Education",
-			image: null,
-		},
-		{ name: "COED", fullname: "College of Education", image: null },
-		{ name: "SHS", fullname: "Senior High School", image: null },
-		{ name: "etc", fullname: "Other", image: null },
-	];
+	const [schools, setSchools] = useState<any[]>([]);
+	const [selectedSchool, setSelectedSchool] = useState<any | null>(null);
+	const navigate = useNavigate();
 
-	const schools = [
-		{
-			name: "CITE",
-			fullname: "College of Information Technology Education",
-			image: null,
-		},
-		{
-			name: "CAHS",
-			fullname: "College of Allied Health Sciences",
-			image: null,
-		},
-		{
-			name: "CMA",
-			fullname: "College of Management and Accountancy",
-			image: null,
-		},
-		{
-			name: "CCJE",
-			fullname: "College of Criminal Justice Education",
-			image: null,
-		},
-		{ name: "COED", fullname: "College of Education", image: null },
-		{ name: "SHS", fullname: "Senior High School", image: null },
-		{ name: "etc", fullname: "Other", image: null },
-	];
+	// Fetch faculties (schools) from backend
+	useEffect(() => {
+		const fetchFaculties = async () => {
+			try {
+				const token = localStorage.getItem('token');
+				const response = await api.get('/faculty/faculties/', {
+					headers: {
+						'Authorization': `Token ${token}`,
+					},
+				});
+				const schoolCards = response.data.map((faculty: any) => ({
+					id: faculty.id,
+					name: faculty.name,
+					fullname: faculty.name, // If you have a fullname field, use it
+					image: null, // Add image if available in backend
+				}));
+				setSchools(schoolCards);
+			} catch (error) {
+				console.error('Failed to fetch faculties:', error);
+			}
+		};
+		fetchFaculties();
+	}, []);
 
-	const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
+	// Function to handle school (faculty) selection
+	const handleSchoolSelect = (school: any) => {
+		setSelectedSchool(school);
+	};
 
-	const handleSchoolClick = (schoolName: string) => {
-		// You can store the school name or just a boolean
-		setSelectedSchool(schoolName);
+	// When HR clicks a school, set temporary faculty context then navigate to Dean view
+	const handleSchoolClick = async (schoolNameOrId: any) => {
+		try {
+			const schoolObj = schools.find(
+				(s) => s.name === schoolNameOrId || s.id === schoolNameOrId,
+			);
+			if (!schoolObj) return;
+
+			const token = localStorage.getItem('token');
+			await api.post(
+				'/set-faculty-context/',
+				{ faculty_id: schoolObj.id },
+				{ headers: { Authorization: `Token ${token}` } },
+			);
+
+			// Flag this session as temporarily viewing as Dean for a faculty
+			localStorage.setItem('isTempFaculty', 'true');
+			localStorage.setItem('facultyId', String(schoolObj.id));
+
+			navigate('/Dashboard/dean', {
+				state: { facultyId: schoolObj.id, collegeName: schoolObj.name },
+			});
+		} catch (err) {
+			console.error('Failed to set temporary faculty context:', err);
+		}
 	};
 
 	return (
 		<div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
 			<DashboardHeader />
-
-
 			<div className="mt-34 flex h-full w-full flex-col items-center justify-start overflow-auto bg-black/20">
 				{selectedSchool ? (
 					<>
 						<h2 className="mt-6 mb-4 text-4xl font-bold text-white">
-							Colleges of {selectedSchool}
+							School: {selectedSchool.name}
 						</h2>
 						<button
 							className="btn absolute left-20 mt-6 mb-4 bg-[#1c402a] text-xs text-gray-400 hover:scale-105"
@@ -82,18 +80,20 @@ function Home() {
 						>
 							← Back to Schools
 						</button>
-						<CollegeCards college={colleges} />
+						{/* You can show more details or CollegeCards here if needed */}
+						<div className="text-white">Selected School ID: {selectedSchool.id}</div>
 					</>
 				) : (
 					<SchoolCards
 						school={schools}
-						onSchoolClick={handleSchoolClick}
+						onSchoolClick={(schoolNameOrId: any) => {
+							handleSchoolClick(schoolNameOrId);
+						}}
 					/>
 				)}
 			</div>
 		</div>
 	);
-
 }
 
 export default Home;

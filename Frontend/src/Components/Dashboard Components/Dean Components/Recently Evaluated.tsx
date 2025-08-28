@@ -1,6 +1,6 @@
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../../../utils/api"; // adjust the path if needed
 
 interface RecentlyEvaluatedProps {
@@ -42,6 +42,64 @@ const teacherOptions = [
   "Other",
 ];
 
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+/* -------------------------- Skeleton Components -------------------------- */
+// Matches the real layout exactly and keeps height stable.
+// - Left pane: avatar + two centered bars
+// - Middle/Right panes (md+): title bar + circular pie skeleton
+/* -------------------------- Skeleton Components -------------------------- */
+const FacultyCardSkeleton = () => {
+  return (
+    <>
+      <p className="mt-35 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
+        Recently Evaluated Faculty:
+      </p>
+
+      <div
+        className="tooltip tooltip-top flex w-full flex-col items-center justify-center"
+        data-tip="Loading…"
+      >
+        <div
+          className="float-breathe flex h-1/3 w-full flex-row items-center justify-center shadow-2xl sm:h-[30vh]"
+          aria-busy="true"
+        >
+          {/* LEFT: Avatar + centered bars */}
+          <div className="flex h-full w-full md:w-1/3 flex-col items-center justify-center rounded-l-xl p-5 backdrop-blur-lg backdrop-hue-rotate-100">
+            <div className="avatar mb-3">
+              <div className="rounded-full">
+                <div className="skeleton h-52 w-52 rounded-full" />
+              </div>
+            </div>
+
+            {/* Center the two bars under the avatar */}
+            <div className="flex w-full max-w-[240px] flex-col items-center justify-center gap-2">
+              <div className="skeleton  h-8 w-3/4" />
+            </div>
+          </div>
+
+          {/* MIDDLE (md+): Student Pie (title close to circle) */}
+          <div className="hidden md:flex h-full w-1/3 flex-col items-center justify-center p-5 text-white backdrop-blur-lg backdrop-hue-rotate-300">
+            {/* Title bar (tight spacing) */}
+            <div className="skeleton h-5 w-40 mb-1" />
+            {/* Circular pie skeleton */}
+            <div className="skeleton rounded-full aspect-square w-[min(90%,220px)]" />
+          </div>
+
+          {/* RIGHT (md+): Teacher Pie (title close to circle) */}
+          <div className="hidden md:flex h-full w-1/3 flex-col items-center justify-center rounded-r-xl p-5 text-white backdrop-blur-lg backdrop-hue-rotate-400">
+            {/* Title bar (tight spacing) */}
+            <div className="skeleton h-5 w-40 mb-1" />
+            {/* Circular pie skeleton */}
+            <div className="skeleton rounded-full aspect-square w-[min(90%,220px)]" />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+/* ---------------------------- Chart Subcomponent ---------------------------- */
 const FacultyPieChart = ({
   data,
   labels,
@@ -89,7 +147,7 @@ const FacultyPieChart = ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false, position: "top" as const },
+      legend: { display: false as const, position: "top" as const },
       title: { display: true, text: title, font: { size: 14 } },
     },
   };
@@ -101,18 +159,21 @@ const FacultyPieChart = ({
   );
 };
 
-ChartJS.register(ArcElement, Tooltip, Legend);
-
+/* --------------------------------- Main --------------------------------- */
 const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
   setActiveView,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [facultyData, setFacultyData] = useState<FacultyData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const rotateTimer = useRef<number | null>(null);
 
   // Fetch data from backend
   useEffect(() => {
+    let isMounted = true;
     const fetchLatest = async () => {
       try {
+        setIsLoading(true);
         const res = await api.get(
           "/evaluation/evaluations/latest-with-tallies/?limit=3"
         );
@@ -123,27 +184,50 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
           studentData: item.student_tallies,
           teacherData: item.teacher_tallies,
         }));
-        setFacultyData(formatted);
+        if (isMounted) {
+          setFacultyData(formatted);
+          setCurrentIndex(0);
+        }
       } catch (err) {
         console.error("Error fetching latest evaluations:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
 
     fetchLatest();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Cycle through faculty data
+  // Cycle through faculty data (only when loaded and has data)
   useEffect(() => {
-    if (facultyData.length > 0) {
-      const interval = setInterval(() => {
+    if (!isLoading && facultyData.length > 0) {
+      rotateTimer.current = window.setInterval(() => {
         setCurrentIndex((prev) => (prev + 1) % facultyData.length);
       }, 5000);
-      return () => clearInterval(interval);
+      return () => {
+        if (rotateTimer.current) window.clearInterval(rotateTimer.current);
+      };
     }
-  }, [facultyData.length]);
+  }, [isLoading, facultyData.length]);
+
+  if (isLoading) {
+    return <FacultyCardSkeleton />;
+  }
 
   if (facultyData.length === 0) {
-    return <p className="text-gray-400">Loading latest evaluations...</p>;
+    return (
+      <>
+        <p className="mt-35 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
+          Recently Evaluated Faculty:
+        </p>
+        <div className="flex h-1/3 w-full items-center justify-center rounded-xl bg-base-100/20 p-6 sm:h-[30vh]">
+          <span className="text-gray-400">No recent evaluations found.</span>
+        </div>
+      </>
+    );
   }
 
   const currentFaculty = facultyData[currentIndex];
@@ -153,18 +237,19 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
       <p className="mt-35 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
         Recently Evaluated Faculty:
       </p>
+
       <div
         className="tooltip tooltip-top flex w-full flex-col items-center justify-center"
         data-tip="Click to view evaluation page"
       >
         <div
           onClick={() => setActiveView && setActiveView("evaluation")}
-          className="float-breathe flex h-1/3 w-full flex-row items-center justify-center shadow-2xl hover:scale-101 sm:h-[30vh]"
+          className="float-breathe flex h-1/3 w-full cursor-pointer flex-row items-center justify-center shadow-2xl transition-transform hover:scale-[1.01] sm:h-[30vh]"
         >
-          {/* Faculty Info */}
+          {/* LEFT: Avatar + name */}
           <div className="flex h-full w-full md:w-1/3 flex-col items-center justify-center rounded-l-xl p-5 backdrop-blur-lg backdrop-hue-rotate-100">
             <div className="avatar">
-              <div className="w-24 rounded-full">
+              <div className="w-52 rounded-full">
                 <img src={currentFaculty.image} alt={currentFaculty.name} />
               </div>
             </div>
@@ -175,7 +260,7 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
             </div>
           </div>
 
-          {/* Student Feedback */}
+          {/* MIDDLE: Student Feedback (hidden on mobile) */}
           <div className="hidden md:block h-full w-1/3 p-5 text-white backdrop-blur-lg backdrop-hue-rotate-300">
             <FacultyPieChart
               data={currentFaculty.studentData}
@@ -184,7 +269,7 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
             />
           </div>
 
-          {/* Teacher Feedback */}
+          {/* RIGHT: Teacher Feedback (hidden on mobile) */}
           <div className="hidden md:block h-full w-1/3 rounded-r-xl p-5 text-white backdrop-blur-lg backdrop-hue-rotate-400">
             <FacultyPieChart
               data={currentFaculty.teacherData}

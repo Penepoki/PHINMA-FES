@@ -12,8 +12,6 @@ function Profile({ setActiveView }: ProfileProps) {
   const [profileData, setProfileData] = useState({
     name: "John Doe",
     email: "johndoe@example.com",
-    location: "San Francisco, CA",
-    phone: "+1 234 567 890",
     joined: "January 2021",
   });
 
@@ -98,28 +96,6 @@ function Profile({ setActiveView }: ProfileProps) {
                 value={profileData.email}
                 onChange={handleChange}
                 type="email"
-                className="input input-bordered w-full text-black"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm">
-                Location
-              </label>
-              <input
-                name="location"
-                value={profileData.location}
-                onChange={handleChange}
-                type="text"
-                className="input input-bordered w-full text-black"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm">Phone</label>
-              <input
-                name="phone"
-                value={profileData.phone}
-                onChange={handleChange}
-                type="tel"
                 className="input input-bordered w-full text-black"
               />
             </div>
