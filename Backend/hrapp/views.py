@@ -1,4 +1,5 @@
 from collections import defaultdict
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
@@ -1324,90 +1325,69 @@ class SubjectViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = SubjectFilter
 
+    def _require_faculty_id(self, request):
+        """RESOLVE EFFECTIVE FACULTY FOR WRITE OPERATIONS (strict)."""
+        fid = _resolve_faculty_from_request_or_hr_temp(request)
+        if not fid and not request.user.is_superuser:
+            raise ValidationError({"faculty": "Faculty ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        return fid
+
     def get_queryset(self):
         user = self.request.user
         base_qs = super().get_queryset()
-        if user.is_superuser:
-            return base_qs
-        if hasattr(user, 'faculty') and user.faculty:
-            schedule_subject_ids = Schedule.objects.filter(
-                program__faculty=user.faculty
-            ).values_list('subject_id', flat=True)
-            return base_qs.filter(id__in=schedule_subject_ids)
-        return base_qs.none()
+        fid = _resolve_faculty_from_request_or_hr_temp(self.request)
 
-    # SUBJECT CREATE
+        if user.is_superuser:
+            if fid:
+                # Show only subjects referenced by schedules in this faculty
+                subject_ids = Schedule.objects.filter(program__faculty_id=fid) \
+                    .values_list('subject_id', flat=True)
+                return base_qs.filter(id__in=subject_ids)
+            return base_qs
+
+        if not fid:
+            return base_qs.none()
+
+        # Scope subjects to those actually in schedules for the effective faculty
+        subject_ids = Schedule.objects.filter(program__faculty_id=fid) \
+            .values_list('subject_id', flat=True)
+        return base_qs.filter(id__in=subject_ids)
+
     @transaction.atomic
     def create(self, request, *args, **kwargs):
+        # Require context even if Subject has no faculty FK (keeps HR in a borrowed context)
+        self._require_faculty_id(request)
         data = request.data
 
-        # Check if data is for batch creation
-        if isinstance(data, list):  # If data is a list, handle multiple subject
-            created_subject = []  # List to hold successful created subjects
-            failed_subject = []  # List to track failed created subjects
-
+        # BULK
+        if isinstance(data, list):
+            created_subjects, failed_subjects = [], []
             for subject_data in data:
                 try:
-                    serializer = self.get_serializer(data=subject_data)
-                    serializer.is_valid(raise_exception=True)
-                    created_subject = serializer.save()
-                    created_subject.append(created_subject)
+                    ser = self.get_serializer(data=subject_data)
+                    ser.is_valid(raise_exception=True)
+                    created_subjects.append(ser.save())
                 except ValidationError as e:
-                    failed_subject.append({
-                        "error": e.detail,
-                        "data": subject_data,
-                    })
+                    failed_subjects.append({"error": e.detail, "data": subject_data})
 
-            if failed_subject:
-                raise ValidationError({
-                    "message": "Failed to create subjects.",
-                    "error": failed_subject
-                })
+            if failed_subjects:
+                raise ValidationError({"message": "Failed to create subjects.", "error": failed_subjects})
 
-            return Response(
-                {"message": f"Subjects created successfully "
-                            f"{len(created_subject)} subjects"}, status=status.HTTP_201_CREATED,
-            )
+            return Response({"message": f"Subjects created successfully {len(created_subjects)} subjects"},
+                            status=status.HTTP_201_CREATED)
 
-        # SINGLE  CREATION
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        subject = serializer.save()
-        return Response(
-            {"Message": "Subject created successfully", "data": serializer.data},
-            status=status.HTTP_201_CREATED,
-        )
-
-    # READ/RETRIEVE BY NAME
-    """def retrieve(self, request, *args, **kwargs):
-        name = kwargs.get('name')
-
-        try:
-                subject = self.get_queryset().get(name=name)
-        except Subject.DoesNotExist:
-            raise NotFound({"Message": f"No subject found with name {name}"})
-
-        serializer = self.get_serializer(subject)
-        return Response(serializer.data, status=status.HTTP_200_OK)"""
+        # SINGLE
+        return super().create(request, *args, **kwargs)
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()  # GET THE INSTANCE TO UPDATE
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        subject = serializer.save()
-        return Response({"Message": "Subject updated successfully",
-                         "data": serializer.data}, status=status.HTTP_200_OK)
+        self._require_faculty_id(request)
+        return super().update(request, *args, **kwargs)
 
     @transaction.atomic
     def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.is_deleted = False
-        instance.deleted_at = timezone.now()
-        instance.save()
-        return Response({"Message": "Subject deleted successfully"}, status=status.HTTP_200_OK)
-
+        self._require_faculty_id(request)
+        return super().destroy(request, *args, **kwargs)
 
 # END OF CRUD SUBJECT --------------------------------------------
 
@@ -1504,21 +1484,27 @@ class ProgramViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filter_class = ProgramFilter
 
+    def _require_faculty_id(self, request):
+        """RESOLVE EFFECTIVE FACULTY FOR REQUEST"""
+        fid = _resolve_faculty_from_request_or_hr_temp(request)
+        if not fid and not request.user.is_superuser:
+            raise ValidationError({"faculty": "Faculty ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        return fid
+
+
+
     def get_queryset(self):
         print("Debug: /program endpoint was called!" )
+        base_qs = super().get_queryset().select_related("faculty")
         user = self.request.user
-        base_qs = super().get_queryset()  # This is Program.objects.all()
+
+        fid = _resolve_faculty_from_request_or_hr_temp(self.request)
         if user.is_superuser:
-            return base_qs
-        if user.groups.filter(name='HR').exists():
-            temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
-            if temp_faculty_id:
-                return base_qs.filter(faculty_id=temp_faculty_id)
-            if hasattr(user, 'faculty') and user.faculty:
-                return base_qs.filter(faculty=user.faculty)
-            return base_qs.none()
-        if hasattr(user, 'faculty') and user.faculty:
-            return base_qs.filter(faculty=user.faculty)
+            return base_qs.filter(faculty_id=fid) if fid else base_qs
+
+        if fid:
+            return base_qs.filter(faculty_id=fid)
+
         return base_qs.none()
 
     def get_parser_classes(self):
@@ -1537,6 +1523,7 @@ class ProgramViewSet(viewsets.ModelViewSet):
 
         # HANDLE BULK CREATION
         if isinstance(data, list):
+            fid = self._require_faculty_id(request)
             program_to_create = []
             relationships = []
 
@@ -1616,11 +1603,21 @@ class ProgramViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    def perform_create(self, serializer):
+        """SINGLE CREATING DRF SUPPORT WITH DRF"""
+        fid = self._require_faculty_id(self.request)  # FETCH OF FACULTY ID TEMP OR NOT
+        serializer.save(faculty_id=fid)
+
     # PROGRAM Update
     # @action(detail=True, methods=['put', 'patch'])
     # @role_required(allowed_roles=["HR", "Dean", "Program Head"], required_permission="hrapp.change_program")
     def perform_update(self, serializer):
         # DRF UPDATE METHOD
+        fid = self._require_faculty_id(self.request)
+        instance = self.get_object()
+        if (instance.faculty_id and instance.faculty_id != fid) and not self.request.user.is_superuser:
+            raise PermissionDenied("You do not have permission to change the faculty of this program.")
+        serializer.save(faculty_id=fid)
         program = serializer.save()
 
         professors = self.request.data.get('professors', None)
@@ -1689,138 +1686,187 @@ class ProgramProfessorViewSet(viewsets.ModelViewSet):
 
 # SCHEDULES CRUD BELOW v------------------------
 class ScheduleViewSet(viewsets.ModelViewSet):
-    queryset = Schedule.objects.filter(is_active=True)
+    queryset = (
+        Schedule.objects.filter(is_active=True)
+        .select_related("program", "subject", "instructor", "section", "room")
+    )
     serializer_class = ScheduleSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = ScheduleFilter
+    permission_classes = [IsAuthenticated]  # all actions require auth
+
+    # ---------- Context + Permissions ----------
+
+    def _require_faculty_id(self, request):
+        """RESOLVE EFFECTIVE FACULTY FOR WRITE OPERATIONS (strict)."""
+        fid = _resolve_faculty_from_request_or_hr_temp(request)
+        if not fid and not request.user.is_superuser:
+            raise ValidationError(
+                {"faculty": "Faculty ID is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return fid
+
+    def _ensure_can_write(self, request):
+        """Only Dean / HR / Program Head (or superuser) can write."""
+        u = request.user
+        if u.is_superuser:
+            return
+        if not u.groups.filter(name__in=["Dean", "HR", "Program Head"]).exists():
+            raise PermissionDenied("You do not have permission to modify schedules.")
+
+    def _validate_program_faculty(self, program, fid, user):
+        """Ensure program belongs to effective faculty (unless superuser)."""
+        if program and (not user.is_superuser) and program.faculty_id != fid:
+            raise ValidationError({"program": f"Program must belong to faculty {fid}."})
+
+    # ---------- Queryset (READS) ----------
 
     def get_queryset(self):
-        user = self.request.user
+        """
+        Scope schedules by effective faculty:
+        - Superuser: optional ?faculty= to narrow
+        - Everyone else: required effective faculty (borrowed or own)
+        """
         base_qs = super().get_queryset()
+        user = self.request.user
+        fid = _resolve_faculty_from_request_or_hr_temp(self.request)
+
         if user.is_superuser:
-            return base_qs
-        if user.groups.filter(name='HR').exists():
-            temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
-            if temp_faculty_id:
-                qs = base_qs.filter(program__faculty_id=temp_faculty_id)
-                print("DEBUG: Schedule for HR user", user, "temp faculty", temp_faculty_id, ":", list(qs))
-                return qs
-            if hasattr(user, 'faculty') and user.faculty:
-                qs = base_qs.filter(program__faculty=user.faculty)
-                print("DEBUG: Schedule for HR user", user, ":", list(qs))
-                return qs
+            return base_qs.filter(program__faculty_id=fid) if fid else base_qs
+
+        if not fid:
             return base_qs.none()
-        if hasattr(user, 'faculty') and user.faculty:
-            qs = base_qs.filter(program__faculty=user.faculty)
-            print("DEBUG: Schedule for user", user, ":", list(qs))
-            return qs
-        return base_qs.none()
 
-    # SCHEDULE Create
+        return base_qs.filter(program__faculty_id=fid)
 
-    @permission_classes([IsAuthenticated])
+    # ---------- CREATE ----------
+
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
-        user = request.user
-
-        if not user.groups.filter(name__in=["Dean", "HR", "Program Head"]).exists():
-            raise PermissionDenied("You do not have permission to create schedules.")
+        self._ensure_can_write(request)
+        fid = self._require_faculty_id(request)
         data = request.data
-        # HANDLES BULK IF THE INPUT IS A LIST
-        if isinstance(data, list):
-            validated_schedules = []
-            for schedule_data in data:
-                serializer = self.serializer_class(data=schedule_data)
-                serializer.is_valid(raise_exception=True)
-                validated_schedules.append(Schedule(**serializer.validated_data))
 
-            with transaction.atomic():
-                Schedule.objects.bulk_create(validated_schedules)
+        # BULK CREATE (list payload)
+        if isinstance(data, list):
+            created = []
+            for item in data:
+                ser = self.get_serializer(data=item)
+                ser.is_valid(raise_exception=True)
+                program = ser.validated_data.get("program")
+                self._validate_program_faculty(program, fid, request.user)
+                created.append(ser.save())  # use serializer.create per row
 
             return Response(
-                {"message": "Schedules created successfully",
-                 "count": len(validated_schedules)}, status=status.HTTP_201_CREATED,
+                {"message": "Schedules created successfully", "count": len(created)},
+                status=status.HTTP_201_CREATED,
             )
 
-        return super().create(request, *args, **kwargs)
+        # SINGLE CREATE
+        ser = self.get_serializer(data=data)
+        ser.is_valid(raise_exception=True)
+        program = ser.validated_data.get("program")
+        self._validate_program_faculty(program, fid, request.user)
+        self.perform_create(ser)
+        return Response(ser.data, status=status.HTTP_201_CREATED)
 
-    # SCHEDULE RETRIEVE (ID OR NAME)
-    """def retrieve(self, request, *args, **kwargs):
+    # ---------- UPDATE / PARTIAL_UPDATE ----------
 
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data, status=status.HTTP_200_OK)"""
-
-    # SCHEDULE Update
     @transaction.atomic
     def update(self, request, *args, **kwargs):
-        """UPDATE AN EXISTING SCHEDULE"""
-        partial = kwargs.pop('partial', False)  # Check if this is a partial update (PATCH)
-        instance = self.get_object()  # GET THE DATA TO BE UPDATED (SCHEDULE)
+        self._ensure_can_write(request)
+        fid = self._require_faculty_id(request)
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
 
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+        # Guard: you may only touch schedules within your faculty
+        if (not request.user.is_superuser) and instance.program.faculty_id != fid:
+            raise PermissionDenied("You cannot modify schedules of another faculty.")
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        ser = self.get_serializer(instance, data=request.data, partial=partial)
+        ser.is_valid(raise_exception=True)
 
-    # SCHEDULE Delete
+        program = ser.validated_data.get("program") or instance.program
+        self._validate_program_faculty(program, fid, request.user)
+
+        self.perform_update(ser)
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+    @transaction.atomic
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
+
+    # ---------- SOFT DELETE ----------
+
+    @transaction.atomic
     def destroy(self, request, *args, **kwargs):
-        """SOFT DELETE A ATA BY MAKING THE IS_ACTIVE FIELD FALSE"""
+        """Soft-delete: set is_active=False and deleted_at=now, guarded by faculty."""
+        self._ensure_can_write(request)
+        fid = self._require_faculty_id(request)
+        instance = self.get_object()
 
-        instance = self.get_object()  # GET THE DATA
+        if (not request.user.is_superuser) and instance.program.faculty_id != fid:
+            raise PermissionDenied("You cannot delete schedules of another faculty.")
+
         instance.is_active = False
         instance.deleted_at = timezone.now()
-        instance.save()
+        instance.save(update_fields=["is_active", "deleted_at", "updated_at"])
 
+        # 204 typically has no body; returning 200 with message is also fine.
         return Response({"message": "Schedule deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
-    # SCHEDULE Read/Retrieve (All)
+    # ---------- LIST (extras) ----------
+
     def list(self, request, *args, **kwargs):
-        """Retrieve and filter schedules. Filter by semester, program, section, subject, or professor."""
-        queryset = self.filter_queryset(self.get_queryset())
-        semester = request.query_params.get('semester', None)
-        program = request.query_params.get('program', None)
-        section = request.query_params.get('section', None)
-        subject = request.query_params.get('subject', None)
-        professor = request.query_params.get('professor', None)  # <-- Add this
+        """
+        Retrieve and filter schedules. Extra filters:
+        - semester, program, section, subject, professor (instructor id)
+        """
+        qs = self.filter_queryset(self.get_queryset())
+
+        semester = request.query_params.get("semester")
+        program = request.query_params.get("program")
+        section = request.query_params.get("section")
+        subject = request.query_params.get("subject")
+        professor = request.query_params.get("professor")
 
         if semester:
-            queryset = queryset.filter(semester=semester)
+            qs = qs.filter(semester=semester)
         if program:
-            queryset = queryset.filter(program=program)
+            qs = qs.filter(program=program)
         if section:
-            queryset = queryset.filter(section=section)
+            qs = qs.filter(section=section)
         if subject:
-            queryset = queryset.filter(subject=subject)
+            qs = qs.filter(subject=subject)
         if professor:
-            queryset = queryset.filter(instructor=professor)  # <-- Add this
+            qs = qs.filter(instructor=professor)
 
-        page = self.paginate_queryset(queryset)
+        page = self.paginate_queryset(qs)
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            ser = self.get_serializer(page, many=True)
+            return self.get_paginated_response(ser.data)
 
-    @action(detail=False, methods=['GET'], url_path='my-schedules')
+        ser = self.get_serializer(qs, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+    # ---------- Student helper ----------
+
+    @action(detail=False, methods=["GET"], url_path="my-schedules")
     def my_schedules(self, request):
-        """Get schedules for the logged-in student based on their section"""
+        """Schedules for the logged-in student based on their section(s)."""
         user = request.user
         if not user.is_authenticated:
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 
-        # Get student's sections
         student_sections = user.sections.all()
-
-        # Get schedules for those sections
-        schedules = Schedule.objects.filter(
-            section__in=student_sections,
-            is_active=True
-        ).select_related('subject', 'instructor', 'section', 'room')
-
-        serializer = self.get_serializer(schedules, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
+        schedules = (
+            Schedule.objects.filter(section__in=student_sections, is_active=True)
+            .select_related("subject", "instructor", "section", "room")
+        )
+        ser = self.get_serializer(schedules, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
     @action(detail=True, methods=['get'], url_path='sections')
     def sections(self, request, pk=None):
         """RETURNS SECTIONS ASSIGNED TO A SCHEDULE"""
@@ -1913,7 +1959,7 @@ class SectionViewSet(viewsets.ModelViewSet):
     def add_students(self, request, pk=None):
         """Add multiple students to a section with validation"""
         self._check_permissions(request)
-        
+
         section = self.get_object()
         student_ids = request.data.get('student_ids', [])
 
@@ -1957,7 +2003,7 @@ class SectionViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Create section(s) with proper authorization"""
         self._check_permissions(request)
-        
+
         data = request.data
 
         if isinstance(data, list):
@@ -1998,6 +2044,7 @@ class SectionViewSet(viewsets.ModelViewSet):
         """Delete section with proper authorization"""
         self._check_permissions(request)
         return super().destroy(request, *args, **kwargs)
+
 
 # Retention vs Responses Regression API (multi-series using ScatterPlotAnalytics)
 import logging
