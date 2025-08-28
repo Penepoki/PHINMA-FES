@@ -1,10 +1,11 @@
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { useState, useEffect, useRef } from "react";
-import api from "../../../utils/api"; // adjust the path if needed
+import api from "../../../utils/api";
 
 interface RecentlyEvaluatedProps {
   setActiveView?: (view: string) => void;
+  facultyId?: number | null;
 }
 
 interface FacultyData {
@@ -45,10 +46,6 @@ const teacherOptions = [
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 /* -------------------------- Skeleton Components -------------------------- */
-// Matches the real layout exactly and keeps height stable.
-// - Left pane: avatar + two centered bars
-// - Middle/Right panes (md+): title bar + circular pie skeleton
-/* -------------------------- Skeleton Components -------------------------- */
 const FacultyCardSkeleton = () => {
   return (
     <>
@@ -72,25 +69,20 @@ const FacultyCardSkeleton = () => {
               </div>
             </div>
 
-            {/* Center the two bars under the avatar */}
             <div className="flex w-full max-w-[240px] flex-col items-center justify-center gap-2">
-              <div className="skeleton  h-8 w-3/4" />
+              <div className="skeleton h-8 w-3/4" />
             </div>
           </div>
 
-          {/* MIDDLE (md+): Student Pie (title close to circle) */}
+          {/* MIDDLE (md+): Student Pie */}
           <div className="hidden md:flex h-full w-1/3 flex-col items-center justify-center p-5 text-white backdrop-blur-lg backdrop-hue-rotate-300">
-            {/* Title bar (tight spacing) */}
             <div className="skeleton h-5 w-40 mb-1" />
-            {/* Circular pie skeleton */}
             <div className="skeleton rounded-full aspect-square w-[min(90%,220px)]" />
           </div>
 
-          {/* RIGHT (md+): Teacher Pie (title close to circle) */}
+          {/* RIGHT (md+): Teacher Pie */}
           <div className="hidden md:flex h-full w-1/3 flex-col items-center justify-center rounded-r-xl p-5 text-white backdrop-blur-lg backdrop-hue-rotate-400">
-            {/* Title bar (tight spacing) */}
             <div className="skeleton h-5 w-40 mb-1" />
-            {/* Circular pie skeleton */}
             <div className="skeleton rounded-full aspect-square w-[min(90%,220px)]" />
           </div>
         </div>
@@ -162,20 +154,20 @@ const FacultyPieChart = ({
 /* --------------------------------- Main --------------------------------- */
 const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
   setActiveView,
+  facultyId,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [facultyData, setFacultyData] = useState<FacultyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const rotateTimer = useRef<number | null>(null);
 
-  // Fetch data from backend
   useEffect(() => {
     let isMounted = true;
     const fetchLatest = async () => {
       try {
         setIsLoading(true);
         const res = await api.get(
-          "/evaluation/evaluations/latest-with-tallies/?limit=3"
+          "/evaluation/evaluations/latest-with-tallies/?limit=3",
         );
         const formatted = res.data.map((item: any) => ({
           evaluationNumber: item.evaluation_number,
@@ -201,7 +193,6 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
     };
   }, []);
 
-  // Cycle through faculty data (only when loaded and has data)
   useEffect(() => {
     if (!isLoading && facultyData.length > 0) {
       rotateTimer.current = window.setInterval(() => {
@@ -223,7 +214,7 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
         <p className="mt-35 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
           Recently Evaluated Faculty:
         </p>
-        <div className="flex h-1/3 w-full items-center justify-center rounded-xl bg-black/20 p-6 sm:h-[30vh]">
+        <div className="flex h-1/3 w-full items-center justify-center rounded-xl bg-base-100/20 p-6 sm:h-[30vh]">
           <span className="text-gray-400">No recent evaluations found.</span>
         </div>
       </>
