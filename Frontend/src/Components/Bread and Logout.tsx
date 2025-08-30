@@ -1,5 +1,6 @@
-import { useState } from "react";
-import api from "../utils/api"; // adjust import
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router"; // keep consistent with your other file
+import api from "../utils/api";
 
 interface BreadAndLogoutProps {
   setActiveView: (view: string) => void;
@@ -9,47 +10,73 @@ interface BreadAndLogoutProps {
 export default function BreadAndLogout({ setActiveView, breadcrumbs }: BreadAndLogoutProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutMessage, setLogoutMessage] = useState("");
+  const navigate = useNavigate();
+
+  // Optional: protect the page—if no token, kick to login/root
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login"); // or navigate("/") if that’s your login route
+    }
+  }, [navigate]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     setLogoutMessage("");
+
     try {
       const token = localStorage.getItem("token");
-      if (!token) throw new Error("No token");
+      if (!token) throw new Error("No token found");
 
       await api.post("/logout/", null, {
         headers: { Authorization: `Token ${token}` },
       });
 
+      // Clear storages (mirror DashboardHeader behavior)
       localStorage.removeItem("token");
-      sessionStorage.clear();
+      localStorage.removeItem("firstName");
+      sessionStorage.removeItem("firstName");
 
       setLogoutMessage("Logout successful!");
-      setTimeout(() => setActiveView("login"), 800);
-    } catch {
+
+      // Close the modal before navigating
+      (document.getElementById("logout_modal") as HTMLDialogElement)?.close();
+
+      // Redirect to login/root
+      setTimeout(() => navigate("/"), 800);
+    } catch (error) {
+      console.error(error);
       setLogoutMessage("Logout failed. Please try again.");
     } finally {
       setIsLoggingOut(false);
     }
   };
 
+  // If a breadcrumb view looks like a route (starts with "/"), navigate there.
+  // Otherwise, fall back to SPA-style view switch.
+  const handleCrumbClick = (view?: string) => {
+    if (!view) return;
+    if (view.startsWith("/")) navigate(view);
+    else setActiveView(view);
+  };
+
   return (
     <>
       <div className="relative flex items-center w-full pt-6 pb-2">
-        {/* Breadcrumbs - perfectly centered */}
+        {/* Breadcrumbs - centered */}
         <div className="absolute left-1/2 -translate-x-1/2">
           <div className="breadcrumbs text-white">
             <ul>
               {breadcrumbs.map((b, i) => (
                 <li key={`${i}-${b.label}`}>
-                  <a onClick={() => b.view && setActiveView(b.view)}>{b.label}</a>
+                  <a onClick={() => handleCrumbClick(b.view)}>{b.label}</a>
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
-        {/* Logout button - pinned to right */}
+        {/* Logout button - right */}
         <button
           className="absolute right-6 text-md text-gray-300 underline z-10"
           onClick={() =>

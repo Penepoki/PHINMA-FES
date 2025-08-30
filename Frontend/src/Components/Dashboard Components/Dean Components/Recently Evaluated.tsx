@@ -211,7 +211,7 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
   if (facultyData.length === 0) {
     return (
       <>
-        <p className="mt-35 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
+        <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
           Recently Evaluated Faculty:
         </p>
         <div className="flex h-1/3 w-full items-center justify-center rounded-xl bg-black/20 p-6 sm:h-[30vh]">
@@ -225,7 +225,7 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
 
   return (
     <>
-      <p className="mt-35 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
+      <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
         Recently Evaluated Faculty:
       </p>
 

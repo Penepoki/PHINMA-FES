@@ -5,7 +5,7 @@ import ProgramCards from "../../../Components/Evaluation Components/ProgramCards
 import SffDataDisplay from "../../../Components/Evaluation Components/SffDataDisplay";
 import ResponsesChartsTable from "../../../Components/Evaluation Components/ResponsesChartsTable.tsx";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
-import {resolveFacultyId} from "../../../utils/facultyContext";
+import { resolveFacultyId } from "../../../utils/facultyContext";
 
 /* ---------------------------
    Minimal Skeletons (daisyUI)
@@ -35,8 +35,6 @@ const ProgramListSkeleton = () => (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {[...Array(6)].map((_, i) => (
         <div key={i} className="rounded-2xl">
-          {/* Green rectangle card */}
-          <div className="skeleton h-28 w-full rounded-2xl bg-success/40" />
         </div>
       ))}
     </div>
@@ -46,7 +44,7 @@ const ProgramListSkeleton = () => (
 // Faculty Response Charts skeleton: title + 2 chart panels
 const FacultyChartsSkeleton = () => (
   <div className="flex-col w-full justify-center items-center">
-    <div className="justify-center items-start h-12 bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
+    <div className="justify-center items-center h-12 bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
       Faculty Response Charts
     </div>
     <div className="bg-black/20 h-15">

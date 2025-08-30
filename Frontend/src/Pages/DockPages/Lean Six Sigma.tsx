@@ -1162,7 +1162,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
           <button>close</button>
         </form>
       </dialog>
-    </div>
+    </div >
   );
 }
 
