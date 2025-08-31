@@ -49,7 +49,7 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const FacultyCardSkeleton = () => {
   return (
     <>
-      <p className="mt-35 mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
+      <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
         Recently Evaluated Faculty:
       </p>
 

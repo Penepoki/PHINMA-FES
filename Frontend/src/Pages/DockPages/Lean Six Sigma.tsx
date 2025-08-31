@@ -568,6 +568,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
     plugins: {
       legend: {
         labels: {
+          displayColors: false,
           color: "white",
           font: { family: "'Cabin', sans-serif" },
         },

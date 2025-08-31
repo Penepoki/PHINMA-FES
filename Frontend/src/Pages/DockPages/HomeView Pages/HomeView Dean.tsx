@@ -83,12 +83,21 @@ const Home: React.FC<any> = ({ activeView, setActiveView }) => {
       {/* HR as Dean Banner */}
       {isTempDean && (
         <div
-          className="mt-40 flex w-full items-center justify-center bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 py-2 text-center text-lg gap-4 font-bold text-white">
+          className="mt-30 flex w-full flex-col items-center justify-center gap-2 py-2 text-center text-lg font-bold text-white"
+        >
           <span>
-            Viewing as Dean{collegeName ? ` of ${collegeName}` : facultyId ? ` (Faculty ID: ${facultyId})` : ''}
+            Viewing as Dean
+            {collegeName
+              ? ` of ${collegeName}`
+              : facultyId
+                ? ` (Faculty ID: ${facultyId})`
+                : ""}
           </span>
+
           <button
-            className="rounded bg-yellow-800 px-3 py-1 text-white hover:opacity-90"
+            className="rounded bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 
+               px-3 py-1 text-white hover:opacity-90 hover:scale-105 
+               transition duration-300 ease-in-out"
             onClick={handleBackToHR}
             title="Return to HR dashboard and clear faculty context"
           >
@@ -99,7 +108,7 @@ const Home: React.FC<any> = ({ activeView, setActiveView }) => {
 
       {/*Recently Evaluated*/}
       <div
-        className={`flex-col justify-center items-center w-full ${isTempDean ? "mt-0" : "mt-35"}`}>
+        className={`flex-col justify-center items-center w-full ${isTempDean ? "mt-0" : "mt-25"}`}>
         <RecentlyEvaluatedFaculty setActiveView={setActiveView} facultyId={facultyId} />
       </div>
 

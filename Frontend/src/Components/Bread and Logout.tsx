@@ -12,11 +12,10 @@ export default function BreadAndLogout({ setActiveView, breadcrumbs }: BreadAndL
   const [logoutMessage, setLogoutMessage] = useState("");
   const navigate = useNavigate();
 
-  // Optional: protect the page—if no token, kick to login/root
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      navigate("/login"); // or navigate("/") if that’s your login route
+      navigate("/login");
     }
   }, [navigate]);
 
@@ -32,17 +31,12 @@ export default function BreadAndLogout({ setActiveView, breadcrumbs }: BreadAndL
         headers: { Authorization: `Token ${token}` },
       });
 
-      // Clear storages (mirror DashboardHeader behavior)
       localStorage.removeItem("token");
       localStorage.removeItem("firstName");
       sessionStorage.removeItem("firstName");
 
       setLogoutMessage("Logout successful!");
-
-      // Close the modal before navigating
       (document.getElementById("logout_modal") as HTMLDialogElement)?.close();
-
-      // Redirect to login/root
       setTimeout(() => navigate("/"), 800);
     } catch (error) {
       console.error(error);
@@ -52,8 +46,6 @@ export default function BreadAndLogout({ setActiveView, breadcrumbs }: BreadAndL
     }
   };
 
-  // If a breadcrumb view looks like a route (starts with "/"), navigate there.
-  // Otherwise, fall back to SPA-style view switch.
   const handleCrumbClick = (view?: string) => {
     if (!view) return;
     if (view.startsWith("/")) navigate(view);
@@ -78,11 +70,26 @@ export default function BreadAndLogout({ setActiveView, breadcrumbs }: BreadAndL
 
         {/* Logout button - right */}
         <button
-          className="absolute right-6 text-md text-gray-300 underline z-10"
+          className="absolute right-6 flex items-center gap-2 text-md text-gray-300 transition-all duration-200 hover:underline hover:scale-105 hover:text-white z-10"
           onClick={() =>
             (document.getElementById("logout_modal") as HTMLDialogElement)?.showModal()
           }
         >
+          {/* Logout Icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="h-5 w-5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3"
+            />
+          </svg>
           Logout
         </button>
       </div>
@@ -98,8 +105,8 @@ export default function BreadAndLogout({ setActiveView, breadcrumbs }: BreadAndL
           {logoutMessage && (
             <div
               className={`mt-4 rounded-lg px-4 py-2 text-sm ${logoutMessage.includes("successful")
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
                 }`}
             >
               {logoutMessage}
