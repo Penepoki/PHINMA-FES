@@ -11,7 +11,7 @@ import {
   LineController,
 } from "chart.js";
 ChartJS.defaults.font.family = "'Cabin', sans-serif";
-ChartJS.defaults.color = "#fff"; // <- keeps chart text readable on dark bg
+ChartJS.defaults.color = "#fff"; // keep chart text readable on dark bg
 
 import { Scatter, Chart } from "react-chartjs-2";
 import { SankeyController, Flow } from "chartjs-chart-sankey";
@@ -119,6 +119,7 @@ const groupCopusByProfessor = (
 
   return { professorAggregates, totalActiveLearningPercentage };
 };
+
 const fetchEvaluationProfessorMapByFaculty = async (
   facultyId: string
 ): Promise<Record<string, string>> => {
@@ -262,7 +263,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         const faculty_id = await resolveFacultyId();
         const params: any = {};
         let endpoint = "/evaluation/evaluations/copus-summary-by-faculty";
-        if (!isSuperuser && faculty_id) params.faculty = faculty_id;
+        if (!isSuperuser && faculty_id) params.faculty = String(faculty_id);
         else if (isSuperuser) endpoint = "/evaluation/evaluations/latest-with-tallies";
         const response = await api.get(endpoint, { params });
         const raw = response.data || {};
@@ -270,7 +271,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         // Build evaluationId → professor map when possible
         let evalToProfessor: Record<string, string> = {};
         if (!isSuperuser && faculty_id) {
-          evalToProfessor = await fetchEvaluationProfessorMapByFaculty(faculty_id);
+          evalToProfessor = await fetchEvaluationProfessorMapByFaculty(String(faculty_id));
         }
 
         const { professorAggregates, totalActiveLearningPercentage } =
@@ -386,9 +387,10 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         const faculty_id = await resolveFacultyId();
         const isSuperuser = localStorage.getItem("is_superuser") === "true";
         const params: any = {};
-        if (!isSuperuser && faculty_id) params.faculty = faculty_id;
+        if (!isSuperuser && faculty_id) params.faculty = String(faculty_id);
         const endpointEvals = "/studentevaluation/studentevaluation/by-faculty";
-        const endpointResponses = "/studentevaluationresponse/studentevaluationresponse/by-faculty";
+        const endpointResponses =
+          "/studentevaluationresponse/studentevaluationresponse/by-faculty";
         const evalsRes = await api.get(`${endpointEvals}`, { params });
         const evaluations = Array.isArray(evalsRes.data) ? evalsRes.data : [];
         const evaluationIds = evaluations.map((e: any) => e.id);
@@ -403,7 +405,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         const allQuestions = questionsResults.flatMap((res: any) => res.data || []);
 
         const responsesRes = await api.get(`${endpointResponses}`, { params });
-        const responses = Array.isArray(responsesRes.data) ? res.data : [];
+        const responses = Array.isArray(responsesRes.data) ? responsesRes.data : [];
 
         if (evaluations.length) console.log("[DEBUG] SFF Sample Evaluation:", evaluations[0]);
         if (allQuestions.length) console.log("[DEBUG] SFF Sample Question:", allQuestions[0]);
@@ -441,12 +443,12 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       setSentimentLoading(true);
       setSentimentError(null);
       try {
-        const faculty_id = localStorage.getItem("faculty_id");
+        const faculty_id = await resolveFacultyId();
         const isSuperuser = localStorage.getItem("is_superuser") === "true";
 
         const params: any = {};
         if (!isSuperuser && faculty_id) {
-          params.faculty = faculty_id;
+          params.faculty = String(faculty_id);
         }
 
         const summaryRes = await api.get(
@@ -476,11 +478,12 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
     fetchSentimentSummary();
   }, []);
 
+  // --- Scatter chart config ---
   const colorPool = [
     "rgba(59,130,246,0.8)", // blue
-    "rgba(34,197,94,0.8)", // green
-    "rgba(234,179,8,0.8)", // amber
-    "rgba(244,63,94,0.8)", // rose
+    "rgba(34,197,94,0.8)",  // green
+    "rgba(234,179,8,0.8)",  // amber
+    "rgba(244,63,94,0.8)",  // rose
     "rgba(168,85,247,0.8)", // purple
     "rgba(20,184,166,0.8)", // teal
   ];
@@ -586,32 +589,6 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       },
     },
   } as const;
-
-  // (Optional) Example line chart
-  const lineData = {
-    labels: ["January", "February", "March", "April", "May"],
-    datasets: [
-      {
-        label: "Performance Over Time",
-        data: [60, 70, 75, 80, 90],
-        fill: false,
-        borderColor: "rgba(59,130,246,1)",
-        backgroundColor: "rgba(59,130,246,0.5)",
-        tension: 0.3,
-      },
-    ],
-  };
-  const lineOptions = {
-    responsive: true,
-    plugins: {
-      legend: { labels: { color: "#fff" } },
-      title: { display: true, text: "Trend Analysis", color: "#fff" },
-    },
-    scales: {
-      x: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } },
-      y: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } },
-    },
-  };
 
   return (
     <div className="custom-container">
@@ -1163,7 +1140,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
           <button>close</button>
         </form>
       </dialog>
-    </div >
+    </div>
   );
 }
 

@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import api from "../../../utils/api";
-import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
-import ProgramCards from "../../../Components/Evaluation Components/ProgramCards.tsx";
+import DataTable from "../../../Components/Evaluation Components/Data Table";
+import ProgramCards from "../../../Components/Evaluation Components/ProgramCards";
 import SffDataDisplay from "../../../Components/Evaluation Components/SffDataDisplay";
-import ResponsesChartsTable from "../../../Components/Evaluation Components/ResponsesChartsTable.tsx";
-import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import ResponsesChartsTable from "../../../Components/Evaluation Components/ResponsesChartsTable";
+import BreadAndLogout from "../../../Components/Bread and Logout";
 import { resolveFacultyId } from "../../../utils/facultyContext";
 
 /* ---------------------------
@@ -20,22 +20,16 @@ const SkeletonBox = ({
   height?: number | string;
   className?: string;
 }) => (
-  <div
-    className={`skeleton ${className}`}
-    style={{ width, height }}
-  />
+  <div className={`skeleton ${className}`} style={{ width, height }} />
 );
 
 // 6 green rectangles for Program List
 const ProgramListSkeleton = () => (
   <div className="w-full rounded-xl bg-black/20 p-6">
-    <div className="text-white text-xl mb-4">
-      Program List:
-    </div>
+    <div className="text-white text-xl mb-4">Program List:</div>
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="rounded-2xl">
-        </div>
+        <div key={i} className="rounded-2xl skeleton h-28" />
       ))}
     </div>
   </div>
@@ -44,10 +38,12 @@ const ProgramListSkeleton = () => (
 // Faculty Response Charts skeleton: title + 2 chart panels
 const FacultyChartsSkeleton = () => (
   <div className="flex-col w-full justify-center items-center">
-    <div className="justify-center items-center h-12 bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
+    <div className="flex items-center justify-center h-12 rounded-t-xl bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
       Faculty Response Charts
     </div>
-    <div className="bg-black/20 h-15">
+    <div className="bg-black/20 rounded-b-xl p-6">
+      <div className="skeleton h-40 w-full mb-4" />
+      <div className="skeleton h-40 w-full" />
     </div>
   </div>
 );
@@ -81,14 +77,18 @@ interface Section {
   name: string;
 }
 
-interface SFFData {
-  [key: string]: any;
-}
+type Column<T> = {
+  header: string;
+  accessor: (row: T) => React.ReactNode;
+};
 
 /* ---------------------------
    Component
 ----------------------------*/
 function StudentEvaluation({ setActiveView }: StudentEvalProps) {
+  // Top-level IDs / state that other sections use
+  const [facultyId, setFacultyId] = useState<number | null>(null);
+
   // Step selection state
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [selectedProfessor, setSelectedProfessor] = useState<Professor | null>(null);
@@ -100,9 +100,9 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
-  const [sffData, setSffData] = useState<SFFData | null>(null);
+  const [sffData, setSffData] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
-  const [studentResponses, setStudentResponses] = useState<{ [userId: string]: any[] }>({});
+  const [studentResponses, setStudentResponses] = useState<Record<string, any[]>>({});
   const [studentDialogResponses, setStudentDialogResponses] = useState<any[]>([]);
 
   // Loading flags
@@ -119,6 +119,16 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   const studentDialogRef = useRef<HTMLDialogElement>(null);
 
   /* ---------------------------
+     Init: Faculty ID (once)
+  ----------------------------*/
+  useEffect(() => {
+    (async () => {
+      const id = await resolveFacultyId();
+      setFacultyId(id ?? null);
+    })();
+  }, []);
+
+  /* ---------------------------
      Fetch: Programs (on mount)
   ----------------------------*/
   useEffect(() => {
@@ -126,10 +136,10 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       setProgramsLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const faculty_id = await resolveFacultyId();
+        const id = await resolveFacultyId();
         if (!token) return;
         const params: any = {};
-        if (faculty_id) params.faculty_id = faculty_id;
+        if (id) params.faculty_id = id;
 
         const response = await api.get("/program/programs/", {
           params,
@@ -154,6 +164,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     setSelectedSchedule(null);
     setSelectedSection(null);
     setSffData(null);
+
     const fetchProfessors = async () => {
       setProfessorsLoading(true);
       try {
@@ -188,6 +199,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     setSelectedSchedule(null);
     setSelectedSection(null);
     setSffData(null);
+
     const fetchSchedules = async () => {
       setSchedulesLoading(true);
       try {
@@ -215,6 +227,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     setSelectedSection(null);
     setSections([]);
     setSffData(null);
+
     const fetchSections = async () => {
       setSectionsLoading(true);
       try {
@@ -239,6 +252,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   useEffect(() => {
     if (!selectedSection || !selectedSchedule) return;
     setSffData(null);
+
     const fetchSFF = async () => {
       setSffLoading(true);
       try {
@@ -266,6 +280,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
     setStudents([]);
     setStudentResponses({});
     setStudentsLoading(true);
+
     const fetchStudents = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -288,10 +303,11 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   ----------------------------*/
   useEffect(() => {
     if (!students.length || !sffData?.id) return;
+
     const fetchResponses = async () => {
       const token = localStorage.getItem("token");
       if (!token) return;
-      const responsesMap: { [userId: string]: any[] } = {};
+      const responsesMap: Record<string, any[]> = {};
       await Promise.all(
         students.map(async (student) => {
           try {
@@ -299,9 +315,9 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               `/studentevaluation/studentevaluation/${sffData.id}/responses/?user=${student.id}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
-            responsesMap[student.id] = res.data || [];
+            responsesMap[String(student.id)] = res.data || [];
           } catch {
-            responsesMap[student.id] = [];
+            responsesMap[String(student.id)] = [];
           }
         })
       );
@@ -369,29 +385,19 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       {/* Step 1: Program Tiles + (optional) Faculty summary */}
       {!selectedProgram && (
         <>
-          {/* Faculty summary charts (show skeleton while programs are loading) */}
-          {(() => {
-            const [facultyId, setFacultyId] = useState<string | null>(null);
-            useEffect(() => {
-              (async () => {
-                setFacultyId(await resolveFacultyId());
-              })();
-            }, []);
-            if (facultyId) {
-              return programsLoading ? (
-                <FacultyChartsSkeleton />
-              ) : programs.length > 0 ? (
-                <ResponsesChartsTable
-                  evaluationId={programs[0]?.id /* TODO: replace with the correct eval ID */}
-                  filterType="faculty"
-                  filterId={parseInt(facultyId)}
-                />
-              ) : null;
-            }
-            return null;
-          })()}
+          {/* Faculty summary charts */}
+          {facultyId !== null &&
+            (programsLoading ? (
+              <FacultyChartsSkeleton />
+            ) : programs.length > 0 ? (
+              <ResponsesChartsTable
+                evaluationId={programs[0]?.id /* TODO: replace with the correct eval ID */}
+                filterType="faculty"
+                filterId={facultyId}
+              />
+            ) : null)}
 
-          {/* Programs: either 6 green skeletons or actual cards */}
+          {/* Programs: either skeletons or actual cards */}
           {programsLoading ? (
             <ProgramListSkeleton />
           ) : (
@@ -503,7 +509,9 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             sffData && (
               <React.Suspense fallback={<FacultyChartsSkeleton />}>
                 <ResponsesChartsTable
-                  evaluationId={Array.isArray(sffData) ? (sffData[0]?.id as number) : (sffData as any)?.id}
+                  evaluationId={
+                    Array.isArray(sffData) ? (sffData[0]?.id as number) : (sffData as any)?.id
+                  }
                   filterType="section"
                   filterId={selectedSection.id}
                 />
@@ -561,11 +569,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
                   </h4>
 
                   <h5 className="mb-2 text-lg font-semibold">SFF Data for {selectedSection.name}</h5>
-                  {sffLoading ? (
-                    <FacultyChartsSkeleton />
-                  ) : (
-                    <SffDataDisplay sffData={sffData} />
-                  )}
+                  {sffLoading ? <FacultyChartsSkeleton /> : <SffDataDisplay sffData={sffData} />}
 
                   <h5 className="mt-4 mb-2 text-lg font-semibold">Student Answers</h5>
                   {studentLoading ? (
@@ -574,7 +578,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
                       <SkeletonBox height={22} width="70%" />
                       <SkeletonBox height={22} width="65%" />
                     </>
-                  ) : (studentDialogResponses && studentDialogResponses.length > 0) ? (
+                  ) : studentDialogResponses && studentDialogResponses.length > 0 ? (
                     <ul className="list-disc pl-5">
                       {studentDialogResponses.map((resp, idx) => (
                         <li key={idx} className="mb-2">
