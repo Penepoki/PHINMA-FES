@@ -140,26 +140,28 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 
 	// When schedule changes, update instructor to match the schedule's instructor
 	useEffect(() => {
-		if (formData.schedule) {
-			const selectedSchedule = schedules.find(
-				(s) => String(s.id) === formData.schedule,
-			);
-			if (selectedSchedule) {
-				const instructor = instructors.find(
-					(i) => i.id === selectedSchedule.instructor,
-				);
-				setFormData((f) => ({
-					...f,
-					instructor: selectedSchedule.instructor
-						? String(selectedSchedule.instructor)
-						: "",
-				}));
-				setSelectedInstructor(instructor || null);
-			} else {
-				setSelectedInstructor(null);
-			}
-		} else {
-			setSelectedInstructor(null);
+		// If no schedule is selected, keep the current selectedInstructor (do NOT clear it).
+		if (!formData.schedule) return;
+
+		const selectedSchedule = schedules.find(
+			(s) => String(s.id) === formData.schedule,
+		);
+		if (!selectedSchedule) return;
+
+		const instructor = instructors.find(
+			(i) => i.id === selectedSchedule.instructor,
+		);
+
+		setFormData((f) => ({
+			...f,
+			instructor: selectedSchedule.instructor
+				? String(selectedSchedule.instructor)
+				: "",
+		}));
+
+		// Only update selectedInstructor when we can resolve it from the schedule.
+		if (instructor) {
+			setSelectedInstructor(instructor);
 		}
 	}, [formData.schedule, instructors, schedules]);
 
