@@ -2580,3 +2580,83 @@ def _resolve_faculty_from_request_or_hr_temp(request):
         return getattr(user.faculty, 'id', None)
 
     return None
+
+
+# --- HR USERS MANAGEMENT (list/create/update/soft-delete, role management) ---
+from rest_framework import serializers as drf_serializers
+from django.contrib.auth.models import Group
+
+
+class UserAdminSerializer(drf_serializers.ModelSerializer):
+    roles = drf_serializers.ListField(child=drf_serializers.CharField(), write_only=True, required=False)
+    roles_read = drf_serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = get_user_model()
+        fields = [
+            'id', 'email', 'first_name', 'last_name', 'is_active',
+            'roles', 'roles_read'
+        ]
+        read_only_fields = ['email']
+
+    def get_roles_read(self, obj):
+        return list(obj.groups.values_list('name', flat=True))
+
+    def create(self, validated_data):
+        roles = validated_data.pop('roles', [])
+        user = super().create(validated_data)
+        if roles:
+            groups = Group.objects.filter(name__in=roles)
+            user.groups.set(groups)
+        return user
+
+    def update(self, instance, validated_data):
+        roles = validated_data.pop('roles', None)
+        # Email must not be changed
+        validated_data.pop('email', None)
+        user = super().update(instance, validated_data)
+        if roles is not None:
+            groups = Group.objects.filter(name__in=roles)
+            user.groups.set(groups)
+        return user
+
+
+from rest_framework.permissions import BasePermission
+
+
+class IsHROrDean(BasePermission):
+    def has_permission(self, request, view):
+        if request.user and request.user.is_authenticated:
+            if request.user.is_superuser:
+                return True
+            return request.user.groups.filter(name__in=['HR', 'Dean']).exists()
+        return False
+
+
+class UserAdminViewSet(viewsets.ModelViewSet):
+    queryset = get_user_model().objects.all().order_by('id')
+    serializer_class = UserAdminSerializer
+    permission_classes = [IsAuthenticated, IsHROrDean]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # Filters: search, role
+        search = self.request.query_params.get('search')
+        role = self.request.query_params.get('role')
+        is_active = self.request.query_params.get('is_active')
+        if search:
+            qs = qs.filter(
+                Q(first_name__icontains=search) | Q(last_name__icontains=search) | Q(email__icontains=search))
+        if role:
+            qs = qs.filter(groups__name__iexact=role)
+        if is_active in ['true', 'false']:
+            qs = qs.filter(is_active=(is_active == 'true'))
+        return qs.distinct()
+
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        # Soft delete
+        user = self.get_object()
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+        return Response(status=status.HTTP_204_NO_CONTENT)

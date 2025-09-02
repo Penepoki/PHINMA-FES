@@ -99,6 +99,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [filterSemester, setFilterSemester] = useState<string>("");
+  const [filterYear, setFilterYear] = useState<string>("");
   const [sections, setSections] = useState<Section[]>([]);
   const [sffData, setSffData] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
@@ -206,7 +208,12 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         const token = localStorage.getItem("token");
         if (!token) return;
         const res = await api.get("/schedule/schedules/", {
-          params: { professor: selectedProfessor.id, program: selectedProgram.id },
+          params: {
+            professor: selectedProfessor.id,
+            program: selectedProgram.id,
+            semester: filterSemester || undefined,
+            year: filterYear || undefined,
+          },
           headers: { Authorization: `Bearer ${token}` },
         });
         setSchedules(res.data || []);
@@ -217,7 +224,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       }
     };
     fetchSchedules();
-  }, [selectedProfessor, selectedProgram]);
+  }, [selectedProfessor, selectedProgram, filterSemester, filterYear]);
 
   /* ---------------------------
      Fetch: Sections (on schedule)
@@ -410,6 +417,35 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
           )}
         </>
       )}
+
+      {/* Filters for year/semester */}
+      <div className="flex gap-4 items-center mb-4">
+        <div>
+          <label className="text-white mr-2">Semester:</label>
+          <select
+              className="input input-bordered"
+              value={filterSemester}
+              onChange={(e) => setFilterSemester(e.target.value)}
+          >
+            <option value="">All</option>
+            <option value="First">First</option>
+            <option value="Second">Second</option>
+            <option value="Summer">Summer</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-white mr-2">Year:</label>
+          <input
+              type="number"
+              min={2000}
+              max={2100}
+              className="input input-bordered w-28"
+              value={filterYear}
+              onChange={(e) => setFilterYear(e.target.value)}
+              placeholder="YYYY"
+          />
+        </div>
+      </div>
 
       {/* Step 2: Professors Table */}
       {selectedProgram && !selectedProfessor && (

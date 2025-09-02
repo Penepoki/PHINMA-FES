@@ -26,7 +26,7 @@ class Program(BaseModel):
     faculty = models.ForeignKey("Faculty", on_delete=models.CASCADE, related_name="programs", null=True, blank=True)
 
     def __str__(self):
-        return f'{self.name} - {self.code}'
+        return f'{self.name}'
 
 
 
@@ -37,7 +37,7 @@ class ProgramProfessor(models.Model):
     assigned_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.professor} - {self.program}'
+        return f'{self.professor}'
 
 
 
@@ -76,21 +76,18 @@ class Section(BaseModel):
     constraints = [
         models.UniqueConstraint(fields=['name', 'program', 'year_level'], name='unique_section_program_year'), ]
 
-
-
     def save(self, *args, **kwargs):
-        # If name is provided and doesn't start with "Section", prepend it
-        if self.name:
-            if not self.name.startswith("Section"):
-                self.name = f"Section {self.name} - {self.program} - {self.year_level}"
-        # If name is not provided, auto-generate using program and year_level
-        elif self.program and self.year_level:
-            year_display = dict(self.YEAR_LEVELS).get(self.year_level, self.year_level)
-            self.name = f"Section {self.program.name} - {year_display}"
-        super().save(*args, **kwargs)
+        # Safely get the label for the current choice
+        year_display = self.get_year_level_display() if self.year_level else None
 
-    def __str__(self):
-        return self.name
+        if self.name:
+            # Keep your existing guard to avoid double-prefixing
+            if not self.name.startswith("Section"):
+                self.name = f"Section {self.name} - {self.program} - {year_display}"
+        elif self.program and self.year_level:
+            self.name = f"Section {self.program.name} - {year_display}"
+
+        super().save(*args, **kwargs)
 
 # Schedules
 class Schedule(BaseModel):

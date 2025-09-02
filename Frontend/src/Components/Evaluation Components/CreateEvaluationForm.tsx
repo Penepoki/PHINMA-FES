@@ -19,6 +19,7 @@ interface Schedule {
 	name: string;
 	program: number;
 	instructor: number;
+	instructor_name?: string;
 	subject: string;
 	room: string;
 	semester: string;
@@ -60,6 +61,7 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 	useEffect(() => {
 		if (initialInstructor) {
 			setSelectedInstructor(initialInstructor);
+			setFormData((f) => ({...f, instructor: String(initialInstructor.id)}));
 		}
 	}, [initialInstructor]);
 
@@ -70,20 +72,52 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 		}
 	}, [initialCopusType]);
 
-	// Fetch instructors when component mounts
+	// Fetch instructors when component mounts (HR-safe)
 	useEffect(() => {
 		const fetchInstructors = async () => {
 			try {
 				const response = await api.get("/users/professors/");
-				setInstructors(response.data);
+				let list: User[] = response.data || [];
+				// Fallback: seed from schedules (unique instructors in current faculty) if API returns empty
+				if (!Array.isArray(list) || list.length === 0) {
+					const seen = new Map<number, User>();
+					for (const s of schedules) {
+						if (s.instructor && !seen.has(s.instructor)) {
+							seen.set(s.instructor, {
+								id: s.instructor,
+								first_name: (s as any).instructor_name?.split(" ")?.[0] || "",
+								last_name: (s as any).instructor_name?.split(" ")?.slice(1).join(" ") || "",
+							});
+						}
+					}
+					list = Array.from(seen.values());
+				}
+				// Ensure initialInstructor is present in options for immediate selection display
+				if (initialInstructor && !list.some(u => u.id === initialInstructor.id)) {
+					list = [initialInstructor, ...list];
+				}
+				setInstructors(list);
 			} catch (err) {
 				console.error("Error fetching instructors:", err);
+				// As a fallback, try to build from schedules
+				const seen = new Map<number, User>();
+				for (const s of schedules) {
+					if (s.instructor && !seen.has(s.instructor)) {
+						seen.set(s.instructor, {
+							id: s.instructor,
+							first_name: (s as any).instructor_name?.split(" ")?.[0] || "",
+							last_name: (s as any).instructor_name?.split(" ")?.slice(1).join(" ") || "",
+						});
+					}
+				}
+				const list = Array.from(seen.values());
+				setInstructors(list);
 				setError("Failed to load instructors");
 			}
 		};
 
 		fetchInstructors();
-	}, []);
+	}, [schedules, initialInstructor]);
 
 	// When instructor changes, clear schedule and filter schedules
 	const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
@@ -128,6 +162,11 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 			setSelectedInstructor(null);
 		}
 	}, [formData.schedule, instructors, schedules]);
+
+	// Keep formData.instructor in sync when selectedInstructor changes (ensures payload)
+	useEffect(() => {
+		setFormData((f) => ({...f, instructor: selectedInstructor ? String(selectedInstructor.id) : ""}));
+	}, [selectedInstructor]);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -191,7 +230,7 @@ const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
 				</label>
 				<select
 					name="instructor_select"
-					value={selectedInstructor ? selectedInstructor.id : ""}
+					value={selectedInstructor ? String(selectedInstructor.id) : ""}
 					onChange={e => {
 						const instructor = instructors.find(i => String(i.id) === e.target.value);
 						setSelectedInstructor(instructor || null);

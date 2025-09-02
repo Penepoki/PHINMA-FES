@@ -44,6 +44,11 @@ StudentEvaluationResponse_router.register(r'studentevaluationresponse', StudentE
 #ROOM ROUTER
 room_router = DefaultRouter()
 room_router.register(r'rooms', RoomViewSet, basename='room')
+
+# USERS ADMIN ROUTER (HR/Dean)
+user_admin_router = DefaultRouter()
+user_admin_router.register(r'users', UserAdminViewSet, basename='user-admin')
+
 urlpatterns = [
     path('section/', include(section_router.urls)),
     path('subject/', include(subject_router.urls)),
