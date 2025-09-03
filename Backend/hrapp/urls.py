@@ -92,4 +92,6 @@ urlpatterns = [
     path('get-faculty-context/', get_faculty_context_view),
 
     path('faculty/', include(faculty_router.urls)),
+
+    path("uploads/presign", presign_put, name="presign-put")
 ]
