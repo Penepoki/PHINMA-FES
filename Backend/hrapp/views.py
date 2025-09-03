@@ -2594,7 +2594,6 @@ def _resolve_faculty_from_request_or_hr_temp(request):
 
     return None
 
-<<<<<<< HEAD
 # --- Presign PUT for direct browser uploads ---
 BUCKET = os.getenv("S3_BUCKET")
 CDN_BASE = os.getenv("CDN_PUBLIC_BASE", "")
@@ -2631,7 +2630,6 @@ def presign_put(request):
 
     return Response({"uploadUrl": upload_url, "fileUrl": file_url})
 
-=======
 
 # --- HR USERS MANAGEMENT (list/create/update/soft-delete, role management) ---
 from rest_framework import serializers as drf_serializers
@@ -2711,4 +2709,3 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         user.is_active = False
         user.save(update_fields=['is_active'])
         return Response(status=status.HTTP_204_NO_CONTENT)
->>>>>>> b1be2673ded6fba0e1b262d5ff3c97ed3f1e621b
