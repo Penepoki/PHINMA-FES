@@ -12,6 +12,7 @@ import DataTable, {
 } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import {resolveFacultyId} from "../../../utils/facultyContext";
 
 interface SchedulesProps {
   setActiveView: (view: string) => void;
@@ -39,6 +40,7 @@ interface Schedule {
 }
 
 function Schedules({ setActiveView }: SchedulesProps) {
+    const [effectiveFacultyId, setEffectiveFacultyId] = useState<number | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -124,11 +126,21 @@ function Schedules({ setActiveView }: SchedulesProps) {
     }
   }, [editSelectedProgram]);
 
+    useEffect(() => {
+        (async () => {
+            const fid = await resolveFacultyId();
+            setEffectiveFacultyId(fid ?? null);
+        })();
+    }, []);
+
   const fetchSchedules = async () => {
     setLoading(true);
     try {
-      const response = await api.get("/schedule/schedules", {
-        params: { name: searchTerm || undefined },
+        const response = await api.get("/schedule/schedules/", {
+            params: {
+                name: searchTerm || undefined,
+                faculty: effectiveFacultyId ?? undefined,
+            },
       });
       setSchedules(response.data);
     } catch (error) {
@@ -174,6 +186,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
         },
         {
           headers: { Authorization: `Bearer ${token}` },
+            params: {faculty: effectiveFacultyId ?? undefined},
         },
       );
       // Reset form
@@ -240,6 +253,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
         },
         {
           headers: { Authorization: `Bearer ${token}` },
+            params: {faculty: effectiveFacultyId ?? undefined},
         },
       );
 
@@ -321,6 +335,8 @@ function Schedules({ setActiveView }: SchedulesProps) {
     try {
       await api.patch(`/schedule/schedules/${schedule.id}/`, {
         is_active: !schedule.is_active,
+      }, {
+          params: {faculty: effectiveFacultyId ?? undefined},
       });
       fetchSchedules();
     } catch (error) {
@@ -335,6 +351,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
     try {
       await api.delete(`/schedule/schedules/${scheduleId}/`, {
         headers: { Authorization: `Bearer ${token}` },
+          params: {faculty: effectiveFacultyId ?? undefined},
       });
       (document.getElementById("delete_schedule_modal") as HTMLDialogElement)?.close();
       fetchSchedules();

@@ -22,6 +22,7 @@ import Rooms from "./DockPages/ResourceGroup Pages/Rooms";
 import Schedules from "./DockPages/ResourceGroup Pages/Schedules";
 import Subject from "./DockPages/ResourceGroup Pages/Subjects";
 import Sections from "./DockPages/ResourceGroup Pages/Sections";
+import Professors from "./DockPages/ResourceGroup Pages/Professors";
 import LeanSixSigma from "./DockPages/Lean Six Sigma";
 import HomeViewProfessor from "./DockPages/HomeView Pages/HomeView Professor.tsx";
 
@@ -60,6 +61,7 @@ function Dashboard({ role }: { role: string }) {
     schedules: <Schedules setActiveView={setActiveView} />,
     subjects: <Subject setActiveView={setActiveView} />,
     sections: <Sections setActiveView={setActiveView} />,
+    professors: <Professors setActiveView={setActiveView}/>,
     //Lean Six Sigma
     leansixsigma: <LeanSixSigma setActiveView={setActiveView} />,
   };
@@ -74,6 +76,11 @@ function Dashboard({ role }: { role: string }) {
     "rooms",
     "schedules",
     "subjects",
+    "sections",
+    "schedules",
+    "programs",
+    "rooms",
+    "professors",
   ];
 
   const isExpandedDock = expandedViews.includes(activeView);

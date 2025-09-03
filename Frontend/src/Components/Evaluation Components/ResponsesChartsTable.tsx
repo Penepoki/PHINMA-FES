@@ -37,13 +37,16 @@ function hexToRgba(hex: string, alpha = 1): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// Shades based on primary with varying alpha for multi-segment visuals
-const primaryAlphaScale = (count: number): string[] => {
-  const start = 0.25; // faint
-  const end = 0.95;   // almost solid
-  const step = count > 1 ? (end - start) / (count - 1) : 0;
-  return Array.from({ length: count }, (_, i) => hexToRgba(PRIMARY_HEX, start + step * i));
-};
+// Distinct, brand-friendly chart palette
+const CHART_PALETTE = [
+  "#36A2EB", "#FF6384", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40",
+  "#1c402a", "#bf5700", "#2f6f4f", "#b8d8ba", "#e57373", "#64b5f6",
+];
+function getPalette(n: number): string[] {
+  if (n <= CHART_PALETTE.length) return CHART_PALETTE.slice(0, n);
+  // Cycle if more labels than colors
+  return Array.from({ length: n }, (_, i) => CHART_PALETTE[i % CHART_PALETTE.length]);
+}
 
 // Common chart options fragment for dark UI + primary accents
 const baseDarkOptions = {
@@ -246,7 +249,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                       {error && <div className="text-red-500">{error}</div>}
 
                       {/* Student Response Count Display */}
-                      <div className="mb-6 p-4 bg-[rgba(28,64,42,0.18)] rounded-lg border border-[rgba(28,64,42,0.35)]">
+                      <div className="mb-6 p-4 bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 rounded-lg border border-[rgba(28,64,42,0.35)]">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="p-2 rounded-full" style={{ backgroundColor: hexToRgba(PRIMARY_HEX, 0.25) }}>
@@ -334,9 +337,10 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                               const labels = Object.keys(answerCounts);
                               const values = Object.values(answerCounts);
 
-                              // Single-hue (primary) palette with varied alpha per bar
-                              const backgroundColors = primaryAlphaScale(labels.length);
-                              const borderColors = labels.map(() => hexToRgba(PRIMARY_HEX, 0.95));
+                              // Distinct palette for bars
+                              const palette = getPalette(labels.length);
+                              const backgroundColors = palette.map((c) => hexToRgba(c, 0.75));
+                              const borderColors = palette;
 
                               const barData = {
                                 labels,
@@ -349,8 +353,8 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                     borderWidth: 2,
                                     borderRadius: 6,
                                     borderSkipped: false,
-                                    hoverBackgroundColor: labels.map(() => hexToRgba(PRIMARY_HEX, 0.85)),
-                                    hoverBorderColor: labels.map(() => hexToRgba(PRIMARY_HEX, 1)),
+                                    hoverBackgroundColor: palette.map((c) => hexToRgba(c, 0.95)),
+                                    hoverBorderColor: borderColors,
                                   },
                                 ],
                               };
@@ -391,7 +395,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                           <div className="flex items-center">
                                             <div
                                               className="w-3 h-3 rounded mr-2 flex-shrink-0"
-                                              style={{ backgroundColor: backgroundColors[ratingIdx] }}
+                                              style={{ backgroundColor: palette[ratingIdx % palette.length] }}
                                             ></div>
                                             <span className="truncate">{rating}</span>
                                           </div>
@@ -428,12 +432,18 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                 answerCounts[r.answer] = (answerCounts[r.answer] || 0) + 1;
                               });
 
-                              // Use Chart.js default colors by NOT setting any color props
+                              // Distinct palette for pie slices
+                              const palette = getPalette(choices.length);
+
                               const pieData = {
                                 labels: choices,
                                 datasets: [
                                   {
                                     data: choices.map((c) => answerCounts[c] || 0),
+                                    backgroundColor: palette.map((c) => hexToRgba(c, 0.9)),
+                                    borderColor: palette,
+                                    borderWidth: 2,
+                                    hoverBackgroundColor: palette.map((c) => hexToRgba(c, 1)),
                                   },
                                 ],
                               };
@@ -469,14 +479,16 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
                                     Q{responses[0].student_eval_question}: {responses[0].question_text || "MCQ Question"}
                                   </div>
 
-                                  {/* Available choices display */}
+                                  {/* Available choices display (mirrors pie colors) */}
                                   <div className="mb-3 p-2 rounded-lg w-full max-w-xs" style={{ backgroundColor: "rgba(17,17,17,0.5)" }}>
                                     <div className="text-xs font-semibold text-gray-300 mb-1">Available Choices:</div>
                                     <div className="text-xs text-gray-400 space-y-1">
                                       {choices.map((choice, choiceIdx) => (
                                         <div key={choiceIdx} className="flex items-center">
-                                          {/* No color chips here since chart uses defaults */}
-                                          <div className="w-3 h-3 rounded-full mr-2 flex-shrink-0 bg-white/30"></div>
+                                          <div
+                                            className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
+                                            style={{ backgroundColor: palette[choiceIdx % palette.length] }}
+                                          ></div>
                                           <span className="truncate">{choice}</span>
                                         </div>
                                       ))}

@@ -17,6 +17,7 @@ import {
   AcademicCapIcon,
   // ChartPieIcon, // <- evalSummary icon (kept commented out)
 } from "@heroicons/react/24/solid";
+import {UserGroupIcon} from "@heroicons/react/24/solid";
 
 interface NavbarProps {
   activeView: string;
@@ -44,6 +45,7 @@ const iconMap: Record<string, JSX.Element> = {
   rooms: <BuildingOffice2Icon className="h-6 w-6 text-pink-400" />,
   sections: <RectangleStackIcon className="h-6 w-6 text-red-400" />,
   schedules: <CalendarDaysIcon className="h-6 w-6 text-emerald-400" />,
+  professors: <UserGroupIcon className="h-6 w-6 text-cyan-400"/>,
 };
 
 // ---- DRY child groups ----
@@ -59,6 +61,7 @@ const RESOURCE_CHILDREN = [
   "rooms",
   "sections",
   "schedules",
+  "professors",
 ] as const;
 
 const NavbarHR: React.FC<NavbarProps> = ({
@@ -246,6 +249,9 @@ const NavbarHR: React.FC<NavbarProps> = ({
                   break;
                 case "schedules":
                   label = "Schedules";
+                  break;
+                case "professors":
+                  label = "Professors";
                   break;
               }
               return renderAnimatedButton(view, label);

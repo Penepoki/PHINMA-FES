@@ -130,12 +130,24 @@ class RoomSerializer(serializers.ModelSerializer):
 
 # SECTION SERIALIZER
 class SectionSerializer(serializers.ModelSerializer):
-    program_name = serializers.CharField(source='program.name', read_only=True)
+    # Make students optional with a safe default empty list
+    students = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(groups__name__iexact='Student', is_active=True),
+        many=True,
+        required=False,
+        default=list,
+    )
 
     class Meta:
         model = Section
-        fields = ['id', 'name', 'year_level', 'program', 'program_name', 'students', 'is_active']
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at']
+        fields = "__all__"  # or the explicit list incl. 'students'
+
+    def create(self, validated_data):
+        students = validated_data.pop("students", [])
+        section = super().create(validated_data)
+        if students:
+            section.students.set(students)
+        return section
 
 # SCHEDULE SERIALIZER
 class ScheduleSerializer(serializers.ModelSerializer):

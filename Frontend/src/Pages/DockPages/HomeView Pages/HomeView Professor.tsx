@@ -51,13 +51,13 @@ function Home() {
 
   // EvalCards in your project expects onEvalClick(name: string)
   const evaluationCardData = useMemo(
-      () =>
-          evaluations.map((e) => ({
-            name: e.name || `Evaluation #${e.id}`,
-            fullname: e.evaluation_type || "COPUS",
-            image: null,
-          })),
-      [evaluations]
+    () =>
+      evaluations.map((e) => ({
+        name: e.name || `Evaluation #${e.id}`,
+        fullname: e.evaluation_type || "COPUS",
+        image: null,
+      })),
+    [evaluations]
   );
 
   const handleEvalClick = (evalName: string) => {
@@ -73,25 +73,25 @@ function Home() {
   const totalActive = copusTallies?.totalActiveLearningPercentage ?? 0;
 
   return (
-      <div className="home-page z-10 flex h-full w-full flex-col items-center justify-start gap-y-6">
+    <div className="home-page z-10 flex h-full w-full flex-col items-center justify-start gap-y-6">
       <DashboardHeader />
-        {error && <div className="alert alert-error mt-2">{error}</div>}
+      {error && <div className="alert alert-error mt-2">{error}</div>}
 
-        {/* Summary gauges */}
-        <div className="w-full px-4">
-          <CopusActiveSummary
-              evaluations={evaluations}
-              evaluationTallies={copusTallies}
-              totalActiveLearningPercentage={totalActive}
-          />
-        </div>
-
-        {/* Cards */}
-        <div className="mt-4 flex h-full w-full flex-col items-center justify-start overflow-auto">
-          <EvalCards evaluations={evaluationCardData} onEvalClick={handleEvalClick}/>
+      {/* Summary gauges */}
+      <div className="w-full mt-50 px-4">
+        <CopusActiveSummary
+          evaluations={evaluations}
+          evaluationTallies={copusTallies}
+          totalActiveLearningPercentage={totalActive}
+        />
       </div>
 
-        {/* Modal */}
+      {/* Cards */}
+      <div className="mt-4 flex h-full w-full flex-col items-center justify-start overflow-auto">
+        <EvalCards evaluations={evaluationCardData} onEvalClick={handleEvalClick} />
+      </div>
+
+      {/* Modal */}
       {appearModal && selectedEvaluation && (
         <dialog open className="modal">
           <div className="modal-box max-h-full w-full max-w-5xl text-black">
@@ -163,8 +163,8 @@ function Home() {
             {/* COPUS Summary Chart */}
             <div className="mt-6 flex flex-col items-center justify-center gap-6 md:flex-row">
               <PieChartWithTable
-                  studentTallies={copusTallies[selectedEvaluation.id]?.studentTallies || {}}
-                  teacherTallies={copusTallies[selectedEvaluation.id]?.teacherTallies || {}}
+                studentTallies={copusTallies[selectedEvaluation.id]?.studentTallies || {}}
+                teacherTallies={copusTallies[selectedEvaluation.id]?.teacherTallies || {}}
               />
             </div>
 
