@@ -9,12 +9,40 @@ interface Option {
   code?: string; // for program (optional)
 }
 
+type StudentOption = {
+  id: number;
+  name: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+};
+
+const toStudentOption = (u: any): StudentOption => {
+  const first = String(u.first_name ?? "").trim();
+  const last = String(u.last_name ?? "").trim();
+  const email = String(u.email ?? "").trim();
+  const name =
+      String(u.name ?? "").trim() ||
+      `${first} ${last}`.trim() ||
+      email ||
+      `Student #${u.id}`;
+
+  return {
+    id: Number(u.id),
+    name,
+    first_name: first || undefined,
+    last_name: last || undefined,
+    email: email || undefined,
+  };
+};
+
 import React, { useState, useEffect } from "react";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import {resolveFacultyId} from "../../../utils/facultyContext.ts";
 
 interface SectionsProps {
   setActiveView: (view: string) => void;
@@ -47,7 +75,8 @@ function Sections({ setActiveView }: SectionsProps) {
   const [editSelectedStudent, setEditSelectedStudent] = useState<Option | null>(null);
   const [editStagedStudents, setEditStagedStudents] = useState<Option[]>([]);
   const [editYearLevel, setEditYearLevel] = useState<Option | null>(null);       // NEW
-  const [editProgram, setEditProgram] = useState<Option | null>(null);           // NEW
+  const [editProgram, setEditProgram] = useState<Option | null>(null);
+  const [effectiveFacultyId, setEffectiveFacultyId] = useState<number | null>(null);
 
   const YEAR_OPTIONS: Option[] = [
     {id: "1", name: "1st Year"},
@@ -55,12 +84,22 @@ function Sections({ setActiveView }: SectionsProps) {
     {id: "3", name: "3rd Year"},
     {id: "4", name: "4th Year"},
   ];
+// Resolve the faculty id once on mount (and whenever your helper changes context)
+  useEffect(() => {
+    (async () => {
+      const raw = await resolveFacultyId();            // number|string|null
+      const fid = raw == null ? null : Number(raw);
+      setEffectiveFacultyId(Number.isNaN(fid) ? null : fid);
+    })();
+  }, []);
+
+// Update your fetchSections to include ?faculty=<id> and the trailing slash
   const fetchSections = async () => {
     setLoading(true);
     try {
-      const response = await api.get("/section/sections", {
-        params: { name: searchTerm || undefined },
-      });
+      const params: any = {name: searchTerm || undefined};
+      if (effectiveFacultyId) params.faculty = effectiveFacultyId;
+      const response = await api.get("/section/sections/", {params}); // note the trailing slash
       setSections(response.data);
     } catch (error) {
       console.error("Error fetching Sections:", error);
@@ -69,53 +108,54 @@ function Sections({ setActiveView }: SectionsProps) {
     }
   };
 
+  // Refetch when searchTerm or effectiveFacultyId changes
   useEffect(() => {
     fetchSections();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm]);
+  }, [searchTerm, effectiveFacultyId]);
 
+
+  // 2) Create section - send proper types + name + optional faculty param
   const createSection = async () => {
-    // If backend auto-fills name, you can drop this check; otherwise keep as fallback
-    if (!newYearLevel || !newProgram) return alert("Please select Year Level and Program");
-
-    const token = localStorage.getItem("token");
-    if (!token) return alert("You are not authenticated. Please login.");
-
+    if (!newYearLevel || !newProgram) {
+      alert("Please select Year Level and Program");
+      return;
+    }
     try {
-      // let backend auto-name based on year/program (as you mentioned)
-      const res = await api.post(
-        "/section/sections/",
-        {
-          // name: newSectionName || undefined, // optional if server auto-fills
-          year_level: newYearLevel.id,
-          program: newProgram.id,
-        },
-          {headers: {Authorization: `Bearer ${token}`}}
-      );
+      const body = {
+        name: (newSectionName ?? "").trim() || undefined,  // include if you require it
+        year_level: String(newYearLevel.id),               // <-- must be string choice
+        program: Number(newProgram.id),
+      };
+
+      const res = await api.post("/section/sections/", body, {
+        params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+      });
 
       const created: Section | undefined = res?.data;
       const sectionId = created?.id;
 
-      // bulk add staged students via the existing action
       if (sectionId && createStagedStudents.length > 0) {
-        const ids = createStagedStudents.map((s) => Number(s.id));
-        await api.post(`/section/sections/${sectionId}/add_students/`, {
-          student_ids: ids,
-        });
+        const ids = createStagedStudents.map(s => Number(s.id));
+          await api.post(`/section/sections/${sectionId}/add_students/`, {student_ids: ids}, {
+              params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+          });
       }
 
-      // reset
+      // reset…
       setNewSectionName("");
       setNewYearLevel(null);
       setNewProgram(null);
       setCreateSelectedStudent(null);
       setCreateStagedStudents([]);
       (document.getElementById("create_new_Section") as HTMLDialogElement)?.close();
-
       fetchSections();
-    } catch (error) {
-      console.error("Error creating Section:", error);
-      alert("Failed to create section.");
+    } catch (error: any) {
+      console.error("Error creating Section:", error?.response?.data || error);
+      alert(
+          "Failed to create section."
+          + (error?.response?.data ? `\n\nDetails: ${JSON.stringify(error.response.data)}` : "")
+      );
     }
   };
 
@@ -123,6 +163,8 @@ function Sections({ setActiveView }: SectionsProps) {
     try {
       await api.patch(`/section/sections/${Section.id}/`, {
         is_active: !Section.is_active,
+      }, {
+          params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
       });
       fetchSections();
     } catch (error) {
@@ -132,7 +174,9 @@ function Sections({ setActiveView }: SectionsProps) {
 
   const deleteSection = async (SectionId: number) => {
     try {
-      await api.delete(`/section/sections/${SectionId}/`);
+        await api.delete(`/section/sections/${SectionId}/`, {
+            params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+        });
       fetchSections();
     } catch (error) {
       console.error("Error deleting Section:", error);
@@ -167,35 +211,33 @@ function Sections({ setActiveView }: SectionsProps) {
     setEditActive(section.is_active);
     setEditStagedStudents([]);
 
-    try {
-      const res = await api.get(`/section/sections/${section.id}/students/`);
-      const users: any[] = Array.isArray(res.data) ? res.data : [];
-      const mapped: Option[] = users.map((u) => {
-        const first = (u.first_name ?? "").toString().trim();
-        const last = (u.last_name ?? "").toString().trim();
-        const email = (u.email ?? "").toString().trim();
-        const name = `${first} ${last}`.trim() || email || `User #${u.id}`;
-        return { id: u.id, name };
+      const res = await api.get(`/section/sections/${section.id}/students/`, {
+          params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
       });
-      setEditCurrentStudents(mapped);
-    } catch (e) {
-      console.error("Failed to load section students:", e);
-      setEditCurrentStudents([]);
-    }
+    const users: any[] = Array.isArray(res.data) ? res.data : [];
+      const mapped: Option[] = users.map(toStudentOption);
+    setEditCurrentStudents(mapped);
 
     (document.getElementById("edit_section_modal") as HTMLDialogElement)?.showModal();
   };
+
 
   // Submit edit of fields only
   const submitEditSection = async () => {
     if (!editSection) return;
     try {
-      await api.patch(`/section/sections/${editSection.id}/`, {
-        name: editName,                   // optional if server auto-fills; keep if you allow manual rename
-        is_active: editActive,
-        year_level: editYearLevel?.id,    // NEW
-        program: editProgram?.id,         // NEW
-      });
+        await api.patch(
+            `/section/sections/${editSection.id}/`,
+            {
+                name: editName,
+                is_active: editActive,
+                year_level: editYearLevel?.id,
+                program: editProgram?.id,
+            },
+            {
+                params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+            }
+        );
       (document.getElementById("edit_section_modal") as HTMLDialogElement)?.close();
       setEditSection(null);
       fetchSections();
@@ -204,7 +246,8 @@ function Sections({ setActiveView }: SectionsProps) {
     }
   };
 
-  // Submit staged students for edit dialog
+
+    // Submit staged students for edit dialog
   const submitEditStudents = async () => {
     if (!editSection) return;
     if (editStagedStudents.length === 0) {
@@ -222,6 +265,8 @@ function Sections({ setActiveView }: SectionsProps) {
       const ids = toAdd.map((s) => Number(s.id));
       await api.post(`/section/sections/${editSection.id}/add_students/`, {
         student_ids: ids,
+      }, {
+          params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
       });
       // Merge and clear staged
       setEditCurrentStudents((prev) => [...prev, ...toAdd]);
@@ -356,17 +401,9 @@ function Sections({ setActiveView }: SectionsProps) {
                   label="Student Search"
                   placeholder="Type to search students"
                   fetchUrl="/users/students/"
+                  mapResponse={(rows: any[]) => rows.map(toStudentOption)}
                   value={createSelectedStudent} // or editSelectedStudent in edit dialog
                   onChange={setCreateSelectedStudent}
-                  mapResponse={(rows: any[]) =>
-                      rows.map((u) => ({
-                        id: u.id,
-                        name: `${(u.first_name ?? "").trim()} ${(u.last_name ?? "").trim()}`.trim() || u.email || `User #${u.id}`,
-                        first_name: u.first_name,
-                        last_name: u.last_name,
-                        email: u.email,
-                      }))
-                  }
                 />
                 <div className="mt-2 flex gap-2">
                   <button type="button" className="btn btn-primary" onClick={addCreateStudentToBatch}>
@@ -539,6 +576,47 @@ function Sections({ setActiveView }: SectionsProps) {
                   ]}
                   getRowKey={(s) => s.id}
               />
+            </div>
+
+            <div className="mb-2 text-lg font-bold">Assign Students (optional)</div>
+            <ComboboxTextField
+                label="Student Search"
+                placeholder="Type to search students"
+                fetchUrl="/users/students/"
+                mapResponse={(rows: any[]) => rows.map(toStudentOption)}
+                value={editSelectedStudent}                 // <-- use edit state
+                onChange={setEditSelectedStudent}           // <-- use edit state
+            />
+            <div className="mt-2 flex gap-2">
+              <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    if (!editSelectedStudent) return;
+                    // don't add if already in current students
+                    const alreadyAssigned = editCurrentStudents.some(s => Number(s.id) === Number(editSelectedStudent.id));
+                    if (alreadyAssigned) {
+                      alert("Student is already in this section.");
+                      return;
+                    }
+                    // don't add if already staged
+                    const alreadyStaged = editStagedStudents.some(s => Number(s.id) === Number(editSelectedStudent.id));
+                    if (!alreadyStaged) setEditStagedStudents(prev => [...prev, editSelectedStudent]);
+                    setEditSelectedStudent(null);
+                  }}
+              >
+                Add to list
+              </button>
+              <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setEditSelectedStudent(null);
+                    setEditStagedStudents([]);
+                  }}
+              >
+                Clear
+              </button>
             </div>
 
             {/* To Add */}

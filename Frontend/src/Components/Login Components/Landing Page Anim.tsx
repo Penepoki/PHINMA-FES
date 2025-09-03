@@ -66,8 +66,8 @@ export function AnimatedHeading() {
         {words[index]}
       </span>
 
-      <span className="text-[18px] font-extralight text-[#888888] leading-loose w-[60%] mt-24">
-        To a smarter way of evaluating teaching. Our platform brings together the Student Feedback Framework (SFF) aswell as the COPUS classroom observation model, all assisted by AI-driven sentiment analysis and NLP insights wrapped through the Lean Six Sigma approach. With clear data, structured feedback, and continuous improvement tools, evaluations become fair, transparent, and genuinely impactful for both faculty and students.
+      <span className="text-[18px] hidden lg:block max-h-80 overflow-y-auto font-extralight text-[#888888] leading-loose w-[60%] mt-24">
+        To a smarter, more streamlined way to evaluate teaching. Our platform combines the Student Feedback Framework (SFF) and the COPUS classroom observation model, enhanced by AI-driven sentiment analysis and NLP insights all while leveraging principles from the Lean Six Sigma approach, we focus on continuous improvement by turning evaluation data into actionable insights for both academic and business fronts. With structured feedback and transparent processes, evaluations become more meaningful, fair, and effective for faculty, students and management alike.
       </span>
     </h6>
   );

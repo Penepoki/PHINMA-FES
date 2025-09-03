@@ -321,7 +321,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
         breadcrumbs={[
           { label: "Home", view: "home" },
           { label: "Evaluation", view: "evaluation" },
-          { label: "Create Student Evaluation" },
+          { label: "Create Student Evaluation" }
         ]}
       />
 
