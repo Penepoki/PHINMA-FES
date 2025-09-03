@@ -100,4 +100,6 @@ urlpatterns = [
 
     # HR/Dean user admin endpoints
     path('admin/', include(user_admin_router.urls)),
+
+    path("uploads/presign", presign_put, name="presign-put")
 ]

@@ -22,6 +22,20 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
 from django.shortcuts import get_object_or_404
+# --- S3 / MinIO presign helpers ---
+import os, re, uuid, mimetypes
+from urllib.parse import urljoin
+import boto3
+
+
+def _s3_client():
+    return boto3.client(
+        "s3",
+        region_name=os.getenv("AWS_REGION", "us-east-1"),
+        endpoint_url=os.getenv("S3_ENDPOINT"),
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    )
 # from rest_framework.filter import Search
 import pandas as pd
 from datetime import datetime, timedelta, time
@@ -2580,6 +2594,44 @@ def _resolve_faculty_from_request_or_hr_temp(request):
         return getattr(user.faculty, 'id', None)
 
     return None
+
+
+# --- Presign PUT for direct browser uploads ---
+BUCKET = os.getenv("S3_BUCKET")
+CDN_BASE = os.getenv("CDN_PUBLIC_BASE", "")
+_SAFE_PATH = re.compile(r"^[a-zA-Z0-9/_\-.]+$")
+_ALLOWED_CT = {"image/png", "image/jpeg", "image/webp", "image/avif"}
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def presign_put(request):
+    """
+    Body: { "path": "deans/<ID>/photo.png", "contentType": "image/png" }
+    Returns: { uploadUrl, fileUrl }
+    """
+    path = request.data.get("path") or ""
+    ctype = request.data.get("contentType") or ""
+
+    if not _SAFE_PATH.match(path):
+        return Response({"detail": "Invalid path"}, status=400)
+    if ctype not in _ALLOWED_CT:
+        return Response({"detail": "Unsupported content type."}, status=400)
+
+    base, ext = os.path.splitext(path)
+    if not ext:
+        ext = mimetypes.guess_extension(ctype) or ".bin"
+    key = f"{base}-{uuid.uuid4().hex}{ext}"
+
+    client = _s3_client()
+    upload_url = client.generate_presigned_url(
+        "put_object",
+        Params={"Bucket": BUCKET, "Key": key, "ContentType": ctype},
+        ExpiresIn=300,
+    )
+    file_url = urljoin(CDN_BASE.rstrip("/") + "/", key) if CDN_BASE else f"https://s3.phinma-fes.com/{BUCKET}/{key}"
+
+    return Response({"uploadUrl": upload_url, "fileUrl": file_url})
 
 
 # --- HR USERS MANAGEMENT (list/create/update/soft-delete, role management) ---

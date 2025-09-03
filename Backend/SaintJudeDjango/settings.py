@@ -37,16 +37,17 @@ CSRF_TRUSTED_ORIGINS = [
     "https://api.phinma-fes.com",
     "https://www.phinma-fes.com",
     "https://srv948362.hstgr.cloud",
-    "http://localhost:5174",  # Your frontend running on Vite
-    "http://127.0.0.1:5174",  # You can add this as well if applicable (alternative forms)
+    "http://localhost:5173",  # Your frontend running on Vite
+    "http://127.0.0.1:5173",  # You can add this as well if applicable (alternative forms)
 ]
 
 CORS_ALLOWED_ORIGINS = [
     "https://phinma-fes.com",
     "https://www.phinma-fes.com",
     "https://api.phinma-fes.com",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
-
 CORS_ALLOW_CREDENTIALS = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
