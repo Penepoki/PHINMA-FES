@@ -2590,24 +2590,40 @@ from django.contrib.auth.models import Group
 class UserAdminSerializer(drf_serializers.ModelSerializer):
     roles = drf_serializers.ListField(child=drf_serializers.CharField(), write_only=True, required=False)
     roles_read = drf_serializers.SerializerMethodField(read_only=True)
+    password = drf_serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = get_user_model()
         fields = [
             'id', 'email', 'first_name', 'last_name', 'is_active',
-            'roles', 'roles_read'
+            'roles', 'roles_read', 'password'
         ]
-        read_only_fields = ['email']
+        read_only_fields = []
 
     def get_roles_read(self, obj):
         return list(obj.groups.values_list('name', flat=True))
 
     def create(self, validated_data):
+        request = self.context.get('request')
         roles = validated_data.pop('roles', [])
+        raw_password = validated_data.pop('password', None)
         user = super().create(validated_data)
+        # Set password if provided
+        if raw_password:
+            user.set_password(raw_password)
+            user.save(update_fields=['password'])
+        # Assign provided roles if any
         if roles:
             groups = Group.objects.filter(name__in=roles)
             user.groups.set(groups)
+        # If creator is HR, ensure the created user has 'professor' role
+        try:
+            if request and request.user and request.user.groups.filter(name__iexact='HR').exists():
+                prof_group, _ = Group.objects.get_or_create(name='professor')
+                user.groups.add(prof_group)
+        except Exception:
+            # Fail-safe: do not block user creation if group not found
+            pass
         return user
 
     def update(self, instance, validated_data):
