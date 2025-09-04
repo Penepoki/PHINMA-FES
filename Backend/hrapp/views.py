@@ -26,6 +26,7 @@ from django.shortcuts import get_object_or_404
 import os, re, uuid, mimetypes
 from urllib.parse import urljoin
 import boto3
+from django.core.cache import cache
 
 
 def _s3_client():
@@ -1891,10 +1892,33 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def get_professors(request):
     user = request.user
-    professors = User.objects.filter(groups__name='professor')
-    if not user.is_superuser and hasattr(user, 'faculty'):
-        professors = professors.filter(faculties_as_professor=user.faculty)
-    serializer = UserProgramProfessorSerializer(professors, many=True)
+    qs = User.objects.filter(groups__name__iexact='professor', is_active=True)
+
+    # Optional search support for combobox
+    search = request.query_params.get('search')
+    if search:
+        qs = qs.filter(
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(email__icontains=search)
+        )
+
+    if user.is_superuser:
+        pass
+    elif user.groups.filter(name='HR').exists():
+        temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+        if temp_faculty_id:
+            qs = qs.filter(faculties_as_professor__id=temp_faculty_id)
+        elif user.faculty:
+            qs = qs.filter(faculties_as_professor=user.faculty)
+        else:
+            qs = qs.none()
+    elif user.faculty:
+        qs = qs.filter(faculties_as_professor=user.faculty)
+    else:
+        qs = qs.none()
+
+    serializer = UserProgramProfessorSerializer(qs.distinct(), many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 

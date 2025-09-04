@@ -39,10 +39,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserDashboardSerializer(serializers.ModelSerializer):
     profile_picture_url = serializers.SerializerMethodField()
+    full_name = serializers.ReadOnlyField(source='full_name')
 
     class Meta:
         model = User
-        fields = ['first_name', 'profile_picture', 'profile_picture_url']
+        fields = ['first_name', 'last_name', 'full_name', 'profile_picture', 'profile_picture_url']
 
     def get_profile_picture_url(self, obj):
         request = self.context.get('request')
