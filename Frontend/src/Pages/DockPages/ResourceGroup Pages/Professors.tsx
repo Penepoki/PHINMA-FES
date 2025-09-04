@@ -42,11 +42,11 @@ function Professors({setActiveView}: ProfessorsProps) {
             setLoading(true);
             try {
                 // Scoped by backend to current (or temp) faculty; no program_id yields all in faculty
-                const res = await api.get("/program-professor/program-professors/");
-                const mapped: ProfessorRow[] = (res.data || []).map((pp: any) => ({
-                    id: Number(pp.professor),
-                    full_name: pp.professor_details?.full_name || `Professor #${pp.professor}`,
-                    email: pp.professor_details?.email,
+                const res = await api.get("/users/professors/");
+                const mapped: ProfessorRow[] = (res.data || []).map((u: any) => ({
+                    id: Number(u.id),
+                    full_name: u.full_name || u.name || `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || `Professor #${u.id}`,
+                    email: u.email,
                 }));
                 // De-duplicate by professor id
                 const uniq = new Map<number, ProfessorRow>();
@@ -123,11 +123,11 @@ function Professors({setActiveView}: ProfessorsProps) {
             }
             setShowDialog(false);
             // refresh list
-            const res = await api.get("/program-professor/program-professors/");
-            const mapped: ProfessorRow[] = (res.data || []).map((pp: any) => ({
-                id: Number(pp.professor),
-                full_name: pp.professor_details?.full_name || `Professor #${pp.professor}`,
-                email: pp.professor_details?.email,
+            const res = await api.get("/users/professors/");
+            const mapped: ProfessorRow[] = (res.data || []).map((u: any) => ({
+                id: Number(u.id),
+                full_name: u.full_name || u.name || `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || `Professor #${u.id}`,
+                email: u.email,
             }));
             const uniq = new Map<number, ProfessorRow>();
             for (const r of mapped) uniq.set(r.id, r);

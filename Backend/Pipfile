@@ -23,6 +23,7 @@ gunicorn = "*"
 torch = "*"
 transformers = { extras = ["torch"], version = "*" }
 pyyaml = "*"
+boto3 = "*"
 
 [dev-packages]
 

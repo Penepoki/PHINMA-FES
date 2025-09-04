@@ -5,6 +5,7 @@ import YearCard from "../../../Components/Dashboard Components/Dean Components/Y
 import Clock from "../../../Components/Dashboard Components/Dean Components/Clock";
 import RecentlyEvaluatedFaculty from "../../../Components/Dashboard Components/Dean Components/Recently Evaluated";
 import api from "../../../utils/api.ts";
+import {resolveFacultyId} from "../../../utils/facultyContext";
 
 interface HomeProps {
   activeView: string;
@@ -19,12 +20,23 @@ const Home: React.FC<any> = ({ activeView, setActiveView }) => {
   const [isTempDean, setIsTempDean] = useState(false);
 
   useEffect(() => {
-    const isTemp = localStorage.getItem('isTempFaculty') === 'true';
-    const storedFacultyId = localStorage.getItem('facultyId');
-    setIsTempDean(isTemp);
-    if (isTemp && storedFacultyId) setFacultyId(Number(storedFacultyId));
-    if (location.state?.facultyId) setFacultyId(location.state.facultyId);
-    if (location.state?.collegeName) setCollegeName(location.state.collegeName);
+    const init = async () => {
+      const isTemp = localStorage.getItem('isTempFaculty') === 'true';
+      setIsTempDean(isTemp);
+      // Prefer explicit faculty from route -> then resolved (HR temp cache or own) -> fallback local storage
+      if (location.state?.facultyId) {
+        setFacultyId(location.state.facultyId);
+      } else {
+        const resolved = await resolveFacultyId();
+        if (resolved) setFacultyId(resolved);
+        else {
+          const storedFacultyId = localStorage.getItem('facultyId');
+          if (storedFacultyId) setFacultyId(Number(storedFacultyId));
+        }
+      }
+      if (location.state?.collegeName) setCollegeName(location.state.collegeName);
+    };
+    init();
   }, [location.state]);
 
   const handleBackToHR = async () => {
@@ -43,24 +55,43 @@ const Home: React.FC<any> = ({ activeView, setActiveView }) => {
 
   console.log("Active View:", activeView); // Debugging line
 
-  const yearData = [
-    {
-      year: "1st",
-      ratio: "16/32",
-    },
-    {
-      year: "2nd",
-      ratio: "34/72",
-    },
-    {
-      year: "3rd",
-      ratio: "52/52",
-    },
-    {
-      year: "4th",
-      ratio: "11/12",
-    },
-  ];
+  const [yearData, setYearData] = useState([
+    {year: "1st", ratio: "0/0"},
+    {year: "2nd", ratio: "0/0"},
+    {year: "3rd", ratio: "0/0"},
+    {year: "4th", ratio: "0/0"},
+  ]);
+
+  useEffect(() => {
+    const fetchYearCounts = async () => {
+      try {
+        const paramsBase: any = {};
+        if (facultyId) paramsBase.faculty = facultyId;
+        // Could add program/professor filters if available in state
+        const levels = ["1", "2", "3", "4"];
+        const responses = await Promise.all(
+            levels.map((lvl) =>
+                api.get(
+                    "/studentevaluationresponse/studentevaluationresponse/year-completion-summary",
+                    {params: {...paramsBase, year_level: lvl}}
+                )
+            )
+        );
+
+        const mapped = responses.map((res, idx) => {
+          const completed = res.data?.completed ?? 0;
+          const total = res.data?.total ?? 0;
+          const label = ["1st", "2nd", "3rd", "4th"][idx];
+          return {year: label, ratio: `${completed}/${total}`};
+        });
+        setYearData(mapped);
+      } catch (e) {
+        console.error("Failed to fetch year-level counts", e);
+      }
+    };
+
+    fetchYearCounts();
+  }, [facultyId]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
