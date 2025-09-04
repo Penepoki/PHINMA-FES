@@ -453,7 +453,6 @@ function Rooms({ setActiveView }: RoomsProps) {
         columns={roomColumns}
         getRowKey={(room) => room.id}
         actions={roomActions}
-        selectable
         loading={loading}
       />
     </div>

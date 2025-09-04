@@ -22,10 +22,10 @@ const toStudentOption = (u: any): StudentOption => {
   const last = String(u.last_name ?? "").trim();
   const email = String(u.email ?? "").trim();
   const name =
-      String(u.name ?? "").trim() ||
-      `${first} ${last}`.trim() ||
-      email ||
-      `Student #${u.id}`;
+    String(u.name ?? "").trim() ||
+    `${first} ${last}`.trim() ||
+    email ||
+    `Student #${u.id}`;
 
   return {
     id: Number(u.id),
@@ -42,7 +42,7 @@ import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
-import {resolveFacultyId} from "../../../utils/facultyContext.ts";
+import { resolveFacultyId } from "../../../utils/facultyContext.ts";
 
 interface SectionsProps {
   setActiveView: (view: string) => void;
@@ -79,12 +79,12 @@ function Sections({ setActiveView }: SectionsProps) {
   const [effectiveFacultyId, setEffectiveFacultyId] = useState<number | null>(null);
 
   const YEAR_OPTIONS: Option[] = [
-    {id: "1", name: "1st Year"},
-    {id: "2", name: "2nd Year"},
-    {id: "3", name: "3rd Year"},
-    {id: "4", name: "4th Year"},
+    { id: "1", name: "1st Year" },
+    { id: "2", name: "2nd Year" },
+    { id: "3", name: "3rd Year" },
+    { id: "4", name: "4th Year" },
   ];
-// Resolve the faculty id once on mount (and whenever your helper changes context)
+  // Resolve the faculty id once on mount (and whenever your helper changes context)
   useEffect(() => {
     (async () => {
       const raw = await resolveFacultyId();            // number|string|null
@@ -93,13 +93,13 @@ function Sections({ setActiveView }: SectionsProps) {
     })();
   }, []);
 
-// Update your fetchSections to include ?faculty=<id> and the trailing slash
+  // Update your fetchSections to include ?faculty=<id> and the trailing slash
   const fetchSections = async () => {
     setLoading(true);
     try {
-      const params: any = {name: searchTerm || undefined};
+      const params: any = { name: searchTerm || undefined };
       if (effectiveFacultyId) params.faculty = effectiveFacultyId;
-      const response = await api.get("/section/sections/", {params}); // note the trailing slash
+      const response = await api.get("/section/sections/", { params }); // note the trailing slash
       setSections(response.data);
     } catch (error) {
       console.error("Error fetching Sections:", error);
@@ -129,7 +129,7 @@ function Sections({ setActiveView }: SectionsProps) {
       };
 
       const res = await api.post("/section/sections/", body, {
-        params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+        params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined,
       });
 
       const created: Section | undefined = res?.data;
@@ -137,9 +137,9 @@ function Sections({ setActiveView }: SectionsProps) {
 
       if (sectionId && createStagedStudents.length > 0) {
         const ids = createStagedStudents.map(s => Number(s.id));
-          await api.post(`/section/sections/${sectionId}/add_students/`, {student_ids: ids}, {
-              params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
-          });
+        await api.post(`/section/sections/${sectionId}/add_students/`, { student_ids: ids }, {
+          params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined,
+        });
       }
 
       // reset…
@@ -153,8 +153,8 @@ function Sections({ setActiveView }: SectionsProps) {
     } catch (error: any) {
       console.error("Error creating Section:", error?.response?.data || error);
       alert(
-          "Failed to create section."
-          + (error?.response?.data ? `\n\nDetails: ${JSON.stringify(error.response.data)}` : "")
+        "Failed to create section."
+        + (error?.response?.data ? `\n\nDetails: ${JSON.stringify(error.response.data)}` : "")
       );
     }
   };
@@ -164,7 +164,7 @@ function Sections({ setActiveView }: SectionsProps) {
       await api.patch(`/section/sections/${Section.id}/`, {
         is_active: !Section.is_active,
       }, {
-          params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+        params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined,
       });
       fetchSections();
     } catch (error) {
@@ -174,9 +174,9 @@ function Sections({ setActiveView }: SectionsProps) {
 
   const deleteSection = async (SectionId: number) => {
     try {
-        await api.delete(`/section/sections/${SectionId}/`, {
-            params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
-        });
+      await api.delete(`/section/sections/${SectionId}/`, {
+        params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined,
+      });
       fetchSections();
     } catch (error) {
       console.error("Error deleting Section:", error);
@@ -211,11 +211,11 @@ function Sections({ setActiveView }: SectionsProps) {
     setEditActive(section.is_active);
     setEditStagedStudents([]);
 
-      const res = await api.get(`/section/sections/${section.id}/students/`, {
-          params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
-      });
+    const res = await api.get(`/section/sections/${section.id}/students/`, {
+      params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined,
+    });
     const users: any[] = Array.isArray(res.data) ? res.data : [];
-      const mapped: Option[] = users.map(toStudentOption);
+    const mapped: Option[] = users.map(toStudentOption);
     setEditCurrentStudents(mapped);
 
     (document.getElementById("edit_section_modal") as HTMLDialogElement)?.showModal();
@@ -226,18 +226,18 @@ function Sections({ setActiveView }: SectionsProps) {
   const submitEditSection = async () => {
     if (!editSection) return;
     try {
-        await api.patch(
-            `/section/sections/${editSection.id}/`,
-            {
-                name: editName,
-                is_active: editActive,
-                year_level: editYearLevel?.id,
-                program: editProgram?.id,
-            },
-            {
-                params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
-            }
-        );
+      await api.patch(
+        `/section/sections/${editSection.id}/`,
+        {
+          name: editName,
+          is_active: editActive,
+          year_level: editYearLevel?.id,
+          program: editProgram?.id,
+        },
+        {
+          params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined,
+        }
+      );
       (document.getElementById("edit_section_modal") as HTMLDialogElement)?.close();
       setEditSection(null);
       fetchSections();
@@ -247,7 +247,7 @@ function Sections({ setActiveView }: SectionsProps) {
   };
 
 
-    // Submit staged students for edit dialog
+  // Submit staged students for edit dialog
   const submitEditStudents = async () => {
     if (!editSection) return;
     if (editStagedStudents.length === 0) {
@@ -266,7 +266,7 @@ function Sections({ setActiveView }: SectionsProps) {
       await api.post(`/section/sections/${editSection.id}/add_students/`, {
         student_ids: ids,
       }, {
-          params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+        params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined,
       });
       // Merge and clear staged
       setEditCurrentStudents((prev) => [...prev, ...toAdd]);
@@ -375,24 +375,24 @@ function Sections({ setActiveView }: SectionsProps) {
               </div>
               {/* Year Level (local options; no API call) */}
               <ComboboxTextField
-                  label="Year Level"
-                  placeholder="Select year"
-                  fetchUrl=""                  // empty => won't fetch
-                  options={YEAR_OPTIONS}
-                  value={newYearLevel}
-                  onChange={setNewYearLevel}
+                label="Year Level"
+                placeholder="Select year"
+                fetchUrl=""                  // empty => won't fetch
+                options={YEAR_OPTIONS}
+                value={newYearLevel}
+                onChange={setNewYearLevel}
               />
 
               {/* Program (type-ahead from backend) */}
               <ComboboxTextField
-                  label="Program"
-                  placeholder="Search program"
-                  fetchUrl="/program/programs/"  // ProgramViewSet exists in backend
-                  value={newProgram}
-                  onChange={setNewProgram}
-                  mapResponse={(rows: any[]) =>
-                      rows.map((p) => ({id: p.id, name: p.name, code: p.code}))
-                  }
+                label="Program"
+                placeholder="Search program"
+                fetchUrl="/program/programs/"  // ProgramViewSet exists in backend
+                value={newProgram}
+                onChange={setNewProgram}
+                mapResponse={(rows: any[]) =>
+                  rows.map((p) => ({ id: p.id, name: p.name, code: p.code }))
+                }
               />
               {/* Assign Students (create) */}
               <div className="rounded border border-gray-300 p-3">
@@ -423,22 +423,22 @@ function Sections({ setActiveView }: SectionsProps) {
                 <div className="mt-3">
                   <div className="font-semibold">Students to Add:</div>
                   <DataTable
-                      data={createStagedStudents}
-                      columns={[
-                        {header: "First Name", accessor: (s) => s.first_name ?? "-"},
-                        {header: "Last Name", accessor: (s) => s.last_name ?? "-"},
-                        {header: "Email", accessor: (s) => s.email ?? "-"},
-                      ]}
-                      getRowKey={(s) => s.id}
-                      actions={(s) => (
-                          <button
-                              type="button"
-                              className="text-red-500 underline"
-                              onClick={() => removeCreateStudentFromBatch(s.id)}
-                          >
-                            remove
-                          </button>
-                      )}
+                    data={createStagedStudents}
+                    columns={[
+                      { header: "First Name", accessor: (s) => s.first_name ?? "-" },
+                      { header: "Last Name", accessor: (s) => s.last_name ?? "-" },
+                      { header: "Email", accessor: (s) => s.email ?? "-" },
+                    ]}
+                    getRowKey={(s) => s.id}
+                    actions={(s) => (
+                      <button
+                        type="button"
+                        className="text-red-500 underline"
+                        onClick={() => removeCreateStudentFromBatch(s.id)}
+                      >
+                        remove
+                      </button>
+                    )}
                   />
                 </div>
               </div>
@@ -541,79 +541,79 @@ function Sections({ setActiveView }: SectionsProps) {
 
             {/* Edit: Year Level */}
             <ComboboxTextField
-                label="Year Level"
-                placeholder="Select year"
-                fetchUrl=""
-                options={YEAR_OPTIONS}
-                value={editYearLevel}
-                onChange={setEditYearLevel}
+              label="Year Level"
+              placeholder="Select year"
+              fetchUrl=""
+              options={YEAR_OPTIONS}
+              value={editYearLevel}
+              onChange={setEditYearLevel}
             />
 
             {/* Edit: Program */}
             <ComboboxTextField
-                label="Program"
-                placeholder="Search program"
-                fetchUrl="/program/programs/"
-                value={editProgram}
-                onChange={setEditProgram}
-                mapResponse={(rows: any[]) =>
-                    rows.map((p) => ({id: p.id, name: p.name, code: p.code}))
-                }
+              label="Program"
+              placeholder="Search program"
+              fetchUrl="/program/programs/"
+              value={editProgram}
+              onChange={setEditProgram}
+              mapResponse={(rows: any[]) =>
+                rows.map((p) => ({ id: p.id, name: p.name, code: p.code }))
+              }
             />
 
             {/* Current Students */}
             <div className="mt-3">
               <div className="font-semibold">Currently Assigned:</div>
               <DataTable
-                  data={editCurrentStudents}
-                  columns={[
-                    {header: "First Name", accessor: (s) => s.first_name ?? (s.name?.split(" ")[0] ?? "-")},
-                    {
-                      header: "Last Name",
-                      accessor: (s) => s.last_name ?? (s.name?.split(" ").slice(1).join(" ") || "-")
-                    },
-                    {header: "Email", accessor: (s) => s.email ?? "-"},
-                  ]}
-                  getRowKey={(s) => s.id}
+                data={editCurrentStudents}
+                columns={[
+                  { header: "First Name", accessor: (s) => s.first_name ?? (s.name?.split(" ")[0] ?? "-") },
+                  {
+                    header: "Last Name",
+                    accessor: (s) => s.last_name ?? (s.name?.split(" ").slice(1).join(" ") || "-")
+                  },
+                  { header: "Email", accessor: (s) => s.email ?? "-" },
+                ]}
+                getRowKey={(s) => s.id}
               />
             </div>
 
             <div className="mb-2 text-lg font-bold">Assign Students (optional)</div>
             <ComboboxTextField
-                label="Student Search"
-                placeholder="Type to search students"
-                fetchUrl="/users/students/"
-                mapResponse={(rows: any[]) => rows.map(toStudentOption)}
-                value={editSelectedStudent}                 // <-- use edit state
-                onChange={setEditSelectedStudent}           // <-- use edit state
+              label="Student Search"
+              placeholder="Type to search students"
+              fetchUrl="/users/students/"
+              mapResponse={(rows: any[]) => rows.map(toStudentOption)}
+              value={editSelectedStudent}                 // <-- use edit state
+              onChange={setEditSelectedStudent}           // <-- use edit state
             />
             <div className="mt-2 flex gap-2">
               <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    if (!editSelectedStudent) return;
-                    // don't add if already in current students
-                    const alreadyAssigned = editCurrentStudents.some(s => Number(s.id) === Number(editSelectedStudent.id));
-                    if (alreadyAssigned) {
-                      alert("Student is already in this section.");
-                      return;
-                    }
-                    // don't add if already staged
-                    const alreadyStaged = editStagedStudents.some(s => Number(s.id) === Number(editSelectedStudent.id));
-                    if (!alreadyStaged) setEditStagedStudents(prev => [...prev, editSelectedStudent]);
-                    setEditSelectedStudent(null);
-                  }}
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  if (!editSelectedStudent) return;
+                  // don't add if already in current students
+                  const alreadyAssigned = editCurrentStudents.some(s => Number(s.id) === Number(editSelectedStudent.id));
+                  if (alreadyAssigned) {
+                    alert("Student is already in this section.");
+                    return;
+                  }
+                  // don't add if already staged
+                  const alreadyStaged = editStagedStudents.some(s => Number(s.id) === Number(editSelectedStudent.id));
+                  if (!alreadyStaged) setEditStagedStudents(prev => [...prev, editSelectedStudent]);
+                  setEditSelectedStudent(null);
+                }}
               >
                 Add to list
               </button>
               <button
-                  type="button"
-                  className="btn"
-                  onClick={() => {
-                    setEditSelectedStudent(null);
-                    setEditStagedStudents([]);
-                  }}
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setEditSelectedStudent(null);
+                  setEditStagedStudents([]);
+                }}
               >
                 Clear
               </button>
@@ -623,21 +623,21 @@ function Sections({ setActiveView }: SectionsProps) {
             <div className="mt-3">
               <div className="font-semibold">To Add:</div>
               <DataTable
-                  data={editStagedStudents}
-                  columns={[
-                    {header: "First Name", accessor: (s) => s.first_name ?? "-"},
-                    {header: "Last Name", accessor: (s) => s.last_name ?? "-"},
-                    {header: "Email", accessor: (s) => s.email ?? "-"},
-                  ]}
-                  getRowKey={(s) => s.id}
-                  actions={(s) => (
-                      <button
-                          type="button"
-                          className="text-red-500 underline"
-                          onClick={() => removeEditStudentFromBatch(s.id)}
-                      >
-                        remove
-                      </button>
+                data={editStagedStudents}
+                columns={[
+                  { header: "First Name", accessor: (s) => s.first_name ?? "-" },
+                  { header: "Last Name", accessor: (s) => s.last_name ?? "-" },
+                  { header: "Email", accessor: (s) => s.email ?? "-" },
+                ]}
+                getRowKey={(s) => s.id}
+                actions={(s) => (
+                  <button
+                    type="button"
+                    className="text-red-500 underline"
+                    onClick={() => removeEditStudentFromBatch(s.id)}
+                  >
+                    remove
+                  </button>
                 )}
               />
 
@@ -666,7 +666,6 @@ function Sections({ setActiveView }: SectionsProps) {
         columns={SectionColumns}
         getRowKey={(Section) => Section.id}
         actions={SectionActions}
-        selectable
         loading={loading}
       />
     </div>

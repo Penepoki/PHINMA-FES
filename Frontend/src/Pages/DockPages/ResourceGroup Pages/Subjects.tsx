@@ -362,7 +362,6 @@ function Subjects({ setActiveView }: SubjectsProps) {
         columns={subjectColumns}
         getRowKey={(subject) => subject.name}
         actions={subjectActions}
-        selectable
         loading={loading}
       />
     </div>
