@@ -39,7 +39,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserDashboardSerializer(serializers.ModelSerializer):
     profile_picture_url = serializers.SerializerMethodField()
-    full_name = serializers.ReadOnlyField(source='full_name')
+    full_name = serializers.ReadOnlyField()
 
     class Meta:
         model = User
