@@ -171,18 +171,18 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({ evaluationI
         let endpoint = "";
 
         if (filterType === "section") {
-          endpoint = `/studentevaluationresponse/studentevaluationresponse/unique-count-by-evaluation?student_evaluation=${evaluationId}`;
+          endpoint = `/studentevaluationresponse/studentevaluationresponse/completed-count-by-evaluation?student_evaluation=${evaluationId}`;
         } else if (filterType === "program") {
-          endpoint = `/studentevaluationresponse/studentevaluationresponse/unique-count-by-program?program=${filterId}`;
+          endpoint = `/studentevaluationresponse/studentevaluationresponse/completed-count-by-program?program=${filterId}`;
         } else if (filterType === "professor") {
-          endpoint = `/studentevaluationresponse/studentevaluationresponse/unique-count-by-professor?professor=${filterId}`;
+          endpoint = `/studentevaluationresponse/studentevaluationresponse/completed-count-by-professor?professor=${filterId}`;
         } else if (filterType === "faculty") {
-          endpoint = `/studentevaluationresponse/studentevaluationresponse/unique-count-by-faculty?faculty=${filterId}`;
+          endpoint = `/studentevaluationresponse/studentevaluationresponse/completed-count-by-faculty?faculty=${filterId}`;
         }
 
         if (endpoint) {
           const res = await api.get(endpoint);
-          setUniqueStudentCount(res.data.unique_response_count);
+          setUniqueStudentCount(res.data.completed_count);
         }
       } catch (e) {
         setUniqueStudentCount(null);

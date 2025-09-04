@@ -22,11 +22,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
 from django.shortcuts import get_object_or_404
+from django.core.cache import cache
 # --- S3 / MinIO presign helpers ---
 import os, re, uuid, mimetypes
 from urllib.parse import urljoin
 import boto3
-from django.core.cache import cache
 
 
 def _s3_client():
@@ -989,6 +989,38 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         unique_count = unique_pairs.count()
         return Response({'unique_response_count': unique_count}, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'], url_path='unique-count-by-year')
+    def unique_count_by_year(self, request):
+        """RETURNS UNIQUE COUNT PER STUDENT FILTERED BY YEAR LEVEL AND OPTIONAL FACULTY/PROGRAM/PROFESSOR
+        usage: /studentevaluationresponse/studentevaluationresponse/unique-count-by-year?year_level=1&faculty=<fid>&program=<pid>&professor=<uid>
+        Counts distinct pairs of (user_id, canonical_id) among users with role 'Student' who have completed responses within the scoped schedules.
+        """
+        year_level = request.query_params.get('year_level')
+        if not year_level:
+            return Response({'error': 'year_level is required (values: 1,2,3,4)'}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs = StudentEvaluationResponse.objects.filter(
+            student_evaluation__schedule__section__year_level=str(year_level)
+        )
+
+        # Optional filters
+        faculty_id = request.query_params.get('faculty')
+        program_id = request.query_params.get('program')
+        professor_id = request.query_params.get('professor')
+        if faculty_id:
+            qs = qs.filter(student_evaluation__schedule__program__faculty_id=faculty_id)
+        if program_id:
+            qs = qs.filter(student_evaluation__schedule__program_id=program_id)
+        if professor_id:
+            qs = qs.filter(student_evaluation__schedule__instructor_id=professor_id)
+
+        # Only consider respondents who are Students
+        qs = qs.filter(user__groups__name__iexact='Student')
+
+        unique_pairs = qs.values('user_id', 'student_eval_question__canonical_id').distinct()
+        unique_count = unique_pairs.count()
+        return Response({'unique_response_count': unique_count}, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['get'], url_path='unique-count-by-faculty')
     def unique_count_by_faculty(self, request):
         """RETURNS UNIQUE COUNT PER STUDENT ACROSS ALL EVALUATIONS IN A FACULTY
@@ -1005,6 +1037,201 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         ).distinct()
         unique_count = unique_pairs.count()
         return Response({'unique_response_count': unique_count}, status=status.HTTP_200_OK)
+
+    # Completed versions of counts
+    @action(detail=False, methods=['get'], url_path='completed-count-by-evaluation')
+    def completed_count_by_evaluation(self, request):
+        eval_id = request.query_params.get('student_evaluation')
+        if not eval_id:
+            return Response({'error': 'student_evaluation is required'}, status=400)
+        try:
+            eval_obj = StudentEvaluation.objects.get(id=eval_id)
+        except StudentEvaluation.DoesNotExist:
+            return Response({'error': 'StudentEvaluation not found'}, status=404)
+        from django.db.models import Count as DJCount
+        total_q = eval_obj.import_questions.count()
+        if total_q == 0:
+            return Response({'completed_count': 0}, status=200)
+        answered = StudentEvaluationResponse.objects.filter(student_evaluation_id=eval_id,
+                                                            user__groups__name__iexact='Student') \
+            .values('user_id') \
+            .annotate(ans_count=DJCount('student_eval_question_id', distinct=True))
+        completed = sum(1 for r in answered if r['ans_count'] >= total_q)
+        return Response({'completed_count': completed}, status=200)
+
+    @action(detail=False, methods=['get'], url_path='completed-count-by-program')
+    def completed_count_by_program(self, request):
+        program_id = request.query_params.get('program')
+        if not program_id:
+            return Response({'error': 'program is required'}, status=400)
+        evals = StudentEvaluation.objects.filter(schedule__program_id=program_id)
+        from django.db.models import Count as DJCount
+        evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
+        totals = dict(evals.values_list('id', 'total_q'))
+        if not totals:
+            return Response({'completed_count': 0}, status=200)
+        answered = StudentEvaluationResponse.objects.filter(student_evaluation_id__in=totals.keys(),
+                                                            user__groups__name__iexact='Student') \
+            .values('user_id', 'student_evaluation_id') \
+            .annotate(ans_count=DJCount('student_eval_question_id', distinct=True))
+        completed_users = set()
+        for r in answered:
+            tq = totals.get(r['student_evaluation_id']) or 0
+            if tq and r['ans_count'] >= tq:
+                completed_users.add(r['user_id'])
+        return Response({'completed_count': len(completed_users)}, status=200)
+
+    @action(detail=False, methods=['get'], url_path='completed-count-by-professor')
+    def completed_count_by_professor(self, request):
+        professor_id = request.query_params.get('professor')
+        if not professor_id:
+            return Response({'error': 'professor is required'}, status=400)
+        evals = StudentEvaluation.objects.filter(schedule__instructor_id=professor_id)
+        from django.db.models import Count as DJCount
+        evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
+        totals = dict(evals.values_list('id', 'total_q'))
+        if not totals:
+            return Response({'completed_count': 0}, status=200)
+        answered = StudentEvaluationResponse.objects.filter(student_evaluation_id__in=totals.keys(),
+                                                            user__groups__name__iexact='Student') \
+            .values('user_id', 'student_evaluation_id') \
+            .annotate(ans_count=DJCount('student_eval_question_id', distinct=True))
+        completed_users = set()
+        for r in answered:
+            tq = totals.get(r['student_evaluation_id']) or 0
+            if tq and r['ans_count'] >= tq:
+                completed_users.add(r['user_id'])
+        return Response({'completed_count': len(completed_users)}, status=200)
+
+    @action(detail=False, methods=['get'], url_path='completed-count-by-faculty')
+    def completed_count_by_faculty(self, request):
+        faculty_id = request.query_params.get('faculty') or _resolve_faculty_from_request_or_hr_temp(request)
+        if not faculty_id:
+            return Response({'error': 'faculty is required'}, status=400)
+        evals = StudentEvaluation.objects.filter(schedule__program__faculty_id=faculty_id)
+        from django.db.models import Count as DJCount
+        evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
+        totals = dict(evals.values_list('id', 'total_q'))
+        if not totals:
+            return Response({'completed_count': 0}, status=200)
+        answered = StudentEvaluationResponse.objects.filter(student_evaluation_id__in=totals.keys(),
+                                                            user__groups__name__iexact='Student') \
+            .values('user_id', 'student_evaluation_id') \
+            .annotate(ans_count=DJCount('student_eval_question_id', distinct=True))
+        completed_users = set()
+        for r in answered:
+            tq = totals.get(r['student_evaluation_id']) or 0
+            if tq and r['ans_count'] >= tq:
+                completed_users.add(r['user_id'])
+        return Response({'completed_count': len(completed_users)}, status=200)
+
+    @action(detail=False, methods=['get'], url_path='year-completion-summary')
+    def year_completion_summary(self, request):
+        """Return completed/total students for a given year_level within optional faculty/program/professor scope.
+        usage: /studentevaluationresponse/studentevaluationresponse/year-completion-summary?year_level=1&faculty=<fid>&program=<pid>&professor=<uid>
+        completed: unique students who fully answered at least one evaluation in the scope
+        total: distinct students assigned to sections with the same year_level in the scope
+        """
+        year_level = request.query_params.get('year_level')
+        if not year_level:
+            return Response({'error': 'year_level is required (1-4)'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Resolve filters
+        faculty_id = request.query_params.get('faculty') or _resolve_faculty_from_request_or_hr_temp(request)
+        program_id = request.query_params.get('program')
+        professor_id = request.query_params.get('professor')
+
+        # Total students: M2M Section.students filtered by Section.year_level and faculty/program
+        sections = Section.objects.filter(year_level=str(year_level))
+        if faculty_id:
+            sections = sections.filter(program__faculty_id=faculty_id)
+        if program_id:
+            sections = sections.filter(program_id=program_id)
+        if professor_id:
+            # limit to sections that have at least one schedule taught by professor
+            sections = sections.filter(schedule__instructor_id=professor_id)
+        total_students = User.objects.filter(sections__in=sections).distinct().count()
+
+        # Completed students: answered all questions for at least one evaluation in scope
+        evals = StudentEvaluation.objects.filter(
+            schedule__section__year_level=str(year_level)
+        )
+        if faculty_id:
+            evals = evals.filter(schedule__program__faculty_id=faculty_id)
+        if program_id:
+            evals = evals.filter(schedule__program_id=program_id)
+        if professor_id:
+            evals = evals.filter(schedule__instructor_id=professor_id)
+
+        # annotate total questions per eval
+        from django.db.models import Count as DJCount
+        evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
+        eval_total_map = dict(evals.values_list('id', 'total_q'))
+        if not eval_total_map:
+            return Response({'completed': 0, 'total': total_students}, status=status.HTTP_200_OK)
+
+        # For responses, compute per (user, evaluation) answered distinct question count
+        resp_qs = StudentEvaluationResponse.objects.filter(student_evaluation_id__in=list(eval_total_map.keys()))
+        # Only consider student role
+        resp_qs = resp_qs.filter(user__groups__name__iexact='Student')
+        answered_per_eval_user = resp_qs.values('user_id', 'student_evaluation_id') \
+            .annotate(ans_count=DJCount('student_eval_question_id', distinct=True))
+
+        # Determine user_ids who completed at least one evaluation
+        completed_user_ids = set()
+        for row in answered_per_eval_user:
+            total_q = eval_total_map.get(row['student_evaluation_id']) or 0
+            if total_q and row['ans_count'] >= total_q:
+                completed_user_ids.add(row['user_id'])
+        completed_count = len(completed_user_ids)
+
+        return Response({'completed': completed_count, 'total': total_students}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='year-completion-summary-bulk')
+    def year_completion_summary_bulk(self, request):
+        """Return completed/total for all 4 year levels in one call. Optional faculty/program/professor apply to all."""
+        results = {}
+        for lvl in ['1', '2', '3', '4']:
+            faculty_id = request.query_params.get('faculty') or _resolve_faculty_from_request_or_hr_temp(request)
+            program_id = request.query_params.get('program')
+            professor_id = request.query_params.get('professor')
+
+            sections = Section.objects.filter(year_level=lvl)
+            if faculty_id:
+                sections = sections.filter(program__faculty_id=faculty_id)
+            if program_id:
+                sections = sections.filter(program_id=program_id)
+            if professor_id:
+                sections = sections.filter(schedule__instructor_id=professor_id)
+            total_students = User.objects.filter(sections__in=sections).distinct().count()
+
+            evals = StudentEvaluation.objects.filter(schedule__section__year_level=lvl)
+            if faculty_id:
+                evals = evals.filter(schedule__program__faculty_id=faculty_id)
+            if program_id:
+                evals = evals.filter(schedule__program_id=program_id)
+            if professor_id:
+                evals = evals.filter(schedule__instructor_id=professor_id)
+
+            from django.db.models import Count as DJCount
+            evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
+            eval_total_map = dict(evals.values_list('id', 'total_q'))
+            if not eval_total_map:
+                results[lvl] = {'completed': 0, 'total': total_students}
+                continue
+
+            resp_qs = StudentEvaluationResponse.objects.filter(student_evaluation_id__in=list(eval_total_map.keys()))
+            resp_qs = resp_qs.filter(user__groups__name__iexact='Student')
+            answered = resp_qs.values('user_id', 'student_evaluation_id').annotate(
+                ans_count=DJCount('student_eval_question_id', distinct=True))
+            completed_user_ids = set()
+            for row in answered:
+                tq = eval_total_map.get(row['student_evaluation_id']) or 0
+                if tq and row['ans_count'] >= tq:
+                    completed_user_ids.add(row['user_id'])
+            results[lvl] = {'completed': len(completed_user_ids), 'total': total_students}
+
+        return Response(results, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='by-evaluation-and-user')
     def by_evaluation_and_user(self, request):
@@ -1840,6 +2067,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         section = request.query_params.get("section")
         subject = request.query_params.get("subject")
         professor = request.query_params.get("professor")
+        year = request.query_params.get("year")
 
         if semester:
             qs = qs.filter(semester=semester)
@@ -1851,6 +2079,11 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             qs = qs.filter(subject=subject)
         if professor:
             qs = qs.filter(instructor=professor)
+        if year:
+            try:
+                qs = qs.filter(year__year=int(year))
+            except (ValueError, TypeError):
+                pass
 
         page = self.paginate_queryset(qs)
         if page is not None:
@@ -1894,7 +2127,7 @@ def get_professors(request):
     user = request.user
     qs = User.objects.filter(groups__name__iexact='professor', is_active=True)
 
-    # Optional search support for combobox
+    # Optional search support for comboboxes
     search = request.query_params.get('search')
     if search:
         qs = qs.filter(
@@ -1903,22 +2136,24 @@ def get_professors(request):
             Q(email__icontains=search)
         )
 
+    # Scope by faculty for non-superusers where appropriate
     if user.is_superuser:
         pass
     elif user.groups.filter(name='HR').exists():
+        # Honor temporary HR faculty context if present; otherwise do not restrict
         temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
         if temp_faculty_id:
-            qs = qs.filter(faculties_as_professor__id=temp_faculty_id)
-        elif user.faculty:
-            qs = qs.filter(faculties_as_professor=user.faculty)
-        else:
-            qs = qs.none()
-    elif user.faculty:
-        qs = qs.filter(faculties_as_professor=user.faculty)
+            qs = qs.filter(Q(faculties_as_professor__id=temp_faculty_id) | Q(faculties_as_professor__isnull=True))
+        elif getattr(user, 'faculty', None):
+            qs = qs.filter(Q(faculties_as_professor=user.faculty) | Q(faculties_as_professor__isnull=True))
+    elif getattr(user, 'faculty', None):
+        qs = qs.filter(Q(faculties_as_professor=user.faculty) | Q(faculties_as_professor__isnull=True))
     else:
+        # Users without faculty context (and not HR/superuser) should not see all; return none
         qs = qs.none()
 
-    serializer = UserProgramProfessorSerializer(qs.distinct(), many=True)
+    qs = qs.distinct().order_by('first_name', 'last_name')[:100]
+    serializer = UserProgramProfessorSerializer(qs, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
