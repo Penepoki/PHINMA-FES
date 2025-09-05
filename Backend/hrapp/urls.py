@@ -98,4 +98,9 @@ urlpatterns = [
     path('get-faculty-context/', get_faculty_context_view),
 
     path('faculty/', include(faculty_router.urls)),
+
+    # HR/Dean user admin endpoints
+    path('admin/', include(user_admin_router.urls)),
+
+    path("uploads/presign", presign_put, name="presign-put")
 ]

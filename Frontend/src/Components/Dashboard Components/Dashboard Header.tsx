@@ -2,18 +2,27 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import api from "../../utils/api.ts";
 
+const greetings = ["Hi", "Bonjour", "Mabuhay"];
+
 const DashboardHeader = () => {
-  const [firstName, setFirstName] = useState("User");
+  const [displayName, setDisplayName] = useState("User");
+  const [greeting, setGreeting] = useState("Hi");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutMessage, setLogoutMessage] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const cached = sessionStorage.getItem("firstName");
+    // --- Pick greeting based on visit counter ---
+    const visitCount = parseInt(localStorage.getItem("visitCount") || "0", 10);
+    const nextCount = visitCount + 1;
+    localStorage.setItem("visitCount", nextCount.toString());
+    setGreeting(greetings[visitCount % greetings.length]);
 
+    // --- Fetch user data as before ---
+    const fetchUserData = async () => {
+      const cached = sessionStorage.getItem("fullName");
       if (cached) {
-        setFirstName(cached);
+        setDisplayName(cached);
         return;
       }
 
@@ -25,9 +34,13 @@ const DashboardHeader = () => {
           headers: { Authorization: `Token ${token}` },
         });
 
-        const name = response.data.first_name || "User";
-        setFirstName(name);
-        sessionStorage.setItem("firstName", name);
+        const name =
+          response.data.full_name ||
+          `${response.data.first_name ?? ""} ${response.data.last_name ?? ""}`.trim() ||
+          "User";
+
+        setDisplayName(name);
+        sessionStorage.setItem("fullName", name);
       } catch (error: any) {
         if (error.response?.status === 401) navigate("/login");
       }
@@ -50,8 +63,9 @@ const DashboardHeader = () => {
 
       // Clear both storages
       localStorage.removeItem("token");
-      localStorage.removeItem("firstName");
-      sessionStorage.removeItem("firstName");
+      localStorage.removeItem("fullName");
+      localStorage.removeItem("visitCount");
+      sessionStorage.removeItem("fullName");
 
       setLogoutMessage("Logout successful!");
       setTimeout(() => navigate("/"), 1500);
@@ -68,9 +82,8 @@ const DashboardHeader = () => {
       <header className="absolute top-0 z-1 flex h-[15%] w-full items-end justify-between border-b-2 border-gray-600 px-6 shadow-2xl backdrop-blur-lg">
         <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:gap-6">
           <h1 className="text-5xl font-bold text-white md:text-7xl">
-            Hi, {firstName}
+            {greeting}, {displayName}
           </h1>
-          <p className="text-md text-gray-300">Welcome to the Home Page</p>
         </div>
         <button
           className="flex items-center gap-2 text-md text-gray-300 transition-transform duration-200 hover:underline hover:scale-105"
@@ -107,8 +120,8 @@ const DashboardHeader = () => {
           {logoutMessage && (
             <div
               className={`mt-4 rounded-lg px-4 py-2 text-sm ${logoutMessage.includes("successful")
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
                 }`}
             >
               {logoutMessage}
@@ -140,4 +153,3 @@ const DashboardHeader = () => {
 };
 
 export default DashboardHeader;
-

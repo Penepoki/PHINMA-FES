@@ -7,48 +7,79 @@ import api from "../../../utils/api";
 function Home() {
   const [schools, setSchools] = useState<any[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Fetch faculties (schools) from backend
   useEffect(() => {
     (async () => {
+      setIsLoading(true);
+      setLoadError(null);
       try {
-        const token = localStorage.getItem('token');
-        const res = await api.get('/faculty/faculties/', {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        const res = await api.get("/faculty/faculties/", {
           headers: { Authorization: `Token ${token}` },
         });
-        const schoolCards = res.data.map((f: any) => ({
-          id: f.id, name: f.name, fullname: f.name, image: null
+
+        const data = Array.isArray(res.data) ? res.data : [];
+        const schoolCards = data.map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          fullname: f.name,
+          image: null,
         }));
+
         setSchools(schoolCards);
-      } catch (e) {
-        console.error('Failed to fetch faculties:', e);
+      } catch (e: any) {
+        console.error("Failed to fetch faculties:", e);
+        setLoadError("Failed to load schools. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
     })();
-  }, []);
+  }, [navigate]);
 
   const handleSchoolClick = async (schoolNameOrId: any) => {
     try {
-      const picked = schools.find((s) => s.name === schoolNameOrId || s.id === schoolNameOrId);
+      const picked =
+        schools.find(
+          (s) => s.name === schoolNameOrId || s.id === schoolNameOrId
+        ) || null;
       if (!picked) return;
 
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
 
       // 1) Clear any previous temp context (safe if none)
-      await api.post('/clear-faculty-context/', {}, { headers: { Authorization: `Token ${token}` } });
+      await api.post(
+        "/clear-faculty-context/",
+        {},
+        { headers: { Authorization: `Token ${token}` } }
+      );
 
       // 2) Set the new context
-      await api.post('/set-faculty-context/', { faculty_id: picked.id }, { headers: { Authorization: `Token ${token}` } });
+      await api.post(
+        "/set-faculty-context/",
+        { faculty_id: picked.id },
+        { headers: { Authorization: `Token ${token}` } }
+      );
 
       // 3) Mark this session as “viewing as Dean”
-      localStorage.setItem('isTempFaculty', 'true');
-      localStorage.setItem('facultyId', String(picked.id));
-      localStorage.setItem('faculty_id', String(picked.id));
+      localStorage.setItem("isTempFaculty", "true");
+      localStorage.setItem("facultyId", String(picked.id));
+      localStorage.setItem("faculty_id", String(picked.id));
 
       // 4) Navigate to the Dean dashboard for that faculty
-      navigate('/Dashboard/dean', { state: { facultyId: picked.id, collegeName: picked.name } });
+      navigate("/Dashboard/dean", {
+        state: { facultyId: picked.id, collegeName: picked.name },
+      });
     } catch (err) {
-      console.error('Failed to switch faculty context:', err);
+      console.error("Failed to switch faculty context:", err);
     }
   };
 
@@ -68,15 +99,26 @@ function Home() {
               ← Back to Schools
             </button>
             {/* You can show more details or CollegeCards here if needed */}
-            <div className="text-white">Selected School ID: {selectedSchool.id}</div>
+            <div className="text-white">
+              Selected School ID: {selectedSchool.id}
+            </div>
           </>
         ) : (
-          <SchoolCards
-            school={schools}
-            onSchoolClick={(schoolNameOrId: any) => {
-              handleSchoolClick(schoolNameOrId);
-            }}
-          />
+          <>
+            {loadError && (
+              <div className="alert alert-error mb-4 w-full max-w-4xl">
+                <span>{loadError}</span>
+              </div>
+            )}
+            <SchoolCards
+              school={schools}
+              isLoading={isLoading}       // ← toggles daisyUI skeletons
+              skeletonCount={5}           // ← adjust how many placeholders you want
+              onSchoolClick={(schoolNameOrId: any) => {
+                handleSchoolClick(schoolNameOrId);
+              }}
+            />
+          </>
         )}
       </div>
     </div>

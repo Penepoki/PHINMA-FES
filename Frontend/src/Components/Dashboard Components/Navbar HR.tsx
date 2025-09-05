@@ -55,13 +55,13 @@ const EVAL_CHILDREN = [
   // "evalSummary",
 ] as const;
 
-const RESOURCE_CHILDREN = [
+const RESOURCE_CHILDREN_BASE = [
   "programs",
   "subjects",
   "rooms",
   "sections",
   "schedules",
-  "professors",
+  // "professors" will be conditionally included for HR users only
 ] as const;
 
 const NavbarHR: React.FC<NavbarProps> = ({
@@ -144,6 +144,9 @@ const NavbarHR: React.FC<NavbarProps> = ({
   };
 
   // Map all possible active views to the same child arrays (DRY)
+  const isHR = (typeof window !== 'undefined') && localStorage.getItem('isTempFaculty') === 'true';
+  const RESOURCE_CHILDREN: string[] = isHR ? [...RESOURCE_CHILDREN_BASE, 'professors'] : [...RESOURCE_CHILDREN_BASE];
+
   const secondaryDockMap: Record<string, string[]> = {
     // Evaluation cluster
     evaluation: [...EVAL_CHILDREN],
@@ -158,6 +161,7 @@ const NavbarHR: React.FC<NavbarProps> = ({
     rooms: [...RESOURCE_CHILDREN],
     sections: [...RESOURCE_CHILDREN],
     schedules: [...RESOURCE_CHILDREN],
+    professors: [...RESOURCE_CHILDREN],
   };
 
   const secondaryDockVisible = Boolean(secondaryDockMap[activeView]);

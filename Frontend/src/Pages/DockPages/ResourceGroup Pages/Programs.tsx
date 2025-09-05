@@ -399,17 +399,11 @@ function Programs({ setActiveView }: ProgramProps) {
                     onChange={(prof) => {
                       if (prof && prof.id && !selectedProfessorsForEdit.includes(prof.id)) {
                         addProfessorToProgram(prof.id);
+                        setComboboxSelectedProfessor(null);
                       }
-                      setComboboxSelectedProfessor(null);
                     }}
-                    mapResponse={(data) =>
-                      data
-                        .filter((item) => !selectedProfessorsForEdit.includes(item.id))
-                        .map((item) => ({
-                          id: item.id,
-                          name: item.full_name_professor || `${item.first_name} ${item.last_name}` || `Professor ID: ${item.id}`,
-                        }))
-                    }
+                    mapResponse={data => data.map(p => ({id: p.id, name: p.full_name}))}
+                    skeletonCount={5}
                   />
                 </div>
 
