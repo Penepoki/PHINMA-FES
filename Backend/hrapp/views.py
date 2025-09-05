@@ -10,7 +10,7 @@ from hrapp.serializers import *
 from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
 from hrapp.utils.decorators import *
-from hrapp.utils.generate_insight_online import generate_ai_feedback_for_evaluation
+from hrapp.utils.generate_insight_online import generate_ai_feedback_for_evaluation, generate_retention_recommendations
 from hrapp.serializers.user_serializer import *
 from hrapp.serializers.schedules_serializer import *
 from hrapp.filters.schedules_filter import *
@@ -327,6 +327,18 @@ def copus_bulk_tallies(request):
     ids = [int(i) for i in eval_ids.split(',') if i.strip().isdigit()]
     result = get_copus_bulk_tallies_data(ids)
     return Response(result)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def retention_recommendations(request):
+    """Generate Lean Six Sigma recommendations from ScatterPlotAnalytics retention entries."""
+    try:
+        data = generate_retention_recommendations()
+        return Response(data, status=status.HTTP_200_OK)
+    except Exception as e:
+        print(f"[ERROR] retention_recommendations failed: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # CRUD BELOW FOR EVALUATION (COPUS)----------------------------------------------
 # Create

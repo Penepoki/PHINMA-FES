@@ -196,6 +196,11 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   const [retentionError, setRetentionError] = useState<string | null>(null);
   const [savingRetention, setSavingRetention] = useState(false);
   const [retentionSaveError, setRetentionSaveError] = useState<string | null>(null);
+  // AI Retention Recommendations
+  const [aiRecs, setAiRecs] = useState<string | null>(null);
+  const [aiRecsHtml, setAiRecsHtml] = useState<string | null>(null);
+  const [aiRecsLoading, setAiRecsLoading] = useState(false);
+  const [aiRecsError, setAiRecsError] = useState<string | null>(null);
 
   const yearLevelOptions = ["1st", "2nd", "3rd", "4th"] as const;
   const semesterOptions = ["1st", "2nd", "Summer"] as const;
@@ -245,6 +250,16 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       .map((w) => w[0])
       .join("")
       .slice(0, 4);
+
+// Simple HTML escape for safe fallback rendering when backend HTML is unavailable
+const escapeHtml = (s: string) =>
+  String(s).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  }[ch] as string));
 
   // --- Dynamic font for Sankey node labels (Cabin) ---
   const sankeyLabelFont = (ctx: any) => {
@@ -432,6 +447,50 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         setRetentionError(e?.message || "Failed to load regression.");
       } finally {
         setRetentionLoading(false);
+      }
+    };
+    run();
+  }, []);
+
+  // AI Retention Recommendations
+  useEffect(() => {
+    const run = async () => {
+      setAiRecsLoading(true);
+      setAiRecsError(null);
+      try {
+        const res = await api.get("/analytics/retention-recommendations/");
+        const html = typeof res.data?.recommendations_html === "string" ? res.data.recommendations_html : null;
+        const text = typeof res.data?.recommendations === "string" ? res.data.recommendations : "";
+        if (html) {
+          // Inject inline styles into <pre> to force wrapping and avoid horizontal scroll
+          const processed = html.replace(
+            /<pre(.*?)>/,
+            (m) => m.includes("style=")
+              ? m.replace(
+                  /style="/,
+                  'style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;'
+                )
+              : m.replace(
+                  /^<pre/,
+                  '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"'
+                )
+          );
+          setAiRecsHtml(processed);
+        } else if (text) {
+          setAiRecsHtml(
+            `<div class="ai-recommendation"><pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(
+              text
+            )}</pre></div>`
+          );
+        } else {
+          setAiRecsHtml(null);
+        }
+        setAiRecs(text);
+      } catch (e: any) {
+        console.error("[DEBUG] Retention recommendations error:", e?.message || e);
+        setAiRecsError(e?.message || "Failed to load recommendations.");
+      } finally {
+        setAiRecsLoading(false);
       }
     };
     run();
@@ -829,6 +888,47 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
               <Scatter data={scatterData as any} options={scatterOptions} />
             ) : (
               <p className="text-white">No regression data available.</p>
+            )}
+          </div>
+        </div>
+
+        {/* AI Recommendations for Retention (Lean Six Sigma) */}
+        <div className="mt-6 flex w-full items-center justify-center bg-black/20 rounded-lg p-4 shadow-2xl backdrop-blur-lg">
+          <div className="w-full">
+            <h3 className="mb-3 text-xl font-semibold text-white">AI Recommendations for Retention (Lean Six Sigma)</h3>
+            {aiRecsLoading ? (
+              <div className="flex items-center gap-2 text-white">
+                <span className="loading loading-spinner loading-sm"></span>
+                <span>Generating recommendations...</span>
+              </div>
+            ) : aiRecsError ? (
+              <div className="alert alert-error">
+                <span>Failed to load recommendations: {aiRecsError}</span>
+              </div>
+            ) : aiRecsHtml ? (
+              <div className="text-white">
+                <table className="table w-full text-white">
+                  <thead>
+                    <tr>
+                      <th>AI Recommendation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden pr-2">
+                          <div
+                            className="ai-recommendation text-left"
+                            dangerouslySetInnerHTML={{ __html: aiRecsHtml }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-gray-300">No recommendations available.</p>
             )}
           </div>
         </div>
