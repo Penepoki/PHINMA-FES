@@ -55,6 +55,7 @@ urlpatterns = [
     path('room/', include(room_router.urls)),
     path('analytics/retention-regression/', retention_regression_improved, name='retention-regression'),
     path('analytics/scatterplot-analytics/', scatterplot_analytics_save_improved, name='scatterplot-analytics-save'),
+    path('analytics/retention-recommendations/', retention_recommendations, name='retention-recommendations'),
     path('program/', include(program_router.urls)),
     path('program-professor/', include(program_professor_router.urls)),
     path('schedule/', include(schedule_router.urls)),

@@ -289,3 +289,19 @@ html {
 .skeleton {
   @apply bg-black/5;
 }
+
+/* AI recommendation block: left-aligned, monospaced, preserve layout */
+.ai-recommendation {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  text-align: left;
+  color: #e5e7eb; /* tailwind text-gray-200 */
+}
+.ai-recommendation pre {
+  margin: 0;
+}
+.ai-recommendation code, .ai-recommendation pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
