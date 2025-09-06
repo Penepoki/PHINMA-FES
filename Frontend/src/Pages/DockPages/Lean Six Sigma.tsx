@@ -13,9 +13,9 @@ import {
 ChartJS.defaults.font.family = "'Cabin', sans-serif";
 ChartJS.defaults.color = "#fff"; // keep chart text readable on dark bg
 
-import {Flow, SankeyController} from "chartjs-chart-sankey";
-import {useEffect, useMemo, useRef, useState} from "react";
-import {Chart, Scatter} from "react-chartjs-2";
+import { Flow, SankeyController } from "chartjs-chart-sankey";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Chart, Scatter } from "react-chartjs-2";
 import BreadAndLogout from "../../Components/Bread and Logout.tsx";
 import api from "../../utils/api.ts";
 import { resolveFacultyId } from "../../utils/facultyContext.ts";
@@ -32,7 +32,7 @@ ChartJS.register(
   PointElement,
   LineController,
   Flow,
-    SankeyController
+  SankeyController,
 );
 
 interface ResourceGroupProps {
@@ -118,7 +118,7 @@ const groupCopusByProfessor = (rawData: any, evalToProfessor: Record<string, str
 };
 
 const fetchEvaluationProfessorMapByFaculty = async (
-    facultyId: string,
+  facultyId: string,
 ): Promise<Record<string, string>> => {
   const map: Record<string, string> = {};
   try {
@@ -145,7 +145,7 @@ const fetchEvaluationProfessorMapByFaculty = async (
   } catch (err) {
     console.warn(
       "[DEBUG] Could not fetch evaluations for professor mapping; falling back to inline names.",
-        err,
+      err,
     );
   }
   return map;
@@ -180,13 +180,13 @@ const TEACHER_CODE_MAP: Record<string, string> = {
 };
 
 const makeCode = (summary: string, map: Record<string, string>) =>
-    map[summary] ||
-    summary
-        .replace(/[^A-Za-z0-9 ]/g, "")
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .slice(0, 4);
+  map[summary] ||
+  summary
+    .replace(/[^A-Za-z0-9 ]/g, "")
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 4);
 
 // Move colorPool outside component to avoid recreating on every render
 const colorPool = [
@@ -259,17 +259,17 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 
   // Simple HTML escape for safe fallback rendering when backend HTML is unavailable
   const escapeHtml = (s: string) =>
-      String(s).replace(
-          /[&<>"']/g,
-          (ch) =>
-              ({
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                '"': "&quot;",
-                "'": "&#039;",
-              })[ch] as string,
-      );
+    String(s).replace(
+      /[&<>"']/g,
+      (ch) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        })[ch] as string,
+    );
 
   // --- Dynamic font for Sankey node labels (Cabin) ---
   const sankeyLabelFont = (ctx: any) => {
@@ -292,15 +292,16 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         const fid = await resolveFacultyId();
         if (!fid) return;
         // Backend ProgramViewSet filters by faculty via query
-        const res = await api.get("/program/programs/", {params: {faculty: String(fid), is_active: "true"}});
-        const items = (res.data || []).map((p: any) => ({id: String(p.id), name: p.name}));
+        const res = await api.get("/program/programs/", {
+          params: { faculty: String(fid), is_active: "true" },
+        });
+        const items = (res.data || []).map((p: any) => ({ id: String(p.id), name: p.name }));
         setAvailablePrograms(items);
       } catch (e) {
         // ignore
       }
     })();
   }, []);
-
 
   // Fetch copus summary data on mount and when filters change
   useEffect(() => {
@@ -331,9 +332,9 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
           evalToProfessor = await fetchEvaluationProfessorMapByFaculty(String(faculty_id));
         }
 
-        const {professorAggregates, totalActiveLearningPercentage} = groupCopusByProfessor(
-            raw,
-            evalToProfessor,
+        const { professorAggregates, totalActiveLearningPercentage } = groupCopusByProfessor(
+          raw,
+          evalToProfessor,
         );
 
         // Aggregate across all professors
@@ -375,7 +376,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         setProfessorCount(professorCountLocal);
 
         const avg =
-            typeof totalActiveLearningPercentage === "number" ? totalActiveLearningPercentage : null;
+          typeof totalActiveLearningPercentage === "number" ? totalActiveLearningPercentage : null;
         setAvgActiveLearning(avg);
 
         // Compute Max count per Activity points
@@ -473,7 +474,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         const questionsResults = await Promise.all(
           evaluationIds.map((id: number) =>
             api.get(
-                `/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${id}`,
+              `/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${id}`,
             ),
           ),
         );
@@ -520,26 +521,26 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       try {
         const res = await api.get("/analytics/retention-recommendations/");
         const html =
-            typeof res.data?.recommendations_html === "string" ? res.data.recommendations_html : null;
+          typeof res.data?.recommendations_html === "string" ? res.data.recommendations_html : null;
         const text = typeof res.data?.recommendations === "string" ? res.data.recommendations : "";
         if (html) {
           // Inject inline styles into <pre> to force wrapping and avoid horizontal scroll
           const processed = html.replace(/<pre(.*?)>/, (m: string) =>
-              m.includes("style=")
+            m.includes("style=")
               ? m.replace(
                   /style="/,
-                      'style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;',
+                  'style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;',
                 )
               : m.replace(
                   /^<pre/,
-                      '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"',
-                  ),
+                  '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"',
+                ),
           );
           setAiRecsHtml(processed);
         } else if (text) {
           setAiRecsHtml(
             `<div class="ai-recommendation"><pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(
-                text,
+              text,
             )}</pre></div>`,
           );
         } else {
@@ -572,19 +573,19 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 
         const summaryRes = await api.get(
           "/studentevaluationresponse/studentevaluationresponse/sentiment-summary",
-            {params},
+          { params },
         );
         setSentimentSummary(summaryRes.data);
 
         const semesterRes = await api.get(
           "/studentevaluationresponse/studentevaluationresponse/sentiment-summary-by-semester",
-            {params},
+          { params },
         );
         setSentimentBySemester(semesterRes.data);
 
         const yearRes = await api.get(
           "/studentevaluationresponse/studentevaluationresponse/sentiment-summary-by-year",
-            {params},
+          { params },
         );
         setSentimentByYear(yearRes.data);
       } catch (e: any) {
@@ -604,7 +605,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
     const filtered = (retentionPoints as any[]).filter(
       (series: any) =>
         (!series?.key?.year || visibleYearLevels.includes(series.key.year)) &&
-          (!series?.key?.semester || visibleSemesters.includes(series.key.semester)),
+        (!series?.key?.semester || visibleSemesters.includes(series.key.semester)),
     );
     filtered.forEach((series: any, idx: number) => {
       const color = colorPool[idx % colorPool.length];
@@ -670,7 +671,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         },
       },
     }),
-      [],
+    [],
   );
 
   // --- Sankey options ---
@@ -704,7 +705,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       {/* Breadcrumbs */}
       <BreadAndLogout
         setActiveView={setActiveView}
-        breadcrumbs={[{label: "Home", view: "home"}, {label: "Profile View"}]}
+        breadcrumbs={[{ label: "Home", view: "home" }, { label: "Profile View" }]}
       />
       <h2 className="mt-4 text-3xl font-bold text-white">Lean Six Sigma Statistics</h2>
       <span className="block px-6 py-6 font-thin text-[#888888]">
@@ -712,49 +713,57 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         helping you identify gaps, reduce inefficiencies, and focus on continuous improvement.
       </span>
 
-      <div
-          className="flex w-full flex-wrap items-center justify-center gap-4 border-b border-gray-600 pb-4 text-white shadow-2xl">
+      <div className="flex w-full flex-wrap items-center justify-center gap-4 border-b border-gray-600 pb-4 text-white shadow-2xl">
         <span>Filter:</span>
         {/* Program filter (replaces College) */}
         <select
-            className="select select-bordered"
-            value={filterProgram}
-            onChange={(e) => setFilterProgram(e.target.value)}
+          className="select select-bordered text-black"
+          value={filterProgram}
+          onChange={(e) => setFilterProgram(e.target.value)}
         >
           <option value="">All Programs</option>
           {availablePrograms.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+            <option className="text-black" key={p.id} value={p.id}>
+              {p.name}
+            </option>
           ))}
         </select>
         {/* Semester filter */}
         <select
-            className="select select-bordered"
-            value={filterSemester}
-            onChange={(e) => setFilterSemester(e.target.value)}
+          className="select select-bordered text-black"
+          value={filterSemester}
+          onChange={(e) => setFilterSemester(e.target.value)}
         >
-          <option value="">All Semesters</option>
-          <option value="First">First</option>
-          <option value="Second">Second</option>
-          <option value="Summer">Summer</option>
+          <option className="text-black" value="">
+            All Semesters
+          </option>
+          <option className="text-black" value="First">
+            First
+          </option>
+          <option className="text-black" value="Second">
+            Second
+          </option>
+          <option className="text-black" value="Summer">
+            Summer
+          </option>
         </select>
         {/* School Year filter */}
         <select
-            className="select select-bordered"
-            value={filterYear}
-            onChange={(e) => setFilterYear(e.target.value)}
+          className="select select-bordered text-black"
+          value={filterYear}
+          onChange={(e) => setFilterYear(e.target.value)}
         >
           <option value="">All Years</option>
-          {Array.from({length: 6}).map((_, idx) => {
+          {Array.from({ length: 6 }).map((_, idx) => {
             const y = new Date().getFullYear() - idx;
             return (
-                <option key={y} value={`${y}-01-01`}>{y}</option>
+              <option className="text-black" key={y} value={`${y}-01-01`}>
+                {y}
+              </option>
             );
           })}
         </select>
-        <button
-          className="btn btn-primary text-white"
-          onClick={() => setShowRetentionDialog(true)}
-        >
+        <button className="btn btn-primary text-white" onClick={() => setShowRetentionDialog(true)}>
           Add Retention
         </button>
       </div>
@@ -766,16 +775,16 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
           <div className="flex flex-1 items-center gap-4 rounded-xl bg-[#1c402a]/40 p-6 shadow-xl">
             <div className="shrink-0 text-gray-400">
               <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  className="h-10 w-10 stroke-current"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                className="h-10 w-10 stroke-current"
               >
                 <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
             </div>
@@ -789,16 +798,16 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
           <div className="flex flex-1 items-center gap-4 rounded-xl bg-[#1c3932]/40 p-6 shadow-xl">
             <div className="shrink-0 text-gray-400">
               <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  className="h-10 w-10 stroke-current"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                className="h-10 w-10 stroke-current"
               >
                 <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
                 />
               </svg>
             </div>
@@ -814,16 +823,16 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
           <div className="flex flex-1 items-center gap-4 rounded-xl bg-[#1b3339]/40 p-6 shadow-xl">
             <div className="shrink-0 text-gray-400">
               <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  className="h-10 w-10 stroke-current"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                className="h-10 w-10 stroke-current"
               >
                 <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
                 />
               </svg>
             </div>
@@ -840,16 +849,16 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
             <div className="flex items-center gap-4">
               <div className="shrink-0 text-gray-400">
                 <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    className="h-10 w-10 stroke-current"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  className="h-10 w-10 stroke-current"
                 >
                   <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </div>
@@ -860,7 +869,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                 </div>
                 <div className="text-4xl font-bold md:text-7xl">
                   {sentimentLoading ? (
-                      <span className="loading loading-spinner loading-sm text-white"></span>
+                    <span className="loading loading-spinner loading-sm text-white"></span>
                   ) : sentimentError ? (
                     <span className="text-red-400">Error</span>
                   ) : sentimentSummary ? (
@@ -891,8 +900,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         </div>
 
         <div className="flex h-full flex-row gap-6">
-          <div
-              className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-6 shadow-2xl backdrop-blur-lg">
+          <div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-6 shadow-2xl backdrop-blur-lg">
             <table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
               <thead>
                 <tr className="border border-gray-600">
@@ -920,8 +928,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
             </table>
           </div>
 
-          <div
-              className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-6 shadow-2xl backdrop-blur-lg">
+          <div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-6 shadow-2xl backdrop-blur-lg">
             <table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
               <thead>
                 <tr className="border border-gray-600">
@@ -952,65 +959,76 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 
         {/* Professor selector buttons (max 3 selected) */}
         <div className="flex flex-wrap items-center gap-2 text-white">
-          <span className="opacity-80 mr-2">Professors:</span>
+          <span className="mr-2 opacity-80">Professors:</span>
           {copusData &&
-              Object.keys(copusData).map((name) => {
-                const active = selectedProfessors.includes(name);
-                return (
-                    <button
-                        key={name}
-                        className={`btn btn-xs ${active ? 'btn-success' : 'btn-outline'} `}
-                        onClick={() => {
-                          setSelectedProfessors((prev) => {
-                            if (prev.includes(name)) return prev.filter((n) => n !== name);
-                            if (prev.length >= 3) return [prev[1], prev[2], name].filter((x): x is string => Boolean(x));
-                            return [...prev, name];
-                          });
-                        }}
-                    >
-                      {name}
-                    </button>
-                );
-              })}
+            Object.keys(copusData).map((name) => {
+              const active = selectedProfessors.includes(name);
+              return (
+                <button
+                  key={name}
+                  className={`btn btn-xs ${active ? "btn-success" : "btn-outline"} `}
+                  onClick={() => {
+                    setSelectedProfessors((prev) => {
+                      if (prev.includes(name)) return prev.filter((n) => n !== name);
+                      if (prev.length >= 3)
+                        return [prev[1], prev[2], name].filter((x): x is string => Boolean(x));
+                      return [...prev, name];
+                    });
+                  }}
+                >
+                  {name}
+                </button>
+              );
+            })}
         </div>
 
         {/* --- Responsive + Scrollable Sankey wrapper --- */}
         <div className="flex w-full items-center justify-center rounded-lg bg-black/20 p-4 shadow-2xl backdrop-blur-lg">
           <div className="w-full overflow-x-auto">
-            <div className="relative h-[50vh] min-h-[360px] lg:h-[60vh] min-w-[900px]">
+            <div className="relative h-[50vh] min-h-[360px] min-w-[900px] lg:h-[60vh]">
               {copusLoading ? (
-                  <div className="h-full w-full animate-pulse">
-                    <div className="absolute inset-0 flex flex-col gap-3 p-4">
-                      <div className="h-6 w-40 bg-white/10 rounded"/>
-                      <div className="flex-1 grid grid-cols-12 gap-2">
-                        {Array.from({length: 12}).map((_, i) => (
-                            <div key={i} className="bg-white/10 rounded"/>
-                        ))}
-                      </div>
-                      <div className="h-4 w-2/3 bg-white/10 rounded"/>
+                <div className="h-full w-full animate-pulse">
+                  <div className="absolute inset-0 flex flex-col gap-3 p-4">
+                    <div className="h-6 w-40 rounded bg-white/10" />
+                    <div className="grid flex-1 grid-cols-12 gap-2">
+                      {Array.from({ length: 12 }).map((_, i) => (
+                        <div key={i} className="rounded bg-white/10" />
+                      ))}
                     </div>
+                    <div className="h-4 w-2/3 rounded bg-white/10" />
                   </div>
+                </div>
               ) : sankeyData ? (
                 <Chart type="sankey" data={sankeyData} options={sankeyOptions} />
               ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center text-gray-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                           className="mx-auto mb-2 h-10 w-10 opacity-60">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                              d="M9 17v-2a4 4 0 10-8 0v2m8 0H1m8 0h8m-6 0v-2a4 4 0 118 0v2m-8 0h8"/>
-                      </svg>
-                      <div>No Sankey data available for the selected filters.</div>
-                      <div className="text-sm opacity-70">Try adjusting Program, Semester, or Year.</div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-gray-300">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      className="mx-auto mb-2 h-10 w-10 opacity-60"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 17v-2a4 4 0 10-8 0v2m8 0H1m8 0h8m-6 0v-2a4 4 0 118 0v2m-8 0h8"
+                      />
+                    </svg>
+                    <div>No Sankey data available for the selected filters.</div>
+                    <div className="text-sm opacity-70">
+                      Try adjusting Program, Semester, or Year.
                     </div>
                   </div>
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        <div
-            className="mt-6 flex w-full items-center justify-center rounded-lg bg-black/20 p-4 shadow-2xl backdrop-blur-lg">
+        <div className="mt-6 flex w-full items-center justify-center rounded-lg bg-black/20 p-4 shadow-2xl backdrop-blur-lg">
           <div className="w-full">
             {/* Comparison filters */}
             <div className="mb-4 flex flex-wrap items-center gap-3 text-white">
@@ -1023,7 +1041,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                     checked={visibleYearLevels.includes(yl)}
                     onChange={() =>
                       setVisibleYearLevels((prev) =>
-                          prev.includes(yl) ? prev.filter((v) => v !== yl) : [...prev, yl],
+                        prev.includes(yl) ? prev.filter((v) => v !== yl) : [...prev, yl],
                       )
                     }
                   />
@@ -1039,7 +1057,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                     checked={visibleSemesters.includes(s)}
                     onChange={() =>
                       setVisibleSemesters((prev) =>
-                          prev.includes(s) ? prev.filter((v) => v !== s) : [...prev, s],
+                        prev.includes(s) ? prev.filter((v) => v !== s) : [...prev, s],
                       )
                     }
                   />
@@ -1059,8 +1077,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         </div>
 
         {/* AI Recommendations for Retention (Lean Six Sigma) */}
-        <div
-            className="mt-6 flex w-full items-center justify-center rounded-lg bg-black/20 p-4 shadow-2xl backdrop-blur-lg">
+        <div className="mt-6 flex w-full items-center justify-center rounded-lg bg-black/20 p-4 shadow-2xl backdrop-blur-lg">
           <div className="w-full">
             <h3 className="mb-3 text-xl font-semibold text-white">
               AI Recommendations for Retention (Lean Six Sigma)
@@ -1134,8 +1151,8 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       <div className="stat-desc text-green-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                                ((sentimentSummary.sentiment_distribution?.POSITIVE || 0) /
-                                    sentimentSummary.total_responses) *
+                              ((sentimentSummary.sentiment_distribution?.POSITIVE || 0) /
+                                sentimentSummary.total_responses) *
                                 100,
                             )
                           : 0}
@@ -1150,8 +1167,8 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       <div className="stat-desc text-yellow-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                                ((sentimentSummary.sentiment_distribution?.NEUTRAL || 0) /
-                                    sentimentSummary.total_responses) *
+                              ((sentimentSummary.sentiment_distribution?.NEUTRAL || 0) /
+                                sentimentSummary.total_responses) *
                                 100,
                             )
                           : 0}
@@ -1166,8 +1183,8 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       <div className="stat-desc text-red-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                                ((sentimentSummary.sentiment_distribution?.NEGATIVE || 0) /
-                                    sentimentSummary.total_responses) *
+                              ((sentimentSummary.sentiment_distribution?.NEGATIVE || 0) /
+                                sentimentSummary.total_responses) *
                                 100,
                             )
                           : 0}
@@ -1203,32 +1220,32 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                           </tr>
                         </thead>
                         <tbody>
-                        {Object.entries(sentimentBySemester.semester_summary || {}).map(
+                          {Object.entries(sentimentBySemester.semester_summary || {}).map(
                             ([semester, data]: [string, any]) => (
-                                <tr key={semester} className="border-gray-600">
-                                  <td className="font-medium">{semester}</td>
-                                  <td
-                                      className={`font-bold ${
-                                          data.average_sentiment_score > 0
-                                              ? "text-green-400"
-                                              : data.average_sentiment_score < 0
-                                                  ? "text-red-400"
-                                                  : "text-yellow-400"
+                              <tr key={semester} className="border-gray-600">
+                                <td className="font-medium">{semester}</td>
+                                <td
+                                  className={`font-bold ${
+                                    data.average_sentiment_score > 0
+                                      ? "text-green-400"
+                                      : data.average_sentiment_score < 0
+                                        ? "text-red-400"
+                                        : "text-yellow-400"
                                   }`}
-                                  >
-                                    {data.average_sentiment_score > 0 ? "+" : ""}
-                                    {data.average_sentiment_score}
-                                  </td>
-                                  <td>{data.total_responses}</td>
-                                  <td className="text-green-400">
-                                    {data.sentiment_distribution?.POSITIVE || 0}
-                                  </td>
-                                  <td className="text-red-400">
-                                    {data.sentiment_distribution?.NEGATIVE || 0}
-                                  </td>
-                                </tr>
+                                >
+                                  {data.average_sentiment_score > 0 ? "+" : ""}
+                                  {data.average_sentiment_score}
+                                </td>
+                                <td>{data.total_responses}</td>
+                                <td className="text-green-400">
+                                  {data.sentiment_distribution?.POSITIVE || 0}
+                                </td>
+                                <td className="text-red-400">
+                                  {data.sentiment_distribution?.NEGATIVE || 0}
+                                </td>
+                              </tr>
                             ),
-                        )}
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -1256,13 +1273,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                               <tr key={year} className="border-gray-600">
                                 <td className="font-medium">{year}</td>
                                 <td
-                                    className={`font-bold ${
-                                        data.average_sentiment_score > 0
-                                            ? "text-green-400"
-                                            : data.average_sentiment_score < 0
-                                                ? "text-red-400"
-                                                : "text-yellow-400"
-                                    }`}
+                                  className={`font-bold ${
+                                    data.average_sentiment_score > 0
+                                      ? "text-green-400"
+                                      : data.average_sentiment_score < 0
+                                        ? "text-red-400"
+                                        : "text-yellow-400"
+                                  }`}
                                 >
                                   {data.average_sentiment_score > 0 ? "+" : ""}
                                   {data.average_sentiment_score}
@@ -1321,7 +1338,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       checked={formSemesters.includes(s)}
                       onChange={() =>
                         setFormSemesters((prev) =>
-                            prev.includes(s) ? prev.filter((v) => v !== s) : [...prev, s],
+                          prev.includes(s) ? prev.filter((v) => v !== s) : [...prev, s],
                         )
                       }
                     />
@@ -1344,7 +1361,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                 onChange={(e) => setFormRetention(e.target.value)}
               />
               {retentionSaveError && (
-                  <div className="text-md mt-2 text-red-500">{retentionSaveError}</div>
+                <div className="text-md mt-2 text-red-500">{retentionSaveError}</div>
               )}
             </div>
           </div>
