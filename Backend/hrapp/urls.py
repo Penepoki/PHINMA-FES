@@ -79,6 +79,10 @@ urlpatterns = [
     path('user-dashboard/', user_view_dashboard, name='user-dashboard'),
 
     path('user-profile/', user_view_profile),
+    path('user-profile/upload-avatar/', upload_profile_picture),
+    path('user-profile/change-password/', change_password_with_otp),
+    path('user-profile/request-otp/', request_password_change_otp),
+    path('user-profile/verify-otp/', verify_password_change_otp),
 
     path('forgot-password/', forgot_password_view),
 
