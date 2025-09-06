@@ -23,7 +23,7 @@ const ImportQuestionHelper: React.FC<ImportQuestionProps> = ({
 
   // Only show questions not already imported
   const availableToImport = normalizedQuestions.filter(
-    (q) => !importedQuestions.some((iq) => iq.id === q.id)
+    (q) => !importedQuestions.some((iq) => iq.id === q.id),
   );
 
   return (
@@ -33,10 +33,7 @@ const ImportQuestionHelper: React.FC<ImportQuestionProps> = ({
         {availableToImport.map((q) => (
           <li key={q.id}>
             {q.question} ({q.type})
-            <button
-              onClick={() => onImport(q)}
-              className="btn btn-xs btn-accent ml-2"
-            >
+            <button onClick={() => onImport(q)} className="btn btn-xs btn-accent ml-2">
               Import
             </button>
           </li>

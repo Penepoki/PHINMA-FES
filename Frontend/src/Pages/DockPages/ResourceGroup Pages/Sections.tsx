@@ -22,10 +22,7 @@ const toStudentOption = (u: any): StudentOption => {
   const last = String(u.last_name ?? "").trim();
   const email = String(u.email ?? "").trim();
   const name =
-    String(u.name ?? "").trim() ||
-    `${first} ${last}`.trim() ||
-    email ||
-    `Student #${u.id}`;
+    String(u.name ?? "").trim() || `${first} ${last}`.trim() || email || `Student #${u.id}`;
 
   return {
     id: Number(u.id),
@@ -135,11 +132,11 @@ function Sections({ setActiveView }: SectionsProps) {
       const sectionId = created?.id;
 
       if (sectionId && createStagedStudents.length > 0) {
-        const ids = createStagedStudents.map(s => Number(s.id));
+        const ids = createStagedStudents.map((s) => Number(s.id));
         await api.post(
           `/section/sections/${sectionId}/add_students/`,
           { student_ids: ids },
-          { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined }
+          { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined },
         );
       }
 
@@ -154,8 +151,8 @@ function Sections({ setActiveView }: SectionsProps) {
     } catch (error: any) {
       console.error("Error creating Section:", error?.response?.data || error);
       alert(
-        "Failed to create section."
-        + (error?.response?.data ? `\n\nDetails: ${JSON.stringify(error.response.data)}` : "")
+        "Failed to create section." +
+          (error?.response?.data ? `\n\nDetails: ${JSON.stringify(error.response.data)}` : ""),
       );
     }
   };
@@ -165,7 +162,7 @@ function Sections({ setActiveView }: SectionsProps) {
       await api.patch(
         `/section/sections/${Section.id}/`,
         { is_active: !Section.is_active },
-        { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined }
+        { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined },
       );
       fetchSections();
     } catch (error) {
@@ -235,7 +232,7 @@ function Sections({ setActiveView }: SectionsProps) {
           year_level: editYearLevel?.id,
           program: editProgram?.id,
         },
-        { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined }
+        { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined },
       );
       (document.getElementById("edit_section_modal") as HTMLDialogElement)?.close();
       setEditSection(null);
@@ -263,7 +260,7 @@ function Sections({ setActiveView }: SectionsProps) {
       await api.post(
         `/section/sections/${editSection.id}/add_students/`,
         { student_ids: ids },
-        { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined }
+        { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined },
       );
       setEditCurrentStudents((prev) => [...prev, ...toAdd]);
       setEditStagedStudents([]);
@@ -280,8 +277,7 @@ function Sections({ setActiveView }: SectionsProps) {
   };
 
   // Helpers for custom tables
-  const getFirst = (s: Option) =>
-    s.first_name ?? (s.name ? s.name.split(" ")[0] : "-");
+  const getFirst = (s: Option) => s.first_name ?? (s.name ? s.name.split(" ")[0] : "-");
   const getLast = (s: Option) =>
     s.last_name ?? (s.name ? s.name.split(" ").slice(1).join(" ") || "-" : "-");
   const getEmail = (s: Option) => s.email ?? "-";
@@ -338,8 +334,9 @@ function Sections({ setActiveView }: SectionsProps) {
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Sections</h2>
-      <span className="font-thin text-[#888888] block mx-6">
-        This is where you can organize student sections or cohorts, making sure evaluations are tied to the right groups.
+      <span className="mx-6 block font-thin text-[#888888]">
+        This is where you can organize student sections or cohorts, making sure evaluations are tied
+        to the right groups.
       </span>
 
       <div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
@@ -402,7 +399,9 @@ function Sections({ setActiveView }: SectionsProps) {
 
               {/* Assign Students (create) */}
               <div className="rounded-lg border-2 border-gray-200 p-4">
-                <h4 className="mb-4 text-lg font-semibold text-gray-700">Assign Students (optional)</h4>
+                <h4 className="mb-4 text-lg font-semibold text-gray-700">
+                  Assign Students (optional)
+                </h4>
                 <ComboboxTextField
                   label="Student Search"
                   placeholder="Type to search students"
@@ -412,7 +411,11 @@ function Sections({ setActiveView }: SectionsProps) {
                   onChange={setCreateSelectedStudent}
                 />
                 <div className="mt-2 flex gap-2">
-                  <button type="button" className="btn text-white btn-primary" onClick={addCreateStudentToBatch}>
+                  <button
+                    type="button"
+                    className="btn btn-primary text-white"
+                    onClick={addCreateStudentToBatch}
+                  >
                     Add to list
                   </button>
                   <button
@@ -441,7 +444,7 @@ function Sections({ setActiveView }: SectionsProps) {
                     <tbody>
                       {createStagedStudents.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="text-center italic py-3 text-gray-500">
+                          <td colSpan={4} className="py-3 text-center text-gray-500 italic">
                             No students staged.
                           </td>
                         </tr>
@@ -476,7 +479,9 @@ function Sections({ setActiveView }: SectionsProps) {
                 <button
                   type="button"
                   className="btn btn-cancel"
-                  onClick={() => (document.getElementById("create_new_Section") as HTMLDialogElement)?.close()}
+                  onClick={() =>
+                    (document.getElementById("create_new_Section") as HTMLDialogElement)?.close()
+                  }
                 >
                   Cancel
                 </button>
@@ -488,7 +493,9 @@ function Sections({ setActiveView }: SectionsProps) {
         {/* Export Button + Modal (unchanged) */}
         <div className="flex flex-row justify-center">
           <button
-            onClick={() => (document.getElementById("modal_export_Sections") as HTMLDialogElement)?.showModal()}
+            onClick={() =>
+              (document.getElementById("modal_export_Sections") as HTMLDialogElement)?.showModal()
+            }
             className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
           >
             Export Section
@@ -514,7 +521,11 @@ function Sections({ setActiveView }: SectionsProps) {
                   <button
                     type="button"
                     className="btn btn-cancel"
-                    onClick={() => (document.getElementById("modal_export_Sections") as HTMLDialogElement)?.close()}
+                    onClick={() =>
+                      (
+                        document.getElementById("modal_export_Sections") as HTMLDialogElement
+                      )?.close()
+                    }
                   >
                     Cancel
                   </button>
@@ -540,7 +551,7 @@ function Sections({ setActiveView }: SectionsProps) {
 
       {/* EDIT SECTION MODAL — COPIED DESIGN */}
       <dialog id="edit_section_modal" className="modal">
-        <div className="modal-box w-11/12 max-w-5xl max-h-[90vh] overflow-y-auto">
+        <div className="modal-box max-h-[90vh] w-11/12 max-w-5xl overflow-y-auto">
           <h3 className="mb-4 text-center text-2xl font-bold">Edit Section</h3>
 
           <form
@@ -622,7 +633,7 @@ function Sections({ setActiveView }: SectionsProps) {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={3} className="text-center italic py-3 text-gray-500">
+                          <td colSpan={3} className="py-3 text-center text-gray-500 italic">
                             No students currently assigned
                           </td>
                         </tr>
@@ -646,20 +657,21 @@ function Sections({ setActiveView }: SectionsProps) {
                 <div className="mt-2">
                   <button
                     type="button"
-                    className="btn text-white btn-primary"
+                    className="btn btn-primary text-white"
                     onClick={() => {
                       if (!editSelectedStudent) return;
                       const alreadyAssigned = editCurrentStudents.some(
-                        (s) => Number(s.id) === Number(editSelectedStudent.id)
+                        (s) => Number(s.id) === Number(editSelectedStudent.id),
                       );
                       if (alreadyAssigned) {
                         alert("Student is already in this section.");
                         return;
                       }
                       const alreadyStaged = editStagedStudents.some(
-                        (s) => Number(s.id) === Number(editSelectedStudent.id)
+                        (s) => Number(s.id) === Number(editSelectedStudent.id),
                       );
-                      if (!alreadyStaged) setEditStagedStudents((prev) => [...prev, editSelectedStudent]);
+                      if (!alreadyStaged)
+                        setEditStagedStudents((prev) => [...prev, editSelectedStudent]);
                       setEditSelectedStudent(null);
                     }}
                   >
@@ -667,7 +679,7 @@ function Sections({ setActiveView }: SectionsProps) {
                   </button>
                   <button
                     type="button"
-                    className="btn ml-2 btn-cancel text-white"
+                    className="btn btn-cancel ml-2 text-white"
                     onClick={() => {
                       setEditSelectedStudent(null);
                       setEditStagedStudents([]);
@@ -714,7 +726,11 @@ function Sections({ setActiveView }: SectionsProps) {
                   </div>
 
                   <div className="mt-3">
-                    <button type="button" className="btn btn-success text-white" onClick={submitEditStudents}>
+                    <button
+                      type="button"
+                      className="btn btn-success text-white"
+                      onClick={submitEditStudents}
+                    >
                       Submit Students
                     </button>
                   </div>

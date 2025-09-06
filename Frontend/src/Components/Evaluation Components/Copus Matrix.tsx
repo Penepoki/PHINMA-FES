@@ -11,8 +11,9 @@ type ToggleBoxProps = {
 function ToggleBox({ label, active, onToggle }: ToggleBoxProps) {
   return (
     <motion.button
-      className={`min-w-[140px] rounded-xl px-6 py-3 text-center text-base transition-colors hover:scale-105 hover:bg-gray-300 ${active ? "bg-[#1c402a] text-white" : "bg-gray-200 text-black"
-        }`}
+      className={`min-w-[140px] rounded-xl px-6 py-3 text-center text-base transition-colors hover:scale-105 hover:bg-gray-300 ${
+        active ? "bg-[#1c402a] text-white" : "bg-gray-200 text-black"
+      }`}
       onClick={() => onToggle(label)}
       animate={{
         y: [3, -1, 3],
@@ -55,10 +56,7 @@ interface TimestampData {
   time_record: string;
 }
 
-const CopusMatrix: React.FC<CopusMatrixProps> = ({
-  evaluationId,
-  onTalliesUpdate,
-}) => {
+const CopusMatrix: React.FC<CopusMatrixProps> = ({ evaluationId, onTalliesUpdate }) => {
   const MIN_MINUTE = 0;
   const MAX_MINUTE = 58;
   const INCREMENT = 2;
@@ -87,19 +85,11 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
       teacherComments: string;
     };
   }>({});
-  const [currentStudentSelections, setCurrentStudentSelections] = useState<
-    string[]
-  >([]);
-  const [currentTeacherSelections, setCurrentTeacherSelections] = useState<
-    string[]
-  >([]);
-  const [currentStudentComments, setCurrentStudentComments] =
-    useState<string>("");
-  const [currentTeacherComments, setCurrentTeacherComments] =
-    useState<string>("");
-  const [timestampIds, setTimestampIds] = useState<{ [key: number]: number }>(
-    {},
-  );
+  const [currentStudentSelections, setCurrentStudentSelections] = useState<string[]>([]);
+  const [currentTeacherSelections, setCurrentTeacherSelections] = useState<string[]>([]);
+  const [currentStudentComments, setCurrentStudentComments] = useState<string>("");
+  const [currentTeacherComments, setCurrentTeacherComments] = useState<string>("");
+  const [timestampIds, setTimestampIds] = useState<{ [key: number]: number }>({});
   const [isWithinScheduleTime, setIsWithinScheduleTime] = useState(true);
   const [canEditEvaluation, setCanEditEvaluation] = useState(false);
   const [setSchedule] = useState<any>(null);
@@ -172,16 +162,11 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
       return response.data;
     },
     updateTimestamp: async (id: number, data: Partial<TimestampData>) => {
-      const response = await api.patch(
-        `/timestamp/timestamps/${id}/`,
-        data,
-      );
+      const response = await api.patch(`/timestamp/timestamps/${id}/`, data);
       return response.data;
     },
     getTimestamps: async (evaluationId: number) => {
-      const response = await api.get(
-        `/timestamp/timestamps/?evaluation=${evaluationId}`,
-      );
+      const response = await api.get(`/timestamp/timestamps/?evaluation=${evaluationId}`);
       return response.data;
     },
   };
@@ -215,16 +200,10 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 
       if (timestampId) {
         // Update existing timestamp
-        await api.put(
-          `/timestamp/timestamps/${timestampId}/`,
-          timestampData,
-        );
+        await api.put(`/timestamp/timestamps/${timestampId}/`, timestampData);
       } else {
         // Create new timestamp (shouldn't normally happen with bulk creation)
-        const response = await api.post(
-          "/timestamp/timestamps/",
-          timestampData,
-        );
+        const response = await api.post("/timestamp/timestamps/", timestampData);
         // Update the timestamp IDs mapping
         setTimestampIds({
           ...timestampIds,
@@ -260,15 +239,11 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
   const checkTimeConstraints = async (evalId: number) => {
     try {
       // Get the evaluation to find its schedule
-      const evaluation = await api.get(
-        `/evaluation/evaluations/${evalId}/`,
-      );
+      const evaluation = await api.get(`/evaluation/evaluations/${evalId}/`);
       const scheduleId = evaluation.data.schedule;
 
       // Get the schedule
-      const scheduleData = await api.get(
-        `/schedule/schedules/${scheduleId}/`,
-      );
+      const scheduleData = await api.get(`/schedule/schedules/${scheduleId}/`);
       setSchedule(scheduleData.data);
 
       // Check if current time is within schedule time
@@ -279,21 +254,16 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
       const startParts = scheduleData.data.start_time.split(":");
       const endParts = scheduleData.data.end_time.split(":");
 
-      const startMinutes =
-        parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
-      const endMinutes =
-        parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+      const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+      const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
 
       // Check if current time is within schedule
-      const isWithin =
-        currentTime >= startMinutes && currentTime <= endMinutes;
+      const isWithin = currentTime >= startMinutes && currentTime <= endMinutes;
       setIsWithinScheduleTime(isWithin);
 
       // Check if user has permission to edit outside schedule time
       try {
-        const permissionCheck = await api.get(
-          `/evaluation/evaluations/${evalId}/can-edit/`,
-        );
+        const permissionCheck = await api.get(`/evaluation/evaluations/${evalId}/can-edit/`);
         setCanEditEvaluation(permissionCheck.data.can_edit);
       } catch (error) {
         // If the endpoint doesn't exist, default to false
@@ -307,8 +277,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 
   // Helper function to format time for a given minute
   const formatTimeForMinute = (minuteValue: number): string => {
-    if (!startTime)
-      return new Date().toISOString().split("T")[1].substring(0, 8);
+    if (!startTime) return new Date().toISOString().split("T")[1].substring(0, 8);
 
     const time = new Date(startTime);
     time.setMinutes(time.getMinutes() + minuteValue);
@@ -319,9 +288,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
   const loadExistingTimestamps = async (evalId: number) => {
     try {
       // Fetch all timestamps for this evaluation
-      const response = await api.get(
-        `/timestamp/timestamps/?evaluation=${evalId}`,
-      );
+      const response = await api.get(`/timestamp/timestamps/?evaluation=${evalId}`);
       const timestamps: TimestampData[] = response.data;
 
       // Initialize the selections by minute
@@ -347,26 +314,22 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
         newTimestampIds[minuteValue] = timestamp.id;
 
         // Convert student_activities and instructor_activities to arrays of selected display labels
-        const studentSelections = Object.entries(
-          timestamp.student_activities || {},
-        )
+        const studentSelections = Object.entries(timestamp.student_activities || {})
           .filter(([_, isSelected]) => isSelected)
           .map(([key]) => {
             // Map backend key to display label
-            const displayLabel = Object.keys(
-              studentActivityMap,
-            ).find((label) => studentActivityMap[label] === key);
+            const displayLabel = Object.keys(studentActivityMap).find(
+              (label) => studentActivityMap[label] === key,
+            );
             return displayLabel || key;
           });
 
-        const teacherSelections = Object.entries(
-          timestamp.instructor_activities || {},
-        )
+        const teacherSelections = Object.entries(timestamp.instructor_activities || {})
           .filter(([_, isSelected]) => isSelected)
           .map(([key]) => {
-            const displayLabel = Object.keys(
-              teacherActivityMap,
-            ).find((label) => teacherActivityMap[label] === key);
+            const displayLabel = Object.keys(teacherActivityMap).find(
+              (label) => teacherActivityMap[label] === key,
+            );
             return displayLabel || key;
           });
 
@@ -375,13 +338,9 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
           student: studentSelections,
           teacher: teacherSelections,
           studentComments:
-            timestamp.student_comments?.comment ||
-            timestamp.student_comments?.notes ||
-            "",
+            timestamp.student_comments?.comment || timestamp.student_comments?.notes || "",
           teacherComments:
-            timestamp.instructor_comments?.comment ||
-            timestamp.instructor_comments?.notes ||
-            "",
+            timestamp.instructor_comments?.comment || timestamp.instructor_comments?.notes || "",
         };
       });
 
@@ -418,25 +377,17 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
       if (timestamps.length > 0) {
         // Find the first minute that has any student or teacher activity
         const evaluatedMinutes = Object.entries(newSelectionsByMinute)
-          .filter(
-            ([_, sel]) =>
-              sel.student.length > 0 || sel.teacher.length > 0,
-          )
+          .filter(([_, sel]) => sel.student.length > 0 || sel.teacher.length > 0)
           .map(([minute]) => Number(minute));
         const firstEvaluatedMinute =
           evaluatedMinutes.length > 0
             ? evaluatedMinutes[0]
-            : Math.min(
-              ...Object.keys(newSelectionsByMinute).map(
-                Number,
-              ),
-            );
+            : Math.min(...Object.keys(newSelectionsByMinute).map(Number));
         setActiveMinute(firstEvaluatedMinute);
         setMinute(firstEvaluatedMinute);
 
         // Load the selections for the active minute
-        const activeSelections =
-          newSelectionsByMinute[firstEvaluatedMinute];
+        const activeSelections = newSelectionsByMinute[firstEvaluatedMinute];
         if (activeSelections) {
           setCurrentStudentSelections(activeSelections.student);
           setCurrentTeacherSelections(activeSelections.teacher);
@@ -474,8 +425,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
   // Your existing getTotalMinutesObserved function
   const getTotalMinutesObserved = () => {
     return Object.values(selectionsByMinute).filter(
-      (selection) =>
-        selection.student.length > 0 && selection.teacher.length > 0,
+      (selection) => selection.student.length > 0 && selection.teacher.length > 0,
     ).length;
   };
 
@@ -499,9 +449,8 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
     Object.values(selectionsByMinute).forEach((selection) => {
       selection.student.forEach((activity) => {
         const displayName =
-          Object.keys(studentActivityMap).find(
-            (key) => studentActivityMap[key] === activity,
-          ) || activity;
+          Object.keys(studentActivityMap).find((key) => studentActivityMap[key] === activity) ||
+          activity;
         if (newStudentTallies[displayName]) {
           newStudentTallies[displayName].count++;
           totalStudentSelections++;
@@ -510,9 +459,8 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 
       selection.teacher.forEach((activity) => {
         const displayName =
-          Object.keys(teacherActivityMap).find(
-            (key) => teacherActivityMap[key] === activity,
-          ) || activity;
+          Object.keys(teacherActivityMap).find((key) => teacherActivityMap[key] === activity) ||
+          activity;
         if (newTeacherTallies[displayName]) {
           newTeacherTallies[displayName].count++;
           totalTeacherSelections++;
@@ -524,16 +472,14 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
     if (totalStudentSelections > 0) {
       studentOptions.forEach((option) => {
         newStudentTallies[option].percentage =
-          (newStudentTallies[option].count / totalStudentSelections) *
-          100;
+          (newStudentTallies[option].count / totalStudentSelections) * 100;
       });
     }
 
     if (totalTeacherSelections > 0) {
       teacherOptions.forEach((option) => {
         newTeacherTallies[option].percentage =
-          (newTeacherTallies[option].count / totalTeacherSelections) *
-          100;
+          (newTeacherTallies[option].count / totalTeacherSelections) * 100;
       });
     }
 
@@ -584,9 +530,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 
     // Check if we can edit (either within schedule time or have permission)
     if (!isWithinScheduleTime && !canEditEvaluation) {
-      console.warn(
-        "Cannot update evaluation outside of schedule time without permission",
-      );
+      console.warn("Cannot update evaluation outside of schedule time without permission");
       return;
     }
 
@@ -597,10 +541,8 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
       studentComments: "",
       teacherComments: "",
     };
-    const studentSelections =
-      type === "student" ? selections : currentSelections.student;
-    const teacherSelections =
-      type === "teacher" ? selections : currentSelections.teacher;
+    const studentSelections = type === "student" ? selections : currentSelections.student;
+    const teacherSelections = type === "teacher" ? selections : currentSelections.teacher;
 
     // Create the timestamp data
     const timestampData: Omit<TimestampData, "id"> = {
@@ -627,13 +569,9 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 
     try {
       if (timestampIds[minute]) {
-        await timestampApi.updateTimestamp(
-          timestampIds[minute],
-          timestampData,
-        );
+        await timestampApi.updateTimestamp(timestampIds[minute], timestampData);
       } else {
-        const response =
-          await timestampApi.createTimestamp(timestampData);
+        const response = await timestampApi.createTimestamp(timestampData);
         setTimestampIds((prev) => ({
           ...prev,
           [minute]: response.id,
@@ -648,7 +586,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
   const restrictSelections = (
     currentSelections: string[],
     label: string,
-    maxSelections: number = 1
+    maxSelections: number = 1,
   ): string[] => {
     if (currentSelections.includes(label)) {
       // Deselect if already selected
@@ -666,12 +604,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 
     // Only update if selections actually changed
     if (newSelections !== currentStudentSelections) {
-      updateSelections(
-        "student",
-        newSelections,
-        currentStudentComments,
-        currentTeacherComments,
-      );
+      updateSelections("student", newSelections, currentStudentComments, currentTeacherComments);
     }
   };
 
@@ -681,37 +614,18 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
 
     // Only update if selections actually changed
     if (newSelections !== currentTeacherSelections) {
-      updateSelections(
-        "teacher",
-        newSelections,
-        currentStudentComments,
-        currentTeacherComments,
-      );
+      updateSelections("teacher", newSelections, currentStudentComments, currentTeacherComments);
     }
   };
 
-  const handleStudentCommentChange = (
-    e: React.ChangeEvent<HTMLTextAreaElement>,
-  ) => {
+  const handleStudentCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCurrentStudentComments(e.target.value);
-    updateSelections(
-      "student",
-      currentStudentSelections,
-      e.target.value,
-      currentTeacherComments,
-    );
+    updateSelections("student", currentStudentSelections, e.target.value, currentTeacherComments);
   };
 
-  const handleTeacherCommentChange = (
-    e: React.ChangeEvent<HTMLTextAreaElement>,
-  ) => {
+  const handleTeacherCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCurrentTeacherComments(e.target.value);
-    updateSelections(
-      "teacher",
-      currentTeacherSelections,
-      currentStudentComments,
-      e.target.value,
-    );
+    updateSelections("teacher", currentTeacherSelections, currentStudentComments, e.target.value);
   };
 
   // Update your startTimer function to load timestamps if an evaluation ID is provided
@@ -795,18 +709,14 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
   }, [activeMinute]);
 
   const hasStudentAndTeacherSelected =
-    currentStudentSelections.length > 0 &&
-    currentTeacherSelections.length > 0;
+    currentStudentSelections.length > 0 && currentTeacherSelections.length > 0;
 
   // Render time constraint warning if needed
   const renderTimeConstraintWarning = () => {
     if (!isWithinScheduleTime && !canEditEvaluation) {
       return (
         <div className="mb-4 border-l-4 border-yellow-500 bg-yellow-100 p-4 text-yellow-700">
-          <p>
-            This evaluation is outside the scheduled class time. You
-            can view but not edit.
-          </p>
+          <p>This evaluation is outside the scheduled class time. You can view but not edit.</p>
         </div>
       );
     }
@@ -815,8 +725,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
       return (
         <div className="mb-4 border-l-4 border-blue-500 bg-blue-100 p-4 text-blue-700">
           <p>
-            This evaluation is outside the scheduled class time, but
-            you have permission to edit it.
+            This evaluation is outside the scheduled class time, but you have permission to edit it.
           </p>
         </div>
       );
@@ -890,8 +799,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
       <div className="mb-4 flex items-center justify-center gap-3">
         <div className="flex flex-col items-center gap-4">
           <div className="text-center text-sm text-gray-400">
-            The Observer must select at least one option for both
-            student and teacher.
+            The Observer must select at least one option for both student and teacher.
             <br />
             Maximum of 2 activities can be selected per category for each timestamp.
             <br />
@@ -903,9 +811,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
               className="tooltip hidden text-xl font-bold disabled:opacity-30"
               onClick={handlePrev}
               disabled={
-                minute === 2 ||
-                navigationDisabled ||
-                (!isWithinScheduleTime && !canEditEvaluation)
+                minute === 2 || navigationDisabled || (!isWithinScheduleTime && !canEditEvaluation)
               }
               data-tip="Click to go back to the previous minutes"
             >
@@ -916,9 +822,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
               className="tooltip hidden text-xl font-bold disabled:opacity-30"
               onClick={handleNext}
               disabled={
-                minute === 30 ||
-                navigationDisabled ||
-                (!isWithinScheduleTime && !canEditEvaluation)
+                minute === 30 || navigationDisabled || (!isWithinScheduleTime && !canEditEvaluation)
               }
               data-tip="Click to go to the next minutes"
             >
@@ -927,8 +831,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
           </div>
 
           <p>
-            Next minute in: {Math.floor(countdown / 60)}:
-            {String(countdown % 60).padStart(2, "0")}
+            Next minute in: {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
           </p>
 
           {/* Minute Grid */}
@@ -938,36 +841,27 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
                 student: [],
                 teacher: [],
               };
-              const answered =
-                selections.student.length > 0 &&
-                selections.teacher.length > 0;
+              const answered = selections.student.length > 0 && selections.teacher.length > 0;
 
               return (
                 <button
                   key={m}
                   onClick={() => {
-                    if (
-                      !navigationDisabled &&
-                      (isWithinScheduleTime ||
-                        canEditEvaluation)
-                    ) {
+                    if (!navigationDisabled && (isWithinScheduleTime || canEditEvaluation)) {
                       startTimer();
                       setMinute(m);
                     }
                   }}
-                  disabled={
-                    navigationDisabled ||
-                    (!isWithinScheduleTime &&
-                      !canEditEvaluation)
-                  }
-                  className={`h-10 w-10 rounded-md text-sm font-semibold ${minute === m
-                    ? hasStudentAndTeacherSelected
-                      ? "bg-[#1c402a] text-white"
-                      : "bg-gray-400 text-white"
-                    : answered
-                      ? "bg-[#1c402a] text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
+                  disabled={navigationDisabled || (!isWithinScheduleTime && !canEditEvaluation)}
+                  className={`h-10 w-10 rounded-md text-sm font-semibold ${
+                    minute === m
+                      ? hasStudentAndTeacherSelected
+                        ? "bg-[#1c402a] text-white"
+                        : "bg-gray-400 text-white"
+                      : answered
+                        ? "bg-[#1c402a] text-white"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
                 >
                   {m}
                 </button>
@@ -978,9 +872,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
       </div>
 
       {/* Student Options */}
-      <div className="mb-6 text-center text-lg font-semibold text-gray-700">
-        Students Doing
-      </div>
+      <div className="mb-6 text-center text-lg font-semibold text-gray-700">Students Doing</div>
       <div className="mb-4 flex flex-wrap justify-center gap-2">
         {studentOptions.map((label, index) => (
           <ToggleBox
@@ -993,9 +885,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
       </div>
 
       {/* Teacher Options */}
-      <div className="mb-6 text-center text-lg font-semibold text-gray-700">
-        Teacher Doing
-      </div>
+      <div className="mb-6 text-center text-lg font-semibold text-gray-700">Teacher Doing</div>
       <div className="flex flex-wrap justify-center gap-2">
         {teacherOptions.map((label, index) => (
           <ToggleBox
@@ -1010,9 +900,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
       {/* Comments */}
       <div className="collapse-arrow collapse mt-4 border-1 border-gray-300">
         <input type="checkbox" />
-        <div className="collapse-title text-lg font-semibold">
-          Observation Comments
-        </div>
+        <div className="collapse-title text-lg font-semibold">Observation Comments</div>
         <div className="collapse-content">
           <div className="mb-2 flex flex-col items-center">
             <label className="mb-1 text-sm font-medium text-gray-700">
@@ -1022,9 +910,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
               className="w-full max-w-md rounded border border-gray-300 p-2"
               value={currentTeacherComments}
               onChange={handleTeacherCommentChange}
-              disabled={
-                !isWithinScheduleTime && !canEditEvaluation
-              }
+              disabled={!isWithinScheduleTime && !canEditEvaluation}
             />
           </div>
           <div className="mb-2 flex flex-col items-center">
@@ -1035,14 +921,11 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
               className="w-full max-w-md rounded border border-gray-300 p-2"
               value={currentStudentComments}
               onChange={handleStudentCommentChange}
-              disabled={
-                !isWithinScheduleTime && !canEditEvaluation
-              }
+              disabled={!isWithinScheduleTime && !canEditEvaluation}
             />
           </div>
         </div>
       </div>
-
     </div>
   );
 };

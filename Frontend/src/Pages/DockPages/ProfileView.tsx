@@ -54,7 +54,7 @@ export default function Profile({ setActiveView }: ProfileProps) {
           user.full_name ||
           [user.first_name || "", user.last_name || ""].join(" ").trim() ||
           "User";
-        setProfileData(p => ({
+        setProfileData((p) => ({
           ...p,
           name,
           email: user.email || "",
@@ -70,12 +70,12 @@ export default function Profile({ setActiveView }: ProfileProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
+    setProfileData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPasswords(prev => ({ ...prev, [name]: value }));
+    setPasswords((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -156,7 +156,7 @@ export default function Profile({ setActiveView }: ProfileProps) {
         xhr.open("PUT", uploadUrl, true);
         xhr.setRequestHeader("Content-Type", file.type);
 
-        xhr.upload.onprogress = evt => {
+        xhr.upload.onprogress = (evt) => {
           if (evt.lengthComputable) {
             const pct = 25 + Math.round((evt.loaded / evt.total) * 70);
             setProgress(Math.min(95, pct));
@@ -188,7 +188,7 @@ export default function Profile({ setActiveView }: ProfileProps) {
       setMe(updated);
 
       // 4) Update UI immediately
-      setProfileData(prev => ({ ...prev, avatar: fileUrl }));
+      setProfileData((prev) => ({ ...prev, avatar: fileUrl }));
       setCacheBust(Date.now());
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
@@ -211,7 +211,7 @@ export default function Profile({ setActiveView }: ProfileProps) {
         {/* Profile Card */}
         <div className="flex h-1/2 w-full flex-col items-center justify-center rounded-xl p-6 text-white shadow-2xl backdrop-blur-lg md:h-full md:w-1/2">
           <div className="avatar">
-            <div className="ring-primary ring-offset-base-100 w-40 rounded-full ring ring-offset-2 md:w-72 overflow-hidden bg-white/5">
+            <div className="ring-primary ring-offset-base-100 w-40 overflow-hidden rounded-full bg-white/5 ring ring-offset-2 md:w-72">
               {profileData.avatar ? (
                 <img
                   src={`${profileData.avatar}?v=${cacheBust}`}
@@ -251,7 +251,8 @@ export default function Profile({ setActiveView }: ProfileProps) {
         <div className="h-full w-full overflow-x-clip overflow-y-auto rounded-xl p-12 text-white shadow-2xl backdrop-blur-lg md:w-1/2">
           <h3 className="mb-4 text-2xl font-bold">Profile Information</h3>
           <span className="mb-6 block font-thin text-[#888888]">
-            Manage your personal details and preferences so everything stays accurate and tailored to you.
+            Manage your personal details and preferences so everything stays accurate and tailored
+            to you.
           </span>
 
           <form onSubmit={handleSave} className="space-y-4 text-lg">
@@ -278,7 +279,7 @@ export default function Profile({ setActiveView }: ProfileProps) {
             <hr className="my-4 border-gray-500" />
 
             <h4 className="text-xl font-semibold">Change Password</h4>
-            {["current", "new", "confirm"].map(field => (
+            {["current", "new", "confirm"].map((field) => (
               <div key={field} className="relative">
                 <label className="mb-1 block text-sm capitalize">
                   {field === "confirm" ? "Confirm New Password" : `${field} Password`}
@@ -293,9 +294,12 @@ export default function Profile({ setActiveView }: ProfileProps) {
                 <button
                   type="button"
                   onClick={() =>
-                    setShowPassword(prev => ({ ...prev, [field]: !prev[field as keyof typeof prev] }))
+                    setShowPassword((prev) => ({
+                      ...prev,
+                      [field]: !prev[field as keyof typeof prev],
+                    }))
                   }
-                  className="absolute right-3 top-9 -translate-y-1/2 transform text-gray-500"
+                  className="absolute top-9 right-3 -translate-y-1/2 transform text-gray-500"
                 >
                   {showPassword[field as keyof typeof showPassword] ? "🙈" : "👁️"}
                 </button>

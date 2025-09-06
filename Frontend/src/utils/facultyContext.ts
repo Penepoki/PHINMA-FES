@@ -2,9 +2,7 @@ import api from "../utils/api";
 
 // utils/facultyContext.ts
 export async function resolveFacultyId(): Promise<number | null> {
-  const local =
-      localStorage.getItem("facultyId") ||
-      localStorage.getItem("faculty_id");
+  const local = localStorage.getItem("facultyId") || localStorage.getItem("faculty_id");
   if (local) {
     const left = String(local).split(":")[0];
     const n = Number(left);

@@ -1,14 +1,14 @@
+import { PencilSquareIcon } from "@heroicons/react/16/solid";
 import { useEffect, useRef, useState } from "react";
-import api from "../../../utils/api";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 import CreateStudentQuestion, {
   QuestionData,
   mapTypeToBackend,
   mapTypeToFrontend,
 } from "../../../Components/Evaluation Components/CreateStudentQuestion";
-import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
-import { PencilSquareIcon } from "@heroicons/react/16/solid";
-import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table.tsx";
+import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
+import api from "../../../utils/api";
 
 interface CreateStudentEvalProps {
   setActiveView: (view: string) => void;
@@ -164,7 +164,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
     setEditImportedQuestionIds(
       importQuestions.length > 0 && typeof importQuestions[0] === "number"
         ? importQuestions
-        : importQuestions.map((q: any) => q.id)
+        : importQuestions.map((q: any) => q.id),
     );
 
     openEditModal();
@@ -203,7 +203,8 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
   };
 
   // Edit modal question ops
-  const handleEditEvalAddQuestion = (q: QuestionData) => setEditEvalQuestions((prev) => [...prev, q]);
+  const handleEditEvalAddQuestion = (q: QuestionData) =>
+    setEditEvalQuestions((prev) => [...prev, q]);
   const handleEditEvalEditQuestion = (q: QuestionData, idx: number) => {
     setEditEvalQuestions((prev) => prev.map((item, i) => (i === idx ? q : item)));
     setEditQuestionModalOpen(false);
@@ -247,7 +248,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
     } catch (err: any) {
       console.error("Error updating evaluation:", err);
       setErrorAlert(
-        `Error updating evaluation: ${err?.response?.data ? JSON.stringify(err.response.data) : err.message}`
+        `Error updating evaluation: ${err?.response?.data ? JSON.stringify(err.response.data) : err.message}`,
       );
     }
   };
@@ -274,7 +275,10 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
             type: mapTypeToBackend(q.type),
             ...(q.type === "mcq" && { options: q.choices }),
           };
-          const res = await api.post("studentevaluationquestion/studentevaluationquestion/", questionPayload);
+          const res = await api.post(
+            "studentevaluationquestion/studentevaluationquestion/",
+            questionPayload,
+          );
           createdQuestionIds.push(res.data.id);
         } else {
           createdQuestionIds.push(q.id);
@@ -299,7 +303,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
     } catch (err: any) {
       console.error("Error creating evaluation:", err);
       setErrorAlert(
-        `Error creating evaluation: ${err?.response?.data ? JSON.stringify(err.response.data) : err.message}`
+        `Error creating evaluation: ${err?.response?.data ? JSON.stringify(err.response.data) : err.message}`,
       );
     }
   };
@@ -321,13 +325,14 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
         breadcrumbs={[
           { label: "Home", view: "home" },
           { label: "Evaluation", view: "evaluation" },
-          { label: "Create Student Evaluation" }
+          { label: "Create Student Evaluation" },
         ]}
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Create Student Evaluation</h2>
-      <span className="mb-2 block mx-6 font-thin text-[#888888]">
-        This is where you can design and publish evaluation forms that follow the Student Feedback Framework (SFF), ensuring feedback is clear, consistent, and aligned with standards.
+      <span className="mx-6 mb-2 block font-thin text-[#888888]">
+        This is where you can design and publish evaluation forms that follow the Student Feedback
+        Framework (SFF), ensuring feedback is clear, consistent, and aligned with standards.
       </span>
 
       {/* Top bar */}
@@ -338,7 +343,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
             setImportedQuestionIds([]);
             openCreateModal();
           }}
-          className="flex w-auto whitespace-nowrap rounded-lg bg-[#1c402a] px-5 py-2 text-white shadow-xl transition-transform hover:scale-105"
+          className="flex w-auto rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105"
           type="button"
         >
           Create New Student Evaluation
@@ -382,9 +387,15 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
             {selectedSchedule && (
               <div className="mb-2 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Field label="Subject" value={selectedSchedule.subject_name || selectedSchedule.subject || ""} />
+                <Field
+                  label="Subject"
+                  value={selectedSchedule.subject_name || selectedSchedule.subject || ""}
+                />
                 <Field label="Section" value={selectedSchedule.section_name || ""} />
-                <Field label="Room" value={selectedSchedule.room_name || selectedSchedule.room || ""} />
+                <Field
+                  label="Room"
+                  value={selectedSchedule.room_name || selectedSchedule.room || ""}
+                />
                 <Field label="Semester" value={selectedSchedule.semester || ""} />
                 <Field label="Year" value={selectedSchedule.year || ""} />
                 <Field label="Instructor" value={selectedSchedule.instructor_name || ""} />
@@ -417,8 +428,12 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                     type="button"
                     className="btn btn-md btn-primary text-white"
                     onClick={async () => {
-                      const res = await api.get("studentevaluationquestion/studentevaluationquestion/");
-                      setAvailableQuestions(res.data.filter((q: any) => !importedQuestionIds.includes(q.id)));
+                      const res = await api.get(
+                        "studentevaluationquestion/studentevaluationquestion/",
+                      );
+                      setAvailableQuestions(
+                        res.data.filter((q: any) => !importedQuestionIds.includes(q.id)),
+                      );
                       setImportTarget("create");
                       openImportModal();
                     }}
@@ -428,7 +443,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                 </div>
               </div>
 
-              <div className="max-h-64 overflow-y-auto overflow-x-auto rounded-lg border border-gray-300">
+              <div className="max-h-64 overflow-x-auto overflow-y-auto rounded-lg border border-gray-300">
                 <table className="table w-full">
                   <thead>
                     <tr>
@@ -444,7 +459,13 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                         <td>{i + 1}</td>
                         <td>{q.question}</td>
                         <td>{q.type}</td>
-                        <td>{q.id ? <span className="font-medium text-blue-500">Yes</span> : <span className="text-gray-500">No</span>}</td>
+                        <td>
+                          {q.id ? (
+                            <span className="font-medium text-blue-500">Yes</span>
+                          ) : (
+                            <span className="text-gray-500">No</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {questions.length === 0 && (
@@ -482,9 +503,15 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
 
           {editEvalSchedule && (
             <div className="mb-2 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Subject" value={editEvalSchedule.subject_name || editEvalSchedule.subject || ""} />
+              <Field
+                label="Subject"
+                value={editEvalSchedule.subject_name || editEvalSchedule.subject || ""}
+              />
               <Field label="Section" value={editEvalSchedule.section_name || ""} />
-              <Field label="Room" value={editEvalSchedule.room_name || editEvalSchedule.room || ""} />
+              <Field
+                label="Room"
+                value={editEvalSchedule.room_name || editEvalSchedule.room || ""}
+              />
               <Field label="Semester" value={editEvalSchedule.semester || ""} />
               <Field label="Year" value={editEvalSchedule.year || ""} />
             </div>
@@ -495,7 +522,9 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
             <textarea
               className="textarea textarea-bordered w-full"
               value={editEvalInfo.description || ""}
-              onChange={(e) => setEditEvalInfo((info) => ({ ...info, description: e.target.value }))}
+              onChange={(e) =>
+                setEditEvalInfo((info) => ({ ...info, description: e.target.value }))
+              }
             />
           </div>
 
@@ -505,7 +534,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="btn btn-md text-white btn-primary"
+                  className="btn btn-md btn-primary text-white"
                   onClick={() => {
                     setEditQuestionToEdit(null);
                     setEditQuestionIndex(null);
@@ -516,10 +545,14 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-md text-white btn-primary"
+                  className="btn btn-md btn-primary text-white"
                   onClick={async () => {
-                    const res = await api.get("studentevaluationquestion/studentevaluationquestion/");
-                    setAvailableQuestions(res.data.filter((q: any) => !editImportedQuestionIds.includes(q.id)));
+                    const res = await api.get(
+                      "studentevaluationquestion/studentevaluationquestion/",
+                    );
+                    setAvailableQuestions(
+                      res.data.filter((q: any) => !editImportedQuestionIds.includes(q.id)),
+                    );
                     setImportTarget("edit");
                     openImportModal();
                   }}
@@ -529,7 +562,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
               </div>
             </div>
 
-            <div className="max-h-64 overflow-y-auto overflow-x-auto rounded-lg border border-gray-300">
+            <div className="max-h-64 overflow-x-auto overflow-y-auto rounded-lg border border-gray-300">
               <table className="table w-full">
                 <thead>
                   <tr>
@@ -546,10 +579,16 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                       <td>{i + 1}</td>
                       <td>{q.question}</td>
                       <td>{q.type}</td>
-                      <td>{q.id ? <span className="font-medium text-blue-500">Yes</span> : <span className="text-gray-500">No</span>}</td>
-                      <td className="text-center space-x-2">
+                      <td>
+                        {q.id ? (
+                          <span className="font-medium text-blue-500">Yes</span>
+                        ) : (
+                          <span className="text-gray-500">No</span>
+                        )}
+                      </td>
+                      <td className="space-x-2 text-center">
                         <button
-                          className="btn btn-xs text-white btn-primary"
+                          className="btn btn-xs btn-primary text-white"
                           onClick={() => {
                             setEditQuestionToEdit(q);
                             setEditQuestionIndex(i);
@@ -559,7 +598,11 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
                         >
                           Edit
                         </button>
-                        <button className="btn btn-xs btn-error" onClick={() => handleEditEvalDeleteQuestion(i)} type="button">
+                        <button
+                          className="btn btn-xs btn-error"
+                          onClick={() => handleEditEvalDeleteQuestion(i)}
+                          type="button"
+                        >
                           Delete
                         </button>
                       </td>
@@ -578,7 +621,11 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
           </div>
 
           <div className="modal-action">
-            <button type="button" className="btn btn-success text-white" onClick={handleEditEvalSave}>
+            <button
+              type="button"
+              className="btn btn-success text-white"
+              onClick={handleEditEvalSave}
+            >
               Save Changes
             </button>
             <button type="button" className="btn btn-cancel" onClick={closeEditModal}>
@@ -615,7 +662,11 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
               <div key={q.id}>
                 <li className="flex items-center justify-between py-2">
                   <span>{q.question}</span>
-                  <button className="btn btn-md text-white btn-primary" onClick={() => handleImportQuestion(q)} type="button">
+                  <button
+                    className="btn btn-md btn-primary text-white"
+                    onClick={() => handleImportQuestion(q)}
+                    type="button"
+                  >
                     Import
                   </button>
                 </li>
@@ -623,7 +674,11 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
               </div>
             ))}
           </ul>
-          <button className="btn btn-md btn-cancel text-white mt-4" onClick={closeImportModal} type="button">
+          <button
+            className="btn btn-md btn-cancel mt-4 text-white"
+            onClick={closeImportModal}
+            type="button"
+          >
             Close
           </button>
         </div>
@@ -641,7 +696,7 @@ function CreateStudentEvaluation({ setActiveView }: CreateStudentEvalProps) {
           setIsQuestionModalOpen(false);
         }}
         onAdd={handleAddQuestion}
-        onUpdate={() => { }}
+        onUpdate={() => {}}
         questionToEdit={null}
         editIndex={null}
       />

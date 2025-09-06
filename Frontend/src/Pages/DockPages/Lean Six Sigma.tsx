@@ -56,7 +56,7 @@ const extractEvaluationId = (key: string, value: any): string | null => {
 const resolveProfessorName = (
   key: string,
   value: any,
-  evalToProfessor: Record<string, string>
+  evalToProfessor: Record<string, string>,
 ): string => {
   const inlineName =
     value?.professor ||
@@ -75,19 +75,16 @@ const resolveProfessorName = (
 };
 const addTalliesInto = (
   target: Record<string, { count: number }>,
-  source: Tallies | undefined | null
+  source: Tallies | undefined | null,
 ) => {
   if (!source) return;
   Object.entries(source).forEach(([label, v]) => {
-    const c = typeof v === "number" ? v : v?.count ?? 0;
+    const c = typeof v === "number" ? v : (v?.count ?? 0);
     if (!target[label]) target[label] = { count: 0 };
     target[label].count += c;
   });
 };
-const groupCopusByProfessor = (
-  rawData: any,
-  evalToProfessor: Record<string, string>
-) => {
+const groupCopusByProfessor = (rawData: any, evalToProfessor: Record<string, string>) => {
   const professorAggregates: Record<string, ProfessorAgg> = {};
   let totalActiveLearningPercentage: number | null = null;
 
@@ -121,7 +118,7 @@ const groupCopusByProfessor = (
 };
 
 const fetchEvaluationProfessorMapByFaculty = async (
-  facultyId: string
+  facultyId: string,
 ): Promise<Record<string, string>> => {
   const map: Record<string, string> = {};
   try {
@@ -148,7 +145,7 @@ const fetchEvaluationProfessorMapByFaculty = async (
   } catch (err) {
     console.warn(
       "[DEBUG] Could not fetch evaluations for professor mapping; falling back to inline names.",
-      err
+      err,
     );
   }
   return map;
@@ -204,12 +201,8 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
 
   const yearLevelOptions = ["1st", "2nd", "3rd", "4th"] as const;
   const semesterOptions = ["1st", "2nd", "Summer"] as const;
-  const [visibleYearLevels, setVisibleYearLevels] = useState<string[]>([
-    ...yearLevelOptions,
-  ]);
-  const [visibleSemesters, setVisibleSemesters] = useState<string[]>([
-    ...semesterOptions,
-  ]);
+  const [visibleYearLevels, setVisibleYearLevels] = useState<string[]>([...yearLevelOptions]);
+  const [visibleSemesters, setVisibleSemesters] = useState<string[]>([...semesterOptions]);
 
   const [sentimentSummary, setSentimentSummary] = useState<any>(null);
   const [sentimentLoading, setSentimentLoading] = useState(false);
@@ -251,15 +244,19 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       .join("")
       .slice(0, 4);
 
-// Simple HTML escape for safe fallback rendering when backend HTML is unavailable
-const escapeHtml = (s: string) =>
-  String(s).replace(/[&<>"']/g, (ch) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;",
-  }[ch] as string));
+  // Simple HTML escape for safe fallback rendering when backend HTML is unavailable
+  const escapeHtml = (s: string) =>
+    String(s).replace(
+      /[&<>"']/g,
+      (ch) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        })[ch] as string,
+    );
 
   // --- Dynamic font for Sankey node labels (Cabin) ---
   const sankeyLabelFont = (ctx: any) => {
@@ -289,8 +286,10 @@ const escapeHtml = (s: string) =>
           evalToProfessor = await fetchEvaluationProfessorMapByFaculty(String(faculty_id));
         }
 
-        const { professorAggregates, totalActiveLearningPercentage } =
-          groupCopusByProfessor(raw, evalToProfessor);
+        const { professorAggregates, totalActiveLearningPercentage } = groupCopusByProfessor(
+          raw,
+          evalToProfessor,
+        );
 
         // Aggregate across all professors
         const studentCountMap: Record<string, number> = {};
@@ -331,9 +330,7 @@ const escapeHtml = (s: string) =>
         setProfessorCount(professorCountLocal);
 
         const avg =
-          typeof totalActiveLearningPercentage === "number"
-            ? totalActiveLearningPercentage
-            : null;
+          typeof totalActiveLearningPercentage === "number" ? totalActiveLearningPercentage : null;
         setAvgActiveLearning(avg);
 
         // Compute Max count per Activity points
@@ -404,8 +401,7 @@ const escapeHtml = (s: string) =>
         const params: any = {};
         if (!isSuperuser && faculty_id) params.faculty = String(faculty_id);
         const endpointEvals = "/studentevaluation/studentevaluation/by-faculty";
-        const endpointResponses =
-          "/studentevaluationresponse/studentevaluationresponse/by-faculty";
+        const endpointResponses = "/studentevaluationresponse/studentevaluationresponse/by-faculty";
         const evalsRes = await api.get(`${endpointEvals}`, { params });
         const evaluations = Array.isArray(evalsRes.data) ? evalsRes.data : [];
         const evaluationIds = evaluations.map((e: any) => e.id);
@@ -413,9 +409,9 @@ const escapeHtml = (s: string) =>
         const questionsResults = await Promise.all(
           evaluationIds.map((id: number) =>
             api.get(
-              `/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${id}`
-            )
-          )
+              `/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${id}`,
+            ),
+          ),
         );
         const allQuestions = questionsResults.flatMap((res: any) => res.data || []);
 
@@ -459,28 +455,28 @@ const escapeHtml = (s: string) =>
       setAiRecsError(null);
       try {
         const res = await api.get("/analytics/retention-recommendations/");
-        const html = typeof res.data?.recommendations_html === "string" ? res.data.recommendations_html : null;
+        const html =
+          typeof res.data?.recommendations_html === "string" ? res.data.recommendations_html : null;
         const text = typeof res.data?.recommendations === "string" ? res.data.recommendations : "";
         if (html) {
           // Inject inline styles into <pre> to force wrapping and avoid horizontal scroll
-          const processed = html.replace(
-            /<pre(.*?)>/,
-            (m) => m.includes("style=")
+          const processed = html.replace(/<pre(.*?)>/, (m) =>
+            m.includes("style=")
               ? m.replace(
                   /style="/,
-                  'style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;'
+                  'style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;',
                 )
               : m.replace(
                   /^<pre/,
-                  '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"'
-                )
+                  '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"',
+                ),
           );
           setAiRecsHtml(processed);
         } else if (text) {
           setAiRecsHtml(
             `<div class="ai-recommendation"><pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(
-              text
-            )}</pre></div>`
+              text,
+            )}</pre></div>`,
           );
         } else {
           setAiRecsHtml(null);
@@ -512,19 +508,19 @@ const escapeHtml = (s: string) =>
 
         const summaryRes = await api.get(
           "/studentevaluationresponse/studentevaluationresponse/sentiment-summary",
-          { params }
+          { params },
         );
         setSentimentSummary(summaryRes.data);
 
         const semesterRes = await api.get(
           "/studentevaluationresponse/studentevaluationresponse/sentiment-summary-by-semester",
-          { params }
+          { params },
         );
         setSentimentBySemester(semesterRes.data);
 
         const yearRes = await api.get(
           "/studentevaluationresponse/studentevaluationresponse/sentiment-summary-by-year",
-          { params }
+          { params },
         );
         setSentimentByYear(yearRes.data);
       } catch (e: any) {
@@ -540,9 +536,9 @@ const escapeHtml = (s: string) =>
   // --- Scatter chart config ---
   const colorPool = [
     "rgba(59,130,246,0.8)", // blue
-    "rgba(34,197,94,0.8)",  // green
-    "rgba(234,179,8,0.8)",  // amber
-    "rgba(244,63,94,0.8)",  // rose
+    "rgba(34,197,94,0.8)", // green
+    "rgba(234,179,8,0.8)", // amber
+    "rgba(244,63,94,0.8)", // rose
     "rgba(168,85,247,0.8)", // purple
     "rgba(20,184,166,0.8)", // teal
   ];
@@ -553,7 +549,7 @@ const escapeHtml = (s: string) =>
     const filtered = (retentionPoints as any[]).filter(
       (series: any) =>
         (!series?.key?.year || visibleYearLevels.includes(series.key.year)) &&
-        (!series?.key?.semester || visibleSemesters.includes(series.key.semester))
+        (!series?.key?.semester || visibleSemesters.includes(series.key.semester)),
     );
     filtered.forEach((series: any, idx: number) => {
       const color = colorPool[idx % colorPool.length];
@@ -602,8 +598,7 @@ const escapeHtml = (s: string) =>
         },
         tooltip: {
           callbacks: {
-            label: (ctx: any) =>
-              `x=${ctx.raw.x.toFixed(3)}, y=${ctx.raw.y.toFixed(2)}%`,
+            label: (ctx: any) => `x=${ctx.raw.x.toFixed(3)}, y=${ctx.raw.y.toFixed(2)}%`,
           },
         },
       },
@@ -620,7 +615,7 @@ const escapeHtml = (s: string) =>
         },
       },
     }),
-    []
+    [],
   );
 
   // --- Sankey options ---
@@ -637,7 +632,7 @@ const escapeHtml = (s: string) =>
       },
       tooltip: {
         callbacks: {
-          label: function(context: any) {
+          label: function (context: any) {
             const d = context.dataset.data[context.dataIndex];
             return `${d.from} → ${d.to}: ${d.flow}`;
           },
@@ -654,16 +649,12 @@ const escapeHtml = (s: string) =>
       {/* Breadcrumbs */}
       <BreadAndLogout
         setActiveView={setActiveView}
-        breadcrumbs={[
-          { label: "Home", view: "home" },
-          { label: "Profile View" },
-        ]}
+        breadcrumbs={[{ label: "Home", view: "home" }, { label: "Profile View" }]}
       />
       <h2 className="mt-4 text-3xl font-bold text-white">Lean Six Sigma Statistics</h2>
-      <span className="py-6 px-6 block font-thin text-[#888888]">
-        This is where you can explore performance dashboards based on Lean Six Sigma
-        practices, helping you identify gaps, reduce inefficiencies, and focus on
-        continuous improvement.
+      <span className="block px-6 py-6 font-thin text-[#888888]">
+        This is where you can explore performance dashboards based on Lean Six Sigma practices,
+        helping you identify gaps, reduce inefficiencies, and focus on continuous improvement.
       </span>
 
       <div className="flex w-full flex-row items-center justify-center gap-4 border-b border-gray-600 pb-4 text-white shadow-2xl">
@@ -671,40 +662,57 @@ const escapeHtml = (s: string) =>
         <button className="btn btn-primary text-white">College</button>
         <button className="btn btn-primary text-white">Semester</button>
         <button className="btn btn-primary text-white">School Year</button>
-        <button
-          className="btn btn-primary text-white"
-          onClick={() => setShowRetentionDialog(true)}
-        >
+        <button className="btn btn-primary text-white" onClick={() => setShowRetentionDialog(true)}>
           Add Retention
         </button>
       </div>
 
       <div className="mt-6 flex h-full w-full flex-col gap-6 overflow-y-auto px-6">
         {/* Stat panels (fill width, large numbers) */}
-        <div className="flex flex-col md:flex-row gap-4 w-full">
+        <div className="flex w-full flex-col gap-4 md:flex-row">
           {/* Total Professors */}
           <div className="flex flex-1 items-center gap-4 rounded-xl bg-[#1c402a]/40 p-6 shadow-xl">
-            <div className="text-gray-400 shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-10 w-10 stroke-current">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="shrink-0 text-gray-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                className="h-10 w-10 stroke-current"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
             <div className="flex flex-col">
               <div className="text-base text-gray-400">Total Professors</div>
-              <div className="text-4xl md:text-7xl py-4 font-bold text-white">{professorCount}</div>
+              <div className="py-4 text-4xl font-bold text-white md:text-7xl">{professorCount}</div>
             </div>
           </div>
 
           {/* Average Active Learning */}
           <div className="flex flex-1 items-center gap-4 rounded-xl bg-[#1c3932]/40 p-6 shadow-xl">
-            <div className="text-gray-400 shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-10 w-10 stroke-current">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            <div className="shrink-0 text-gray-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                className="h-10 w-10 stroke-current"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                />
               </svg>
             </div>
             <div className="flex flex-col">
               <div className="text-base text-gray-400">Average Active Learning Percentage</div>
-              <div className="text-4xl md:text-7xl py-4 font-bold text-white">
+              <div className="py-4 text-4xl font-bold text-white md:text-7xl">
                 {avgActiveLearning !== null ? `${avgActiveLearning}%` : "—"}
               </div>
             </div>
@@ -712,34 +720,55 @@ const escapeHtml = (s: string) =>
 
           {/* Max Activity Points */}
           <div className="flex flex-1 items-center gap-4 rounded-xl bg-[#1b3339]/40 p-6 shadow-xl">
-            <div className="text-gray-400 shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-10 w-10 stroke-current">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            <div className="shrink-0 text-gray-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                className="h-10 w-10 stroke-current"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                />
               </svg>
             </div>
             <div className="flex flex-col">
               <div className="text-base text-gray-400">Max count per Activity points</div>
-              <div className="text-4xl md:text-7xl py-4 text-white font-bold">{maxActivityPoints}</div>
+              <div className="py-4 text-4xl font-bold text-white md:text-7xl">
+                {maxActivityPoints}
+              </div>
             </div>
           </div>
 
           {/* Average Sentiment */}
           <div className="flex flex-1 flex-col justify-between rounded-xl bg-[#1b2e3e]/40 p-6 shadow-xl">
             <div className="flex items-center gap-4">
-              <div className="text-gray-400 shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="h-10 w-10 stroke-current">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <div className="shrink-0 text-gray-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  className="h-10 w-10 stroke-current"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <div className="flex flex-col">
                 <div className="text-base text-gray-400">Average Sentiment Score</div>
-                <div className="text-md text-gray-500 mt-2">
-                  {sentimentSummary &&
-                    `${sentimentSummary.total_responses} responses analyzed`}
+                <div className="text-md mt-2 text-gray-500">
+                  {sentimentSummary && `${sentimentSummary.total_responses} responses analyzed`}
                 </div>
-                <div className="text-4xl md:text-7xl font-bold">
+                <div className="text-4xl font-bold md:text-7xl">
                   {sentimentLoading ? (
-                    <span className="loading text-white loading-spinner loading-sm"></span>
+                    <span className="loading loading-spinner loading-sm text-white"></span>
                   ) : sentimentError ? (
                     <span className="text-red-400">Error</span>
                   ) : sentimentSummary ? (
@@ -770,7 +799,7 @@ const escapeHtml = (s: string) =>
         </div>
 
         <div className="flex h-full flex-row gap-6">
-          <div className="flex h-full w-1/2 flex-col items-start bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 justify-start overflow-y-auto rounded-lg p-6 shadow-2xl backdrop-blur-lg">
+          <div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-6 shadow-2xl backdrop-blur-lg">
             <table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
               <thead>
                 <tr className="border border-gray-600">
@@ -798,7 +827,7 @@ const escapeHtml = (s: string) =>
             </table>
           </div>
 
-          <div className="flex bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg p-6 shadow-2xl backdrop-blur-lg">
+          <div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-6 shadow-2xl backdrop-blur-lg">
             <table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
               <thead>
                 <tr className="border border-gray-600">
@@ -828,9 +857,9 @@ const escapeHtml = (s: string) =>
         </div>
 
         {/* --- Responsive + Scrollable Sankey wrapper --- */}
-        <div className="flex w-full items-center justify-center rounded-lg p-4 shadow-2xl bg-black/20 backdrop-blur-lg">
+        <div className="flex w-full items-center justify-center rounded-lg bg-black/20 p-4 shadow-2xl backdrop-blur-lg">
           <div className="w-full overflow-x-auto">
-            <div className="relative h-[50vh] min-h-[360px] lg:h-[60vh] min-w-[900px]">
+            <div className="relative h-[50vh] min-h-[360px] min-w-[900px] lg:h-[60vh]">
               {sankeyData ? (
                 <Chart type="sankey" data={sankeyData} options={sankeyOptions} />
               ) : (
@@ -840,7 +869,7 @@ const escapeHtml = (s: string) =>
           </div>
         </div>
 
-        <div className="mt-6 flex w-full items-center justify-center bg-black/20 rounded-lg p-4 shadow-2xl backdrop-blur-lg">
+        <div className="mt-6 flex w-full items-center justify-center rounded-lg bg-black/20 p-4 shadow-2xl backdrop-blur-lg">
           <div className="w-full">
             {/* Comparison filters */}
             <div className="mb-4 flex flex-wrap items-center gap-3 text-white">
@@ -853,9 +882,7 @@ const escapeHtml = (s: string) =>
                     checked={visibleYearLevels.includes(yl)}
                     onChange={() =>
                       setVisibleYearLevels((prev) =>
-                        prev.includes(yl)
-                          ? prev.filter((v) => v !== yl)
-                          : [...prev, yl]
+                        prev.includes(yl) ? prev.filter((v) => v !== yl) : [...prev, yl],
                       )
                     }
                   />
@@ -871,9 +898,7 @@ const escapeHtml = (s: string) =>
                     checked={visibleSemesters.includes(s)}
                     onChange={() =>
                       setVisibleSemesters((prev) =>
-                        prev.includes(s)
-                          ? prev.filter((v) => v !== s)
-                          : [...prev, s]
+                        prev.includes(s) ? prev.filter((v) => v !== s) : [...prev, s],
                       )
                     }
                   />
@@ -893,9 +918,11 @@ const escapeHtml = (s: string) =>
         </div>
 
         {/* AI Recommendations for Retention (Lean Six Sigma) */}
-        <div className="mt-6 flex w-full items-center justify-center bg-black/20 rounded-lg p-4 shadow-2xl backdrop-blur-lg">
+        <div className="mt-6 flex w-full items-center justify-center rounded-lg bg-black/20 p-4 shadow-2xl backdrop-blur-lg">
           <div className="w-full">
-            <h3 className="mb-3 text-xl font-semibold text-white">AI Recommendations for Retention (Lean Six Sigma)</h3>
+            <h3 className="mb-3 text-xl font-semibold text-white">
+              AI Recommendations for Retention (Lean Six Sigma)
+            </h3>
             {aiRecsLoading ? (
               <div className="flex items-center gap-2 text-white">
                 <span className="loading loading-spinner loading-sm"></span>
@@ -916,7 +943,7 @@ const escapeHtml = (s: string) =>
                   <tbody>
                     <tr>
                       <td>
-                        <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden pr-2">
+                        <div className="max-h-[60vh] overflow-x-hidden overflow-y-auto pr-2">
                           <div
                             className="ai-recommendation text-left"
                             dangerouslySetInnerHTML={{ __html: aiRecsHtml }}
@@ -965,10 +992,10 @@ const escapeHtml = (s: string) =>
                       <div className="stat-desc text-green-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                            ((sentimentSummary.sentiment_distribution?.POSITIVE || 0) /
-                              sentimentSummary.total_responses) *
-                            100
-                          )
+                              ((sentimentSummary.sentiment_distribution?.POSITIVE || 0) /
+                                sentimentSummary.total_responses) *
+                                100,
+                            )
                           : 0}
                         %
                       </div>
@@ -981,10 +1008,10 @@ const escapeHtml = (s: string) =>
                       <div className="stat-desc text-yellow-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                            ((sentimentSummary.sentiment_distribution?.NEUTRAL || 0) /
-                              sentimentSummary.total_responses) *
-                            100
-                          )
+                              ((sentimentSummary.sentiment_distribution?.NEUTRAL || 0) /
+                                sentimentSummary.total_responses) *
+                                100,
+                            )
                           : 0}
                         %
                       </div>
@@ -997,20 +1024,19 @@ const escapeHtml = (s: string) =>
                       <div className="stat-desc text-red-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                            ((sentimentSummary.sentiment_distribution?.NEGATIVE || 0) /
-                              sentimentSummary.total_responses) *
-                            100
-                          )
+                              ((sentimentSummary.sentiment_distribution?.NEGATIVE || 0) /
+                                sentimentSummary.total_responses) *
+                                100,
+                            )
                           : 0}
                         %
                       </div>
                     </div>
                   </div>
-                  <div className="mt-4 text-md text-gray-300">
+                  <div className="text-md mt-4 text-gray-300">
                     <p>
-                      Question Types: MCQ (
-                      {sentimentSummary.question_type_breakdown?.mcq || 0}), Text (
-                      {sentimentSummary.question_type_breakdown?.text || 0}), Rating (
+                      Question Types: MCQ ({sentimentSummary.question_type_breakdown?.mcq || 0}),
+                      Text ({sentimentSummary.question_type_breakdown?.text || 0}), Rating (
                       {sentimentSummary.question_type_breakdown?.rating || 0})
                     </p>
                   </div>
@@ -1022,9 +1048,7 @@ const escapeHtml = (s: string) =>
                 {/* By Semester */}
                 {sentimentBySemester && (
                   <div className="flex-1 rounded-lg bg-black/20 p-6 shadow-2xl backdrop-blur-lg">
-                    <h4 className="mb-4 text-lg font-semibold text-white">
-                      Sentiment by Semester
-                    </h4>
+                    <h4 className="mb-4 text-lg font-semibold text-white">Sentiment by Semester</h4>
                     <div className="overflow-x-auto">
                       <table className="table w-full text-white">
                         <thead>
@@ -1037,31 +1061,32 @@ const escapeHtml = (s: string) =>
                           </tr>
                         </thead>
                         <tbody>
-                          {Object.entries(
-                            sentimentBySemester.semester_summary || {}
-                          ).map(([semester, data]: [string, any]) => (
-                            <tr key={semester} className="border-gray-600">
-                              <td className="font-medium">{semester}</td>
-                              <td
-                                className={`font-bold ${data.average_sentiment_score > 0
-                                  ? "text-green-400"
-                                  : data.average_sentiment_score < 0
-                                    ? "text-red-400"
-                                    : "text-yellow-400"
+                          {Object.entries(sentimentBySemester.semester_summary || {}).map(
+                            ([semester, data]: [string, any]) => (
+                              <tr key={semester} className="border-gray-600">
+                                <td className="font-medium">{semester}</td>
+                                <td
+                                  className={`font-bold ${
+                                    data.average_sentiment_score > 0
+                                      ? "text-green-400"
+                                      : data.average_sentiment_score < 0
+                                        ? "text-red-400"
+                                        : "text-yellow-400"
                                   }`}
-                              >
-                                {data.average_sentiment_score > 0 ? "+" : ""}
-                                {data.average_sentiment_score}
-                              </td>
-                              <td>{data.total_responses}</td>
-                              <td className="text-green-400">
-                                {data.sentiment_distribution?.POSITIVE || 0}
-                              </td>
-                              <td className="text-red-400">
-                                {data.sentiment_distribution?.NEGATIVE || 0}
-                              </td>
-                            </tr>
-                          ))}
+                                >
+                                  {data.average_sentiment_score > 0 ? "+" : ""}
+                                  {data.average_sentiment_score}
+                                </td>
+                                <td>{data.total_responses}</td>
+                                <td className="text-green-400">
+                                  {data.sentiment_distribution?.POSITIVE || 0}
+                                </td>
+                                <td className="text-red-400">
+                                  {data.sentiment_distribution?.NEGATIVE || 0}
+                                </td>
+                              </tr>
+                            ),
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -1089,12 +1114,13 @@ const escapeHtml = (s: string) =>
                               <tr key={year} className="border-gray-600">
                                 <td className="font-medium">{year}</td>
                                 <td
-                                  className={`font-bold ${data.average_sentiment_score > 0
-                                    ? "text-green-400"
-                                    : data.average_sentiment_score < 0
-                                      ? "text-red-400"
-                                      : "text-yellow-400"
-                                    }`}
+                                  className={`font-bold ${
+                                    data.average_sentiment_score > 0
+                                      ? "text-green-400"
+                                      : data.average_sentiment_score < 0
+                                        ? "text-red-400"
+                                        : "text-yellow-400"
+                                  }`}
                                 >
                                   {data.average_sentiment_score > 0 ? "+" : ""}
                                   {data.average_sentiment_score}
@@ -1107,7 +1133,7 @@ const escapeHtml = (s: string) =>
                                   {data.sentiment_distribution?.NEGATIVE || 0}
                                 </td>
                               </tr>
-                            )
+                            ),
                           )}
                         </tbody>
                       </table>
@@ -1128,7 +1154,7 @@ const escapeHtml = (s: string) =>
           <div className="flex flex-col gap-6">
             {/* Year */}
             <div>
-              <label className="mb-1 block text-md font-medium text-gray-700">Year</label>
+              <label className="text-md mb-1 block font-medium text-gray-700">Year</label>
               <select
                 className="select select-bordered w-full"
                 value={formYear}
@@ -1143,7 +1169,7 @@ const escapeHtml = (s: string) =>
 
             {/* Semesters */}
             <div>
-              <label className="mb-1 block text-md font-medium text-gray-700">Semesters</label>
+              <label className="text-md mb-1 block font-medium text-gray-700">Semesters</label>
               <div className="flex flex-wrap gap-3">
                 {["1st", "2nd", "Summer"].map((s) => (
                   <label key={s} className="flex cursor-pointer items-center gap-2">
@@ -1153,7 +1179,7 @@ const escapeHtml = (s: string) =>
                       checked={formSemesters.includes(s)}
                       onChange={() =>
                         setFormSemesters((prev) =>
-                          prev.includes(s) ? prev.filter((v) => v !== s) : [...prev, s]
+                          prev.includes(s) ? prev.filter((v) => v !== s) : [...prev, s],
                         )
                       }
                     />
@@ -1165,7 +1191,9 @@ const escapeHtml = (s: string) =>
 
             {/* Retention */}
             <div>
-              <label className="mb-1 block text-md font-medium text-gray-700">Retention Rate (%)</label>
+              <label className="text-md mb-1 block font-medium text-gray-700">
+                Retention Rate (%)
+              </label>
               <input
                 type="number"
                 className="input input-bordered w-full"
@@ -1174,7 +1202,7 @@ const escapeHtml = (s: string) =>
                 onChange={(e) => setFormRetention(e.target.value)}
               />
               {retentionSaveError && (
-                <div className="mt-2 text-md text-red-500">{retentionSaveError}</div>
+                <div className="text-md mt-2 text-red-500">{retentionSaveError}</div>
               )}
             </div>
           </div>

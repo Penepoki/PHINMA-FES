@@ -12,11 +12,11 @@ function Login() {
 
       {/* Login Background */}
       <div
-        className="flex min-h-screen items-center justify-center bg-cover bg-center text-center relative"
+        className="relative flex min-h-screen items-center justify-center bg-cover bg-center text-center"
         style={{ backgroundImage: `url(${Background})` }}
       >
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/10 to-transparent z-0"></div>
+        <div className="absolute inset-0 z-0 bg-gradient-to-r from-black/60 via-black/10 to-transparent"></div>
 
         {/* Content */}
 

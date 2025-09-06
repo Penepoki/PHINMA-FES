@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import api from "../../../utils/api";
-import DataTable, {
-  Column,
-} from "../../../Components/Evaluation Components/Data Table";
+import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 // Assuming you have your generic DataTable component exported
 
@@ -91,8 +89,7 @@ function Subjects({ setActiveView }: SubjectsProps) {
       <button
         title="Delete"
         onClick={() => {
-          if (window.confirm(`Delete subject "${subject.name}"?`))
-            deleteSubject(subject.id);
+          if (window.confirm(`Delete subject "${subject.name}"?`)) deleteSubject(subject.id);
         }}
         className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline"
       >
@@ -138,19 +135,18 @@ function Subjects({ setActiveView }: SubjectsProps) {
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Subjects</h2>
-      <span className="font-thin text-[#888888] block mx-6">
-        This is where you can keep course and subject details organized so evaluations and reports stay accurate. This is where you can access and organize your institution’s resources—programs, subjects, rooms, sections, and schedules—so that evaluation and classroom management run smoothly.
+      <span className="mx-6 block font-thin text-[#888888]">
+        This is where you can keep course and subject details organized so evaluations and reports
+        stay accurate. This is where you can access and organize your institution’s
+        resources—programs, subjects, rooms, sections, and schedules—so that evaluation and
+        classroom management run smoothly.
       </span>
 
       <div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
         {/* New Subject Button */}
         <button
           onClick={() =>
-            (
-              document.getElementById(
-                "create_new_subject",
-              ) as HTMLDialogElement
-            )?.showModal()
+            (document.getElementById("create_new_subject") as HTMLDialogElement)?.showModal()
           }
           className="w-full rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
         >
@@ -159,33 +155,23 @@ function Subjects({ setActiveView }: SubjectsProps) {
 
         <dialog id="create_new_subject" className="modal">
           <div className="modal-box w-11/12 max-w-3xl">
-            <h3 className="mb-4 text-center text-2xl font-bold">
-              Create New Subject
-            </h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Create New Subject</h3>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault(); // Prevent default form behavior
                 createSubject(); // Call createSubject function
-                (
-                  document.getElementById(
-                    "create_new_subject",
-                  ) as HTMLDialogElement
-                )?.close(); // Close the modal
+                (document.getElementById("create_new_subject") as HTMLDialogElement)?.close(); // Close the modal
               }}
               className="flex flex-col gap-6"
             >
               {/* Subject Name */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/6">
-                  Name:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
                 <input
                   type="text"
                   value={newSubjectName} // Bind value to state
-                  onChange={(e) =>
-                    setNewSubjectName(e.target.value)
-                  } // Update value on change
+                  onChange={(e) => setNewSubjectName(e.target.value)} // Update value on change
                   placeholder="Enter subject name"
                   className="input input-bordered w-full"
                   required
@@ -194,21 +180,14 @@ function Subjects({ setActiveView }: SubjectsProps) {
 
               {/* Action Buttons */}
               <div className="modal-action">
-                <button
-                  type="submit"
-                  className="btn btn-success text-white"
-                >
+                <button type="submit" className="btn btn-success text-white">
                   Submit
                 </button>
                 <button
                   type="button"
                   className="btn btn-cancel"
                   onClick={() =>
-                    (
-                      document.getElementById(
-                        "create_new_subject",
-                      ) as HTMLDialogElement
-                    )?.close()
+                    (document.getElementById("create_new_subject") as HTMLDialogElement)?.close()
                   }
                 >
                   Cancel
@@ -222,11 +201,7 @@ function Subjects({ setActiveView }: SubjectsProps) {
           {/* Export Subjects Button */}
           <button
             onClick={() =>
-              (
-                document.getElementById(
-                  "modal_export_subjects",
-                ) as HTMLDialogElement
-              )?.showModal()
+              (document.getElementById("modal_export_subjects") as HTMLDialogElement)?.showModal()
             }
             className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
           >
@@ -235,19 +210,12 @@ function Subjects({ setActiveView }: SubjectsProps) {
 
           <dialog id="modal_export_subjects" className="modal">
             <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="mb-4 text-center text-2xl font-bold">
-                Export Subject
-              </h3>
+              <h3 className="mb-4 text-center text-2xl font-bold">Export Subject</h3>
 
-              <form
-                method="dialog"
-                className="flex flex-col gap-6"
-              >
+              <form method="dialog" className="flex flex-col gap-6">
                 {/* Name Field */}
                 <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-left text-lg font-bold md:w-1/6">
-                    Name:
-                  </label>
+                  <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
                   <input
                     type="text"
                     value="Subject A"
@@ -258,10 +226,7 @@ function Subjects({ setActiveView }: SubjectsProps) {
 
                 {/* Action Buttons */}
                 <div className="modal-action">
-                  <button
-                    type="submit"
-                    className="btn btn-success text-white"
-                  >
+                  <button type="submit" className="btn btn-success text-white">
                     Export
                   </button>
                   <button
@@ -269,9 +234,7 @@ function Subjects({ setActiveView }: SubjectsProps) {
                     className="btn btn-cancel"
                     onClick={() =>
                       (
-                        document.getElementById(
-                          "modal_export_subjects",
-                        ) as HTMLDialogElement
+                        document.getElementById("modal_export_subjects") as HTMLDialogElement
                       )?.close()
                     }
                   >
@@ -285,10 +248,7 @@ function Subjects({ setActiveView }: SubjectsProps) {
       </div>
       {/* Search and New Subject button */}
       <div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
-        <label
-          htmlFor="search"
-          className="text-lg font-bold text-white"
-        ></label>
+        <label htmlFor="search" className="text-lg font-bold text-white"></label>
         <input
           id="search"
           type="text"
@@ -301,52 +261,35 @@ function Subjects({ setActiveView }: SubjectsProps) {
       {/* New Subject Modal */}
       <dialog id="create_new_subject" className="modal">
         <div className="modal-box w-11/12 max-w-3xl">
-          <h3 className="mb-4 text-center text-2xl font-bold">
-            Create New Subject
-          </h3>
+          <h3 className="mb-4 text-center text-2xl font-bold">Create New Subject</h3>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               createSubject();
-              (
-                document.getElementById(
-                  "create_new_subject",
-                ) as HTMLDialogElement
-              )?.close();
+              (document.getElementById("create_new_subject") as HTMLDialogElement)?.close();
             }}
             className="flex flex-col gap-6"
           >
             <div className="flex flex-col gap-2 md:flex-row md:items-center">
-              <label className="text-left text-lg font-bold md:w-1/6">
-                Name:
-              </label>
+              <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
               <input
                 type="text"
                 value={newSubjectName}
-                onChange={(e) =>
-                  setNewSubjectName(e.target.value)
-                }
+                onChange={(e) => setNewSubjectName(e.target.value)}
                 placeholder="Enter subject name"
                 className="input input-bordered w-full"
                 required
               />
             </div>
             <div className="modal-action">
-              <button
-                type="submit"
-                className="btn btn-success text-white"
-              >
+              <button type="submit" className="btn btn-success text-white">
                 Submit
               </button>
               <button
                 type="button"
                 className="btn btn-cancel"
                 onClick={() =>
-                  (
-                    document.getElementById(
-                      "create_new_subject",
-                    ) as HTMLDialogElement
-                  )?.close()
+                  (document.getElementById("create_new_subject") as HTMLDialogElement)?.close()
                 }
               >
                 Cancel

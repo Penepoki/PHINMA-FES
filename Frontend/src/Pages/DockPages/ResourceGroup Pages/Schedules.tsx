@@ -7,9 +7,7 @@ interface Option {
 }
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import api from "../../../utils/api";
-import DataTable, {
-  Column,
-} from "../../../Components/Evaluation Components/Data Table";
+import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 import { resolveFacultyId } from "../../../utils/facultyContext";
@@ -93,16 +91,16 @@ function Schedules({ setActiveView }: SchedulesProps) {
   // Professor options for create form
   useEffect(() => {
     if (selectedProgram) {
-      api.get(
-        `/program-professor/program-professors/?program_id=${selectedProgram.id}`,
-      ).then((res) => {
-        setProfessorOptions(
-          res.data.map((item: any) => ({
-            id: item.professor,
-            name: item.professor_details.full_name,
-          })),
-        );
-      });
+      api
+        .get(`/program-professor/program-professors/?program_id=${selectedProgram.id}`)
+        .then((res) => {
+          setProfessorOptions(
+            res.data.map((item: any) => ({
+              id: item.professor,
+              name: item.professor_details.full_name,
+            })),
+          );
+        });
     } else {
       setProfessorOptions([]);
     }
@@ -111,16 +109,16 @@ function Schedules({ setActiveView }: SchedulesProps) {
   // Professor options for edit form
   useEffect(() => {
     if (editSelectedProgram) {
-      api.get(
-        `/program-professor/program-professors/?program_id=${editSelectedProgram.id}`,
-      ).then((res) => {
-        setEditProfessorOptions(
-          res.data.map((item: any) => ({
-            id: item.professor,
-            name: item.professor_details.full_name,
-          })),
-        );
-      });
+      api
+        .get(`/program-professor/program-professors/?program_id=${editSelectedProgram.id}`)
+        .then((res) => {
+          setEditProfessorOptions(
+            res.data.map((item: any) => ({
+              id: item.professor,
+              name: item.professor_details.full_name,
+            })),
+          );
+        });
     } else {
       setEditProfessorOptions([]);
     }
@@ -333,11 +331,15 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
   const toggleScheduleStatus = async (schedule: Schedule) => {
     try {
-      await api.patch(`/schedule/schedules/${schedule.id}/`, {
-        is_active: !schedule.is_active,
-      }, {
-        params: { faculty: effectiveFacultyId ?? undefined },
-      });
+      await api.patch(
+        `/schedule/schedules/${schedule.id}/`,
+        {
+          is_active: !schedule.is_active,
+        },
+        {
+          params: { faculty: effectiveFacultyId ?? undefined },
+        },
+      );
       fetchSchedules();
     } catch (error) {
       console.error("Error updating schedule:", error);
@@ -427,21 +429,17 @@ function Schedules({ setActiveView }: SchedulesProps) {
         ]}
       />
 
-
       <h2 className="mt-4 text-3xl font-bold text-white">Schedules</h2>
-      <span className="font-thin text-[#888888] block mx-6">
-        This is where you can coordinate teaching schedules, classrooms, and evaluations to avoid conflicts and keep everything running on time.
+      <span className="mx-6 block font-thin text-[#888888]">
+        This is where you can coordinate teaching schedules, classrooms, and evaluations to avoid
+        conflicts and keep everything running on time.
       </span>
 
       <div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
         {/* New Schedule Button */}
         <button
           onClick={() =>
-            (
-              document.getElementById(
-                "create_new_schedule",
-              ) as HTMLDialogElement
-            )?.showModal()
+            (document.getElementById("create_new_schedule") as HTMLDialogElement)?.showModal()
           }
           className="w-full rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
         >
@@ -451,9 +449,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
         {/* Edit Schedule Modal */}
         <dialog id="edit_schedule_modal" className="modal">
           <div className="modal-box w-11/12 max-w-5xl">
-            <h3 className="mb-4 text-center text-2xl font-bold">
-              Edit Schedule
-            </h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Edit Schedule</h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -529,9 +525,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Title */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Title:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Title:</label>
                 <input
                   type="text"
                   placeholder="Enter title"
@@ -549,9 +543,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Start Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Start Time:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Start Time:</label>
                 <input
                   type="time"
                   className="input input-bordered w-full"
@@ -568,9 +560,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* End Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  End Time:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">End Time:</label>
                 <input
                   type="time"
                   className="input input-bordered w-full"
@@ -587,9 +577,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Semester */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Semester:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Semester:</label>
                 <select
                   className="input input-bordered w-full"
                   value={editForm.semester}
@@ -610,9 +598,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Year */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Year:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Year:</label>
                 <input
                   type="date"
                   className="input input-bordered w-full"
@@ -629,10 +615,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Action Buttons */}
               <div className="modal-action">
-                <button
-                  type="submit"
-                  className="btn btn-success text-white"
-                >
+                <button type="submit" className="btn btn-success text-white">
                   Update
                 </button>
                 <button
@@ -653,12 +636,10 @@ function Schedules({ setActiveView }: SchedulesProps) {
         {/* Delete Schedule Modal */}
         <dialog id="delete_schedule_modal" className="modal">
           <div className="modal-box w-11/12 max-w-md">
-            <h3 className="mb-4 text-center text-2xl font-bold">
-              Delete Schedule
-            </h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Delete Schedule</h3>
             <p className="mb-6 text-center">
-              Are you sure you want to delete the schedule "{currentEditingSchedule?.name}"?
-              This action cannot be undone.
+              Are you sure you want to delete the schedule "{currentEditingSchedule?.name}"? This
+              action cannot be undone.
             </p>
             <div className="modal-action">
               <button
@@ -687,9 +668,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
         <dialog id="create_new_schedule" className="modal">
           <div className="modal-box w-11/12 max-w-5xl">
-            <h3 className="mb-4 text-center text-2xl font-bold">
-              Create New Schedule
-            </h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Create New Schedule</h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -705,17 +684,11 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   !form.semester ||
                   !form.year
                 ) {
-                  alert(
-                    "Please fill in all required fields.",
-                  );
+                  alert("Please fill in all required fields.");
                   return;
                 }
                 createSchedule();
-                (
-                  document.getElementById(
-                    "create_new_schedule",
-                  ) as HTMLDialogElement
-                )?.close();
+                (document.getElementById("create_new_schedule") as HTMLDialogElement)?.close();
               }}
               className="flex flex-col gap-6"
             >
@@ -772,9 +745,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Title */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Title:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Title:</label>
                 <input
                   type="text"
                   placeholder="Enter title"
@@ -792,9 +763,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Start Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Start Time:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Start Time:</label>
                 <input
                   type="time"
                   className="input input-bordered w-full"
@@ -811,9 +780,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* End Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  End Time:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">End Time:</label>
                 <input
                   type="time"
                   className="input input-bordered w-full"
@@ -830,9 +797,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Semester */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Semester:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Semester:</label>
                 <select
                   className="input input-bordered w-full"
                   value={form.semester}
@@ -845,23 +810,15 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   required
                 >
                   <option value="">Select semester</option>
-                  <option value="First">
-                    First Semester
-                  </option>
-                  <option value="Second">
-                    Second Semester
-                  </option>
-                  <option value="Summer">
-                    Summer Semester
-                  </option>
+                  <option value="First">First Semester</option>
+                  <option value="Second">Second Semester</option>
+                  <option value="Summer">Summer Semester</option>
                 </select>
               </div>
 
               {/* Year */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Year:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Year:</label>
                 <input
                   type="date"
                   className="input input-bordered w-full"
@@ -878,21 +835,14 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Action Buttons */}
               <div className="modal-action">
-                <button
-                  type="submit"
-                  className="btn btn-success text-white"
-                >
+                <button type="submit" className="btn btn-success text-white">
                   Submit
                 </button>
                 <button
                   type="button"
                   className="btn btn-cancel"
                   onClick={() =>
-                    (
-                      document.getElementById(
-                        "create_new_schedule",
-                      ) as HTMLDialogElement
-                    )?.close()
+                    (document.getElementById("create_new_schedule") as HTMLDialogElement)?.close()
                   }
                 >
                   Cancel
@@ -906,11 +856,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
           {/* Export Schedules Button */}
           <button
             onClick={() =>
-              (
-                document.getElementById(
-                  "modal_export_schedules",
-                ) as HTMLDialogElement
-              )?.showModal()
+              (document.getElementById("modal_export_schedules") as HTMLDialogElement)?.showModal()
             }
             className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
           >
@@ -919,19 +865,12 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
           <dialog id="modal_export_schedules" className="modal">
             <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="mb-4 text-center text-2xl font-bold">
-                Export Schedule
-              </h3>
+              <h3 className="mb-4 text-center text-2xl font-bold">Export Schedule</h3>
 
-              <form
-                method="dialog"
-                className="flex flex-col gap-6"
-              >
+              <form method="dialog" className="flex flex-col gap-6">
                 {/* Name Field */}
                 <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-left text-lg font-bold md:w-1/6">
-                    Name:
-                  </label>
+                  <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
                   <input
                     type="text"
                     value="Schedule A"
@@ -942,10 +881,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
                 {/* Action Buttons */}
                 <div className="modal-action">
-                  <button
-                    type="submit"
-                    className="btn btn-success text-white"
-                  >
+                  <button type="submit" className="btn btn-success text-white">
                     Export
                   </button>
                   <button
@@ -953,9 +889,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
                     className="btn btn-cancel"
                     onClick={() =>
                       (
-                        document.getElementById(
-                          "modal_export_schedules",
-                        ) as HTMLDialogElement
+                        document.getElementById("modal_export_schedules") as HTMLDialogElement
                       )?.close()
                     }
                   >
@@ -969,10 +903,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
       </div>
       {/* Search and New Schedule button */}
       <div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
-        <label
-          htmlFor="search"
-          className="text-lg font-bold text-white"
-        ></label>
+        <label htmlFor="search" className="text-lg font-bold text-white"></label>
         <input
           id="search"
           type="text"
@@ -985,42 +916,27 @@ function Schedules({ setActiveView }: SchedulesProps) {
       {/* New Schedule Modal */}
       <dialog id="create_new_schedule" className="modal">
         <div className="modal-box w-11/12 max-w-3xl">
-          <h3 className="mb-4 text-center text-2xl font-bold">
-            Create New Schedule
-          </h3>
+          <h3 className="mb-4 text-center text-2xl font-bold">Create New Schedule</h3>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               createSchedule();
-              (
-                document.getElementById(
-                  "create_new_schedule",
-                ) as HTMLDialogElement
-              )?.close();
+              (document.getElementById("create_new_schedule") as HTMLDialogElement)?.close();
             }}
             className="flex flex-col gap-6"
           >
             <div className="flex flex-col gap-2 md:flex-row md:items-center">
-              <label className="text-left text-lg font-bold md:w-1/6">
-                Name:
-              </label>
+              <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
             </div>
             <div className="modal-action">
-              <button
-                type="submit"
-                className="btn btn-success text-white"
-              >
+              <button type="submit" className="btn btn-success text-white">
                 Submit
               </button>
               <button
                 type="button"
                 className="btn btn-cancel"
                 onClick={() =>
-                  (
-                    document.getElementById(
-                      "create_new_schedule",
-                    ) as HTMLDialogElement
-                  )?.close()
+                  (document.getElementById("create_new_schedule") as HTMLDialogElement)?.close()
                 }
               >
                 Cancel

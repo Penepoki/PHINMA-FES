@@ -9,7 +9,7 @@ const SffDataDisplay: React.FC<SffDataDisplayProps> = ({ sffData }) => {
   if (Array.isArray(sffData) && sffData.length > 0 && sffData[0].all_questions) {
     return (
       <div>
-        <h5 className="font-bold mb-2">{sffData[0].title}</h5>
+        <h5 className="mb-2 font-bold">{sffData[0].title}</h5>
         <p className="mb-2 text-gray-600">{sffData[0].description}</p>
         <ul className="list-decimal pl-5">
           {sffData[0].all_questions.map((q: any, idx: number) => (

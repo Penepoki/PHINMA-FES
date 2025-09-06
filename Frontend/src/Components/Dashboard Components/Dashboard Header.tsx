@@ -88,7 +88,7 @@ const DashboardHeader = () => {
           </h1>
         </div>
         <button
-          className="flex items-center gap-2 text-md text-gray-300 transition-transform duration-200 hover:underline hover:scale-105"
+          className="text-md flex items-center gap-2 text-gray-300 transition-transform duration-200 hover:scale-105 hover:underline"
           onClick={() =>
             (document.getElementById("logout_modal") as HTMLDialogElement)?.showModal()
           }
@@ -121,10 +121,11 @@ const DashboardHeader = () => {
 
           {logoutMessage && (
             <div
-              className={`mt-4 rounded-lg px-4 py-2 text-sm ${logoutMessage.includes("successful")
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
-                }`}
+              className={`mt-4 rounded-lg px-4 py-2 text-sm ${
+                logoutMessage.includes("successful")
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
             >
               {logoutMessage}
             </div>

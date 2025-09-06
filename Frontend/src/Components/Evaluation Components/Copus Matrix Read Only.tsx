@@ -1,5 +1,5 @@
 // Components/Evaluation Components/Copus Matrix Read Only.tsx
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import api from "../../utils/api";
 import { motion } from "framer-motion";
 
@@ -7,9 +7,9 @@ type ToggleBoxProps = { label: string; active: boolean };
 function ToggleBox({ label, active }: ToggleBoxProps) {
   return (
     <motion.div
-        className={`min-w-[140px] rounded-xl px-6 py-3 text-center text-base transition-colors ${
-            active ? "bg-[#1c402a] text-white" : "bg-gray-200 text-black"
-        }`}
+      className={`min-w-[140px] rounded-xl px-6 py-3 text-center text-base transition-colors ${
+        active ? "bg-[#1c402a] text-white" : "bg-gray-200 text-black"
+      }`}
     >
       {label}
     </motion.div>
@@ -41,15 +41,15 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
 
   const [minute, setMinute] = useState<number>(MIN_MINUTE);
   const [selectionsByMinute, setSelectionsByMinute] = useState<
-      Record<
-          number,
-          { student: string[]; teacher: string[]; studentComments: string; teacherComments: string }
-      >
+    Record<
+      number,
+      { student: string[]; teacher: string[]; studentComments: string; teacherComments: string }
+    >
   >({});
 
   const minuteBoxes = Array.from(
     { length: (MAX_MINUTE - MIN_MINUTE) / INCREMENT + 1 },
-      (_, i) => MIN_MINUTE + i * INCREMENT
+    (_, i) => MIN_MINUTE + i * INCREMENT,
   );
 
   // Display labels used everywhere in UI
@@ -108,42 +108,47 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
 
   // Reverse: backend key -> display label
   const keyToStudentLabel = (key: string) =>
-      Object.keys(studentActivityMap).find((lbl) => studentActivityMap[lbl] === key) || key;
+    Object.keys(studentActivityMap).find((lbl) => studentActivityMap[lbl] === key) || key;
   const keyToTeacherLabel = (key: string) =>
-      Object.keys(teacherActivityMap).find((lbl) => teacherActivityMap[lbl] === key) || key;
+    Object.keys(teacherActivityMap).find((lbl) => teacherActivityMap[lbl] === key) || key;
   useEffect(() => {
     if (!evaluationId) return;
 
     const timeToMinutes = (t: string) => {
-      const [hh, mm] = (t || "00:00:00").split(":").map(s => parseInt(s || "0", 10));
+      const [hh, mm] = (t || "00:00:00").split(":").map((s) => parseInt(s || "0", 10));
       return (Number.isFinite(hh) ? hh : 0) * 60 + (Number.isFinite(mm) ? mm : 0);
     };
 
     const toLabels = (
-        acts: Record<string, boolean> | string[] | null | undefined,
-        toLabel: (k: string) => string
+      acts: Record<string, boolean> | string[] | null | undefined,
+      toLabel: (k: string) => string,
     ): string[] => {
       if (!acts) return [];
       if (Array.isArray(acts)) return acts.map(toLabel);
-      return Object.entries(acts).filter(([, v]) => !!v).map(([k]) => toLabel(k));
+      return Object.entries(acts)
+        .filter(([, v]) => !!v)
+        .map(([k]) => toLabel(k));
     };
 
     const loadTimestamps = async () => {
       try {
         const url = `/timestamp/timestamps/`;
-        const res = await api.get(url, {params: {evaluation: evaluationId}});
+        const res = await api.get(url, { params: { evaluation: evaluationId } });
 
         // 🔍 Debug entire response
         console.log("Fetched raw timestamps for evaluation", evaluationId, res.data);
 
         const rows = Array.isArray(res.data) ? res.data : res.data?.results || [];
 
-        const next: Record<number, {
-          student: string[];
-          teacher: string[];
-          studentComments: string;
-          teacherComments: string;
-        }> = {};
+        const next: Record<
+          number,
+          {
+            student: string[];
+            teacher: string[];
+            studentComments: string;
+            teacherComments: string;
+          }
+        > = {};
 
         rows.forEach((ts: any) => {
           const m = timeToMinutes(ts.time_record);
@@ -157,8 +162,10 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
           next[m] = {
             student: toLabels(ts.student_activities, keyToStudentLabel),
             teacher: toLabels(ts.instructor_activities, keyToTeacherLabel),
-            studentComments: (ts.student_comments?.comment ?? ts.student_comments?.notes ?? "") || "",
-            teacherComments: (ts.instructor_comments?.comment ?? ts.instructor_comments?.notes ?? "") || "",
+            studentComments:
+              (ts.student_comments?.comment ?? ts.student_comments?.notes ?? "") || "",
+            teacherComments:
+              (ts.instructor_comments?.comment ?? ts.instructor_comments?.notes ?? "") || "",
           };
 
           // 🔍 Debug mapping result
@@ -169,7 +176,7 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
         setSelectionsByMinute(next);
 
         if (!next[minute]) {
-          const firstWithData = minuteBoxes.find(m => {
+          const firstWithData = minuteBoxes.find((m) => {
             const s = next[m];
             return s && (s.student.length > 0 || s.teacher.length > 0);
           });
@@ -211,10 +218,10 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
               className={[
                 "h-10 w-12 rounded-md text-sm font-semibold shadow",
                 active
-                    ? "bg-[#1c402a] text-white"
-                    : filled
-                        ? "bg-gray-300"
-                        : "bg-gray-200 text-gray-700",
+                  ? "bg-[#1c402a] text-white"
+                  : filled
+                    ? "bg-gray-300"
+                    : "bg-gray-200 text-gray-700",
               ].join(" ")}
               title={filled ? "Has data" : "No data"}
             >
@@ -229,11 +236,11 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
         <div className="mb-2 font-semibold">Student Activities</div>
         <div className="flex flex-wrap gap-2">
           {studentOptions.map((label) => (
-              <ToggleBox key={label} label={label} active={selectedStudent.includes(label)}/>
+            <ToggleBox key={label} label={label} active={selectedStudent.includes(label)} />
           ))}
         </div>
         {studentComments && (
-            <div className="mt-2 text-sm italic text-gray-700">Notes: {studentComments}</div>
+          <div className="mt-2 text-sm text-gray-700 italic">Notes: {studentComments}</div>
         )}
       </div>
 
@@ -242,11 +249,11 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
         <div className="mb-2 font-semibold">Teacher Activities</div>
         <div className="flex flex-wrap gap-2">
           {teacherOptions.map((label) => (
-              <ToggleBox key={label} label={label} active={selectedTeacher.includes(label)}/>
+            <ToggleBox key={label} label={label} active={selectedTeacher.includes(label)} />
           ))}
         </div>
         {teacherComments && (
-            <div className="mt-2 text-sm italic text-gray-700">Notes: {teacherComments}</div>
+          <div className="mt-2 text-sm text-gray-700 italic">Notes: {teacherComments}</div>
         )}
       </div>
     </div>

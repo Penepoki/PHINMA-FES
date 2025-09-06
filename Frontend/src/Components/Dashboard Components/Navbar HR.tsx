@@ -17,7 +17,7 @@ import {
   AcademicCapIcon,
   // ChartPieIcon, // <- evalSummary icon (kept commented out)
 } from "@heroicons/react/24/solid";
-import {UserGroupIcon} from "@heroicons/react/24/solid";
+import { UserGroupIcon } from "@heroicons/react/24/solid";
 
 interface NavbarProps {
   activeView: string;
@@ -45,7 +45,7 @@ const iconMap: Record<string, JSX.Element> = {
   rooms: <BuildingOffice2Icon className="h-6 w-6 text-pink-400" />,
   sections: <RectangleStackIcon className="h-6 w-6 text-red-400" />,
   schedules: <CalendarDaysIcon className="h-6 w-6 text-emerald-400" />,
-  professors: <UserGroupIcon className="h-6 w-6 text-cyan-400"/>,
+  professors: <UserGroupIcon className="h-6 w-6 text-cyan-400" />,
 };
 
 // ---- DRY child groups ----
@@ -77,9 +77,7 @@ const NavbarHR: React.FC<NavbarProps> = ({
       const target = e.target as HTMLElement;
       const tagName = target.tagName.toLowerCase();
       const isTyping =
-        tagName === "input" ||
-        tagName === "textarea" ||
-        (target as HTMLElement).isContentEditable;
+        tagName === "input" || tagName === "textarea" || (target as HTMLElement).isContentEditable;
 
       if (isTyping) return;
 
@@ -109,33 +107,18 @@ const NavbarHR: React.FC<NavbarProps> = ({
         onClick={() => handleClick(key)}
         onMouseEnter={() => setHoveredButton(key)}
         onMouseLeave={() => setHoveredButton(null)}
-        className={`
-          group relative h-8 w-10 !px-1 rounded-xl flex items-center justify-center 
-          transition-all duration-300
-          ${isActive ? "ring-2 ring-white scale-125" : ""}
-          ${!isActive ? "hover:scale-[1.4] hover:mx-6" : ""}
-        `}
+        className={`group relative flex h-8 w-10 items-center justify-center rounded-xl !px-1 transition-all duration-300 ${isActive ? "scale-125 ring-2 ring-white" : ""} ${!isActive ? "hover:mx-6 hover:scale-[1.4]" : ""} `}
       >
         {/* Icon (hidden on mobile) */}
         <span
-          className={`
-            absolute hidden md:block
-            transition-all duration-300 transform
-            ${isActive || isHovering ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"}
-          `}
+          className={`absolute hidden transform transition-all duration-300 md:block ${isActive || isHovering ? "-translate-y-4 opacity-0" : "translate-y-0 opacity-100"} `}
         >
           {iconMap[key]}
         </span>
 
         {/* Text (always visible on mobile) */}
         <span
-          className={`
-            text-white text-xs font-medium text-center px-1
-            block opacity-100 translate-y-0
-            md:absolute md:transition-all md:duration-300 md:transform
-            ${isActive || isHovering ? "md:opacity-100 md:translate-y-0" : "md:opacity-0 md:translate-y-4"}
-            md:group-hover:opacity-100 md:group-hover:translate-y-0
-          `}
+          className={`block translate-y-0 px-1 text-center text-xs font-medium text-white opacity-100 md:absolute md:transform md:transition-all md:duration-300 ${isActive || isHovering ? "md:translate-y-0 md:opacity-100" : "md:translate-y-4 md:opacity-0"} md:group-hover:translate-y-0 md:group-hover:opacity-100`}
         >
           {label}
         </span>
@@ -144,8 +127,10 @@ const NavbarHR: React.FC<NavbarProps> = ({
   };
 
   // Map all possible active views to the same child arrays (DRY)
-  const isHR = (typeof window !== 'undefined') && localStorage.getItem('isTempFaculty') === 'true';
-  const RESOURCE_CHILDREN: string[] = isHR ? [...RESOURCE_CHILDREN_BASE, 'professors'] : [...RESOURCE_CHILDREN_BASE];
+  const isHR = typeof window !== "undefined" && localStorage.getItem("isTempFaculty") === "true";
+  const RESOURCE_CHILDREN: string[] = isHR
+    ? [...RESOURCE_CHILDREN_BASE, "professors"]
+    : [...RESOURCE_CHILDREN_BASE];
 
   const secondaryDockMap: Record<string, string[]> = {
     // Evaluation cluster
@@ -170,21 +155,22 @@ const NavbarHR: React.FC<NavbarProps> = ({
     <>
       {/* Toggle Dock Button */}
       <div
-        className={`fixed -translate-y-1/2 transform transition-all duration-300 right-2 ${isDockVisible && secondaryDockVisible
+        className={`fixed right-2 -translate-y-1/2 transform transition-all duration-300 ${
+          isDockVisible && secondaryDockVisible
             ? "bottom-25 md:bottom-25"
             : isDockVisible
               ? "bottom-10"
               : "bottom-0"
-          }`}
+        }`}
       >
         <div className="tooltip tooltip-left">
-          <span className="tooltip-content whitespace-pre-line text-sm p-2 rounded-xl">
+          <span className="tooltip-content rounded-xl p-2 text-sm whitespace-pre-line">
             {isDockVisible
               ? "Hide Dock\nKeyboard Shortcut (Space)"
               : "Show Dock\nKeyboard Shortcut (Space)"}
           </span>
           <button
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#102418] text-white shadow-2xl hover:scale-110 transition-transform duration-300"
+            className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#102418] text-white shadow-2xl transition-transform duration-300 hover:scale-110"
             onClick={() => setIsDockVisible(!isDockVisible)}
             aria-label={isDockVisible ? "Hide dock" : "Show dock"}
           >
@@ -200,32 +186,23 @@ const NavbarHR: React.FC<NavbarProps> = ({
       <nav data-theme="SJC" className="flex flex-col items-center">
         {/* Primary Dock */}
         <div
-          className={`
-            dock dock-xs bottom-0 w-full flex justify-center items-end
-            transition-transform duration-300 ease-in-out
-            ${isDockVisible ? "translate-y-0" : "translate-y-[100%]"}
-            motion-reduce:transition-none
-          `}
+          className={`dock dock-xs bottom-0 flex w-full items-end justify-center transition-transform duration-300 ease-in-out ${isDockVisible ? "translate-y-0" : "translate-y-[100%]"} motion-reduce:transition-none`}
         >
-          {([
-            ["home", "Home"],
-            ["profile", "Profile"],
-            ["evaluation", "Evaluation"],
-            ["resourceGroup", "Resources"],
-            ["leansixsigma", "Lean Six Sigma"],
-          ] as const).map(([key, label]) => renderAnimatedButton(key, label))}
+          {(
+            [
+              ["home", "Home"],
+              ["profile", "Profile"],
+              ["evaluation", "Evaluation"],
+              ["resourceGroup", "Resources"],
+              ["leansixsigma", "Lean Six Sigma"],
+            ] as const
+          ).map(([key, label]) => renderAnimatedButton(key, label))}
         </div>
 
         {/* Secondary Dock */}
         {secondaryDockVisible && (
           <div
-            className={`
-              dock dock-xs bottom-12 z-2 w-full flex justify-center items-end gap-6
-              border-b border-b-[#0e4925]
-              transition-all duration-300 ease-in-out
-              ${isDockVisible ? "translate-y-0" : "translate-y-[200%]"}
-              motion-reduce:transition-none
-            `}
+            className={`dock dock-xs bottom-12 z-2 flex w-full items-end justify-center gap-6 border-b border-b-[#0e4925] transition-all duration-300 ease-in-out ${isDockVisible ? "translate-y-0" : "translate-y-[200%]"} motion-reduce:transition-none`}
           >
             {secondaryDockMap[activeView]?.map((view) => {
               let label = view;

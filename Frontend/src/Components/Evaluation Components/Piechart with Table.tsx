@@ -1,12 +1,6 @@
 import React, { forwardRef } from "react";
 import { Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  ChartOptions,
-} from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, ChartOptions } from "chart.js";
 import { ActivityData } from "./Copus Matrix";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -91,16 +85,8 @@ const PieChartWithTable = forwardRef<any, PieChartProps>(
     };
 
     // Summary rows
-    const SummaryRow = ({
-      label,
-      count,
-      pct,
-    }: {
-      label: string;
-      count: number;
-      pct: number;
-    }) => (
-      <div className="flex items-center justify-between rounded-lg w-full px-3 py-2">
+    const SummaryRow = ({ label, count, pct }: { label: string; count: number; pct: number }) => (
+      <div className="flex w-full items-center justify-between rounded-lg px-3 py-2">
         <span className="text-sm">{label}</span>
         <span className="text-sm tabular-nums">
           {count} times ({pct.toFixed(2)}%)
@@ -116,9 +102,7 @@ const PieChartWithTable = forwardRef<any, PieChartProps>(
       data: Record<string, ActivityData>;
     }) => (
       <div className="w-full">
-        {title ? (
-          <h4 className="mb-2 text-center font-semibold">{title}</h4>
-        ) : null}
+        {title ? <h4 className="mb-2 text-center font-semibold">{title}</h4> : null}
         <div className="space-y-2">
           {Object.entries(data).map(([activity, v]) => (
             <SummaryRow
@@ -139,10 +123,7 @@ const PieChartWithTable = forwardRef<any, PieChartProps>(
           <h3 className="text-xl font-semibold text-white">Student Doing</h3>
 
           {/* Fixed-size pie */}
-          <div
-            className="relative"
-            style={{ width: CHART_SIZE, height: CHART_SIZE }}
-          >
+          <div className="relative" style={{ width: CHART_SIZE, height: CHART_SIZE }}>
             <Pie ref={ref} data={studentPieData} options={pieOptions} />
           </div>
 
@@ -160,10 +141,7 @@ const PieChartWithTable = forwardRef<any, PieChartProps>(
           <h3 className="text-xl font-semibold text-white">Teacher Doing</h3>
 
           {/* Fixed-size pie */}
-          <div
-            className="relative"
-            style={{ width: CHART_SIZE, height: CHART_SIZE }}
-          >
+          <div className="relative" style={{ width: CHART_SIZE, height: CHART_SIZE }}>
             <Pie data={teacherPieData} options={pieOptions} />
           </div>
 
@@ -177,7 +155,7 @@ const PieChartWithTable = forwardRef<any, PieChartProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 export default PieChartWithTable;
