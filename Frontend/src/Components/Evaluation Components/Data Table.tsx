@@ -34,10 +34,7 @@ function DataTable<T>({
               </th>
             )}
             {columns.map((col, idx) => (
-              <th
-                key={idx}
-                className={`w-[100%] ${col.className}`}
-              >
+                <th key={idx} className={`w-[100%] ${col.className}`}>
                 {col.header}
               </th>
             ))}
@@ -56,7 +53,7 @@ function DataTable<T>({
                 )}
                 {columns.map((_, colIndex) => (
                   <td key={colIndex}>
-                    <div className="skeleton py-6 h-8 w-full"></div>
+                      <div className="skeleton h-8 w-full py-6"></div>
                   </td>
                 ))}
                 {actions && (
@@ -68,7 +65,10 @@ function DataTable<T>({
             ))
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0)} className="text-center py-8 text-gray-400">
+                <td
+                    colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0)}
+                    className="py-8 text-center text-gray-400"
+                >
                 No data available.
               </td>
             </tr>
@@ -76,7 +76,7 @@ function DataTable<T>({
             data.map((item) => (
               <tr
                 key={getRowKey(item)}
-                className="transition-colors duration-500 hover:bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40"
+                className="from-[#1c402a]/40 to-[#1b2e3e]/40 transition-colors duration-500 hover:bg-gradient-to-r"
               >
                 {selectable && (
                   <td>
@@ -90,11 +90,7 @@ function DataTable<T>({
                       : (item[col.accessor] as React.ReactNode)}
                   </td>
                 ))}
-                {actions && (
-                  <td className="text-sm text-gray-300">
-                    {actions(item)}
-                  </td>
-                )}
+                  {actions && <td className="text-sm text-gray-300">{actions(item)}</td>}
               </tr>
             ))
           )}

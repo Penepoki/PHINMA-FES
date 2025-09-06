@@ -11,7 +11,7 @@ export async function schedulesFetcher() {
 }
 export async function programFetcher() {
   const response = await api.get("/program/programs/");
-  return response.data
+    return response.data;
 }
 export async function programProfessorFetcher() {
   const response = await api.get("/program-professor/program-professors/");

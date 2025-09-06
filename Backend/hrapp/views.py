@@ -23,6 +23,10 @@ from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 # --- S3 / MinIO presign helpers ---
 import os, re, uuid, mimetypes
 from urllib.parse import urljoin
@@ -130,14 +134,32 @@ def signup_view(request):
     return Response(result, status=status.HTTP_201_CREATED)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def user_view_dashboard(request):
-    # Returns the basic info of the currently logged user
+    """
+    GET  -> return current user's dashboard info
+    PATCH -> allow the current user to update simple fields like profile_image
+    """
     user = request.user
-    serializer = UserDashboardSerializer(user, context={'request': request})
-    return Response(serializer.data)
 
+    if request.method == 'GET':
+        serializer = UserDashboardSerializer(user, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # PATCH
+    allowed_fields = {'profile_image', 'first_name', 'last_name'}  # add/remove as you prefer
+    payload = {k: v for k, v in request.data.items() if k in allowed_fields}
+
+    if not payload:
+        return Response({'detail': 'No allowed fields to update.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    for k, v in payload.items():
+        setattr(user, k, v)
+    user.save(update_fields=list(payload.keys()))
+
+    serializer = UserDashboardSerializer(user, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

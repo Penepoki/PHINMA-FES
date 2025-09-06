@@ -49,7 +49,7 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
 
   const minuteBoxes = Array.from(
     { length: (MAX_MINUTE - MIN_MINUTE) / INCREMENT + 1 },
-      (_, i) => MIN_MINUTE + i * INCREMENT
+      (_, i) => MIN_MINUTE + i * INCREMENT,
   );
 
   // Display labels used everywhere in UI
@@ -115,35 +115,40 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
     if (!evaluationId) return;
 
     const timeToMinutes = (t: string) => {
-      const [hh, mm] = (t || "00:00:00").split(":").map(s => parseInt(s || "0", 10));
+        const [hh, mm] = (t || "00:00:00").split(":").map((s) => parseInt(s || "0", 10));
       return (Number.isFinite(hh) ? hh : 0) * 60 + (Number.isFinite(mm) ? mm : 0);
     };
 
     const toLabels = (
         acts: Record<string, boolean> | string[] | null | undefined,
-        toLabel: (k: string) => string
+        toLabel: (k: string) => string,
     ): string[] => {
       if (!acts) return [];
       if (Array.isArray(acts)) return acts.map(toLabel);
-      return Object.entries(acts).filter(([, v]) => !!v).map(([k]) => toLabel(k));
+        return Object.entries(acts)
+            .filter(([, v]) => !!v)
+            .map(([k]) => toLabel(k));
     };
 
     const loadTimestamps = async () => {
       try {
         const url = `/timestamp/timestamps/`;
-        const res = await api.get(url, {params: {evaluation: evaluationId}});
+          const res = await api.get(url, {params: {evaluation: evaluationId}});
 
         // 🔍 Debug entire response
         console.log("Fetched raw timestamps for evaluation", evaluationId, res.data);
 
         const rows = Array.isArray(res.data) ? res.data : res.data?.results || [];
 
-        const next: Record<number, {
-          student: string[];
-          teacher: string[];
-          studentComments: string;
-          teacherComments: string;
-        }> = {};
+          const next: Record<
+              number,
+              {
+                  student: string[];
+                  teacher: string[];
+                  studentComments: string;
+                  teacherComments: string;
+              }
+          > = {};
 
         rows.forEach((ts: any) => {
           const m = timeToMinutes(ts.time_record);
@@ -157,8 +162,10 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
           next[m] = {
             student: toLabels(ts.student_activities, keyToStudentLabel),
             teacher: toLabels(ts.instructor_activities, keyToTeacherLabel),
-            studentComments: (ts.student_comments?.comment ?? ts.student_comments?.notes ?? "") || "",
-            teacherComments: (ts.instructor_comments?.comment ?? ts.instructor_comments?.notes ?? "") || "",
+              studentComments:
+                  (ts.student_comments?.comment ?? ts.student_comments?.notes ?? "") || "",
+              teacherComments:
+                  (ts.instructor_comments?.comment ?? ts.instructor_comments?.notes ?? "") || "",
           };
 
           // 🔍 Debug mapping result
@@ -169,7 +176,7 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
         setSelectionsByMinute(next);
 
         if (!next[minute]) {
-          const firstWithData = minuteBoxes.find(m => {
+            const firstWithData = minuteBoxes.find((m) => {
             const s = next[m];
             return s && (s.student.length > 0 || s.teacher.length > 0);
           });
@@ -233,7 +240,7 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
           ))}
         </div>
         {studentComments && (
-            <div className="mt-2 text-sm italic text-gray-700">Notes: {studentComments}</div>
+            <div className="mt-2 text-sm text-gray-700 italic">Notes: {studentComments}</div>
         )}
       </div>
 
@@ -246,7 +253,7 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
           ))}
         </div>
         {teacherComments && (
-            <div className="mt-2 text-sm italic text-gray-700">Notes: {teacherComments}</div>
+            <div className="mt-2 text-sm text-gray-700 italic">Notes: {teacherComments}</div>
         )}
       </div>
     </div>

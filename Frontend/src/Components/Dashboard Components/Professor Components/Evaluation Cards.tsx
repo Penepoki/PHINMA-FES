@@ -58,26 +58,16 @@ const EvalCard: React.FC<Evaluations> = ({
           className={`${bgColor} text-neutral-content flex size-30 items-center justify-center rounded-full`}
         >
           {image ? (
-            <img
-              src={image}
-              alt={name}
-              className="h-full w-full rounded-full object-cover"
-            />
+              <img src={image} alt={name} className="h-full w-full rounded-full object-cover"/>
           ) : (
-            <span className="text-[80px]">
-              {name?.charAt(0) || "?"}
-            </span>
+              <span className="text-[80px]">{name?.charAt(0) || "?"}</span>
           )}
         </div>
       </div>
       <div className="flex h-30 w-full flex-col rounded-br-lg rounded-bl-xl px-5 py-2 shadow-2xl backdrop-hue-rotate-300">
         <div className="mt-4 flex flex-col text-start">
-          <span className={`text-2xl font-bold ${textColor}`}>
-            {name}
-          </span>
-          <span className="mt-2 text-sm text-gray-400">
-            {fullname}
-          </span>
+            <span className={`text-2xl font-bold ${textColor}`}>{name}</span>
+            <span className="mt-2 text-sm text-gray-400">{fullname}</span>
         </div>
       </div>
     </motion.div>
@@ -94,9 +84,7 @@ const EvalCards: React.FC<{
         <div key={idx} className="h-1/2 w-full md:w-1/5">
           <EvalCard
             {...evaluation}
-            onClick={() =>
-              !evaluation.isAddCard && onEvalClick?.(evaluation.name)
-            }
+            onClick={() => !evaluation.isAddCard && onEvalClick?.(evaluation.name)}
           />
         </div>
       ))}

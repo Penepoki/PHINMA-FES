@@ -4,8 +4,8 @@ import "./styles.css";
 import App from "./App.tsx";
 
 createRoot(document.querySelector("#root")!).render(
-	<StrictMode>
-		<App />
-		{/* App is the main component of the application */}
-	</StrictMode>,
+    <StrictMode>
+        <App/>
+        {/* App is the main component of the application */}
+    </StrictMode>,
 );

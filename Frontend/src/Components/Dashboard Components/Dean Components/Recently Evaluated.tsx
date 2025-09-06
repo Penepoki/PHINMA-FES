@@ -49,9 +49,7 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const FacultyCardSkeleton = () => {
   return (
     <>
-      <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
-        Recently Evaluated Faculty:
-      </p>
+        <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">Recently Evaluated Faculty:</p>
 
       <div
         className="tooltip tooltip-top flex w-full flex-col items-center justify-center"
@@ -62,7 +60,8 @@ const FacultyCardSkeleton = () => {
           aria-busy="true"
         >
           {/* LEFT: Avatar + centered bars */}
-          <div className="flex h-full w-full md:w-1/3 flex-col items-center justify-center rounded-l-xl p-5 backdrop-blur-lg backdrop-hue-rotate-100">
+            <div
+                className="flex h-full w-full flex-col items-center justify-center rounded-l-xl p-5 backdrop-blur-lg backdrop-hue-rotate-100 md:w-1/3">
             <div className="avatar mb-3">
               <div className="rounded-full">
                 <div className="skeleton h-52 w-52 rounded-full" />
@@ -75,15 +74,17 @@ const FacultyCardSkeleton = () => {
           </div>
 
           {/* MIDDLE (md+): Student Pie */}
-          <div className="hidden md:flex h-full w-1/3 flex-col items-center justify-center p-5 text-white backdrop-blur-lg backdrop-hue-rotate-300">
-            <div className="skeleton h-5 w-40 mb-1" />
-            <div className="skeleton rounded-full aspect-square w-[min(90%,220px)]" />
+            <div
+                className="hidden h-full w-1/3 flex-col items-center justify-center p-5 text-white backdrop-blur-lg backdrop-hue-rotate-300 md:flex">
+                <div className="skeleton mb-1 h-5 w-40"/>
+                <div className="skeleton aspect-square w-[min(90%,220px)] rounded-full"/>
           </div>
 
           {/* RIGHT (md+): Teacher Pie */}
-          <div className="hidden md:flex h-full w-1/3 flex-col items-center justify-center rounded-r-xl p-5 text-white backdrop-blur-lg backdrop-hue-rotate-400">
-            <div className="skeleton h-5 w-40 mb-1" />
-            <div className="skeleton rounded-full aspect-square w-[min(90%,220px)]" />
+            <div
+                className="hidden h-full w-1/3 flex-col items-center justify-center rounded-r-xl p-5 text-white backdrop-blur-lg backdrop-hue-rotate-400 md:flex">
+                <div className="skeleton mb-1 h-5 w-40"/>
+                <div className="skeleton aspect-square w-[min(90%,220px)] rounded-full"/>
           </div>
         </div>
       </div>
@@ -166,9 +167,7 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
     const fetchLatest = async () => {
       try {
         setIsLoading(true);
-        const res = await api.get(
-          "/evaluation/evaluations/latest-with-tallies/?limit=3",
-        );
+          const res = await api.get("/evaluation/evaluations/latest-with-tallies/?limit=3");
         const formatted = res.data.map((item: any) => ({
           evaluationNumber: item.evaluation_number,
           name: item.faculty_name,
@@ -211,9 +210,7 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
   if (facultyData.length === 0) {
     return (
       <>
-        <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
-          Recently Evaluated Faculty:
-        </p>
+          <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">Recently Evaluated Faculty:</p>
         <div className="flex h-1/3 w-full items-center justify-center rounded-xl bg-black/20 p-6 sm:h-[30vh]">
           <span className="text-gray-400">No recent evaluations found.</span>
         </div>
@@ -225,9 +222,7 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
 
   return (
     <>
-      <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">
-        Recently Evaluated Faculty:
-      </p>
+        <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">Recently Evaluated Faculty:</p>
 
       <div
         className="tooltip tooltip-top flex w-full flex-col items-center justify-center"
@@ -238,21 +233,20 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
           className="float-breathe flex h-1/3 w-full cursor-pointer flex-row items-center justify-center shadow-2xl transition-transform hover:scale-[1.01] sm:h-[30vh]"
         >
           {/* LEFT: Avatar + name */}
-          <div className="flex h-full w-full md:w-1/3 flex-col items-center justify-center rounded-l-xl p-5 backdrop-blur-lg backdrop-hue-rotate-100">
+            <div
+                className="flex h-full w-full flex-col items-center justify-center rounded-l-xl p-5 backdrop-blur-lg backdrop-hue-rotate-100 md:w-1/3">
             <div className="avatar">
               <div className="w-52 rounded-full">
                 <img src={currentFaculty.image} alt={currentFaculty.name} />
               </div>
             </div>
             <div className="text-center md:mt-4">
-              <span className="text-3xl font-bold text-white">
-                {currentFaculty.name}
-              </span>
+                <span className="text-3xl font-bold text-white">{currentFaculty.name}</span>
             </div>
           </div>
 
           {/* MIDDLE: Student Feedback (hidden on mobile) */}
-          <div className="hidden md:block h-full w-1/3 p-5 text-white backdrop-blur-lg backdrop-hue-rotate-300">
+            <div className="hidden h-full w-1/3 p-5 text-white backdrop-blur-lg backdrop-hue-rotate-300 md:block">
             <FacultyPieChart
               data={currentFaculty.studentData}
               labels={studentOptions}
@@ -261,7 +255,8 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
           </div>
 
           {/* RIGHT: Teacher Feedback (hidden on mobile) */}
-          <div className="hidden md:block h-full w-1/3 rounded-r-xl p-5 text-white backdrop-blur-lg backdrop-hue-rotate-400">
+            <div
+                className="hidden h-full w-1/3 rounded-r-xl p-5 text-white backdrop-blur-lg backdrop-hue-rotate-400 md:block">
             <FacultyPieChart
               data={currentFaculty.teacherData}
               labels={teacherOptions}

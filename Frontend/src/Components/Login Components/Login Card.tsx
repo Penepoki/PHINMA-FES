@@ -1,9 +1,4 @@
-import {
-  EyeIcon,
-  EyeSlashIcon,
-  EnvelopeIcon,
-  UserIcon,
-} from "@heroicons/react/24/outline";
+import {EyeIcon, EyeSlashIcon, EnvelopeIcon, UserIcon} from "@heroicons/react/24/outline";
 import api from "../../utils/api.ts";
 import { AxiosError } from "axios";
 import { useRef, useState, useEffect } from "react";
@@ -59,7 +54,7 @@ function LoginCard() {
           username: identifier, // can be username or email
           password,
         },
-        { skipAuth: true }
+          {skipAuth: true},
       );
 
       // Success — extract info
@@ -123,8 +118,6 @@ function LoginCard() {
       setIsLoading(false);
     }
   };
-
-
 
   const handleSignUp = async () => {
     setIsLoading(true); // Start loading
@@ -212,10 +205,7 @@ function LoginCard() {
     }
   };
 
-  const handleOtpChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index: number,
-  ) => {
+    const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const value = e.target.value.replace(/\D/g, "").slice(0, 1);
     const newOtp = [...otp];
     newOtp[index] = value;
@@ -226,10 +216,7 @@ function LoginCard() {
     }
   };
 
-  const handleOtpKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    index: number,
-  ) => {
+    const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
     }
@@ -330,7 +317,7 @@ function LoginCard() {
                   type={showPassword ? "text" : "password"}
                   required
                   placeholder="Password"
-                  className="input w-[88%] pr-10"
+                  className="input w-full pr-12 hover:scale-100 focus:scale-100"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => {
@@ -340,7 +327,7 @@ function LoginCard() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:scale-125 transition-transform hover:text-primary"
+                  className="hover:text-primary focus:text-primary absolute top-1/2 right-3 z-10 -translate-y-1/2 p-1 text-gray-600 transition-colors duration-200 focus:outline-none"
                 >
                   {showPassword ? (
                     <EyeSlashIcon className="h-5 w-5" />
@@ -382,10 +369,7 @@ function LoginCard() {
 
             <div className="text-center">
               <span>Don't have an account? </span>
-              <button
-                onClick={() => setIsSignUp(true)}
-                className="text-primary hover:underline"
-              >
+                <button onClick={() => setIsSignUp(true)} className="text-primary hover:underline">
                 Sign Up
               </button>
             </div>
@@ -403,9 +387,7 @@ function LoginCard() {
                     placeholder="Enter your registered email"
                     className="input w-full"
                     value={email}
-                    onChange={(e) =>
-                      setEmail(e.target.value)
-                    }
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
 
@@ -415,9 +397,7 @@ function LoginCard() {
                     disabled={isLoading}
                     className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
                   >
-                    {isLoading
-                      ? "Sending OTP..."
-                      : "Send OTP"}
+                      {isLoading ? "Sending OTP..." : "Send OTP"}
                   </button>
                 </div>
               </>
@@ -436,12 +416,8 @@ function LoginCard() {
                       maxLength={1}
                       className="input w-12 text-center text-xl"
                       value={digit}
-                      onChange={(e) =>
-                        handleOtpChange(e, index)
-                      }
-                      onKeyDown={(e) =>
-                        handleOtpKeyDown(e, index)
-                      }
+                      onChange={(e) => handleOtpChange(e, index)}
+                      onKeyDown={(e) => handleOtpKeyDown(e, index)}
                     />
                   ))}
                 </div>
@@ -452,9 +428,7 @@ function LoginCard() {
                     disabled={isLoading}
                     className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
                   >
-                    {isLoading
-                      ? "Verifying OTP..."
-                      : "Verify OTP"}
+                      {isLoading ? "Verifying OTP..." : "Verify OTP"}
                   </button>
                   <button
                     onClick={handleResendOtp}
@@ -475,14 +449,14 @@ function LoginCard() {
                       type={showNewPassword ? "text" : "password"}
                       required
                       placeholder="Enter new password"
-                      className="input w-[88%] pr-10"
+                      className="input w-full pr-12 hover:scale-100 focus:scale-100"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:scale-125 transition-transform hover:text-primary"
+                      className="hover:text-primary focus:text-primary absolute top-1/2 right-3 z-10 -translate-y-1/2 p-1 text-gray-600 transition-colors duration-200 focus:outline-none"
                     >
                       {showNewPassword ? (
                         <EyeSlashIcon className="h-5 w-5" />
@@ -500,14 +474,14 @@ function LoginCard() {
                       type={showConfirmNewPassword ? "text" : "password"}
                       required
                       placeholder="Confirm new password"
-                      className="input w-[88%] pr-10"
+                      className="input w-full pr-12 hover:scale-100 focus:scale-100"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:scale-125 transition-transform hover:text-primary"
+                      className="hover:text-primary focus:text-primary absolute top-1/2 right-3 z-10 -translate-y-1/2 p-1 text-gray-600 transition-colors duration-200 focus:outline-none"
                     >
                       {showConfirmNewPassword ? (
                         <EyeSlashIcon className="h-5 w-5" />
@@ -542,9 +516,7 @@ function LoginCard() {
               </button>
             </div>
 
-            {error && (
-              <p className="text-center text-red-500">{error}</p>
-            )}
+              {error && <p className="text-center text-red-500">{error}</p>}
           </>
         ) : (
           <>
@@ -629,7 +601,7 @@ function LoginCard() {
                   type={showSignupPassword ? "text" : "password"}
                   required
                   placeholder="Password"
-                  className="input w-[88%] pr-10"
+                  className="input w-full pr-12 hover:scale-100 focus:scale-100"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => {
@@ -639,7 +611,7 @@ function LoginCard() {
                 <button
                   type="button"
                   onClick={() => setShowSignupPassword(!showSignupPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:scale-125 transition-transform hover:text-primary"
+                  className="hover:text-primary focus:text-primary absolute top-1/2 right-3 z-10 -translate-y-1/2 p-1 text-gray-600 transition-colors duration-200 focus:outline-none"
                 >
                   {showSignupPassword ? (
                     <EyeSlashIcon className="h-5 w-5" />
@@ -658,7 +630,7 @@ function LoginCard() {
                   type={showConfirmSignupPassword ? "text" : "password"}
                   required
                   placeholder="Confirm Password"
-                  className="input w-[88%] pr-10"
+                  className="input w-full pr-12 hover:scale-100 focus:scale-100"
                   value={confirmSignupPassword}
                   onChange={(e) => setConfirmSignupPassword(e.target.value)}
                   onKeyDown={(e) => {
@@ -667,10 +639,8 @@ function LoginCard() {
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowConfirmSignupPassword(!showConfirmSignupPassword)
-                  }
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:scale-125 transition-transform hover:text-primary"
+                  onClick={() => setShowConfirmSignupPassword(!showConfirmSignupPassword)}
+                  className="hover:text-primary focus:text-primary absolute top-1/2 right-3 z-10 -translate-y-1/2 p-1 text-gray-600 transition-colors duration-200 focus:outline-none"
                 >
                   {showConfirmSignupPassword ? (
                     <EyeSlashIcon className="h-5 w-5" />
@@ -693,10 +663,7 @@ function LoginCard() {
 
             <div className="text-center">
               <span>Already have an account? </span>
-              <button
-                onClick={() => setIsSignUp(false)}
-                className="text-primary hover:underline"
-              >
+                <button onClick={() => setIsSignUp(false)} className="text-primary hover:underline">
                 Log In
               </button>
             </div>

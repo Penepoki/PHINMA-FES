@@ -2,340 +2,311 @@ import { useState, useEffect } from "react";
 import api from "../../utils/api.ts";
 
 interface CreateEvaluationProps {
-	onSuccess: (evaluation: any) => void;
-	schedules: Schedule[];
-	initialInstructor?: User | null;
-	initialCopusType?: string;
+    onSuccess: (evaluation: any) => void;
+    schedules: Schedule[];
+    initialInstructor?: User | null;
+    initialCopusType?: string;
 }
 
 interface User {
-	id: number;
-	first_name: string;
-	last_name: string;
+    id: number;
+    first_name: string;
+    last_name: string;
 }
 
 interface Schedule {
-	id: number;
-	name: string;
-	program: number;
-	instructor: number;
-	instructor_name?: string;
-	subject: string;
-	room: string;
-	semester: string;
-	year: string;
-	section_name?: string;
-	subject_name?: string;
-	room_name?: string;
-	program_name?: string;
-	start_time?: string;
-	end_time?: string;
+    id: number;
+    name: string;
+    program: number;
+    instructor: number;
+    instructor_name?: string;
+    subject: string;
+    room: string;
+    semester: string;
+    year: string;
+    section_name?: string;
+    subject_name?: string;
+    room_name?: string;
+    program_name?: string;
+    start_time?: string;
+    end_time?: string;
 }
 
 const getToday = () => {
-	const today = new Date();
-	return today.toISOString().split('T')[0];
+    const today = new Date();
+    return today.toISOString().split("T")[0];
 };
 
 const CreateEvaluationForm: React.FC<CreateEvaluationProps> = ({
-	onSuccess,
-	schedules,
-	initialInstructor = null,
-	initialCopusType = "copus_1",
+                                                                   onSuccess,
+                                                                   schedules,
+                                                                   initialInstructor = null,
+                                                                   initialCopusType = "copus_1",
 }) => {
-	const [formData, setFormData] = useState({
-		schedule: "",
-		observation_date: getToday(),
-		evaluation_type: initialCopusType || "copus_1",
-		instructor: "",
-		additional_comments: "",
-	});
-	const [loading, setLoading] = useState(false);
-	const [instructors, setInstructors] = useState<User[]>([]);
-	const [selectedInstructor, setSelectedInstructor] = useState<User | null>(
-		initialInstructor,
-	);
-	const [error, setError] = useState("");
+    const [formData, setFormData] = useState({
+        schedule: "",
+        observation_date: getToday(),
+        evaluation_type: initialCopusType || "copus_1",
+        instructor: "",
+        additional_comments: "",
+    });
+    const [loading, setLoading] = useState(false);
+    const [instructors, setInstructors] = useState<User[]>([]);
+    const [selectedInstructor, setSelectedInstructor] = useState<User | null>(initialInstructor);
+    const [error, setError] = useState("");
 
-	// Set selectedInstructor if initialInstructor changes
-	useEffect(() => {
-		if (initialInstructor) {
-			setSelectedInstructor(initialInstructor);
-			setFormData((f) => ({...f, instructor: String(initialInstructor.id)}));
-		}
-	}, [initialInstructor]);
+    // Set selectedInstructor if initialInstructor changes
+    useEffect(() => {
+        if (initialInstructor) {
+            setSelectedInstructor(initialInstructor);
+            setFormData((f) => ({...f, instructor: String(initialInstructor.id)}));
+        }
+    }, [initialInstructor]);
 
-	// Set evaluation_type if initialCopusType changes
-	useEffect(() => {
-		if (initialCopusType) {
-			setFormData((f) => ({ ...f, evaluation_type: initialCopusType }));
-		}
-	}, [initialCopusType]);
+    // Set evaluation_type if initialCopusType changes
+    useEffect(() => {
+        if (initialCopusType) {
+            setFormData((f) => ({...f, evaluation_type: initialCopusType}));
+        }
+    }, [initialCopusType]);
 
-	// Fetch instructors when component mounts (HR-safe)
-	useEffect(() => {
-		const fetchInstructors = async () => {
-			try {
-				const response = await api.get("/users/professors/");
-				let list: User[] = response.data || [];
-				// Fallback: seed from schedules (unique instructors in current faculty) if API returns empty
-				if (!Array.isArray(list) || list.length === 0) {
-					const seen = new Map<number, User>();
-					for (const s of schedules) {
-						if (s.instructor && !seen.has(s.instructor)) {
-							seen.set(s.instructor, {
-								id: s.instructor,
-								first_name: (s as any).instructor_name?.split(" ")?.[0] || "",
-								last_name: (s as any).instructor_name?.split(" ")?.slice(1).join(" ") || "",
-							});
-						}
-					}
-					list = Array.from(seen.values());
-				}
-				// Ensure initialInstructor is present in options for immediate selection display
-				if (initialInstructor && !list.some(u => u.id === initialInstructor.id)) {
-					list = [initialInstructor, ...list];
-				}
-				setInstructors(list);
-			} catch (err) {
-				console.error("Error fetching instructors:", err);
-				// As a fallback, try to build from schedules
-				const seen = new Map<number, User>();
-				for (const s of schedules) {
-					if (s.instructor && !seen.has(s.instructor)) {
-						seen.set(s.instructor, {
-							id: s.instructor,
-							first_name: (s as any).instructor_name?.split(" ")?.[0] || "",
-							last_name: (s as any).instructor_name?.split(" ")?.slice(1).join(" ") || "",
-						});
-					}
-				}
-				const list = Array.from(seen.values());
-				setInstructors(list);
-				setError("Failed to load instructors");
-			}
-		};
+    // Fetch instructors when component mounts (HR-safe)
+    useEffect(() => {
+        const fetchInstructors = async () => {
+            try {
+                const response = await api.get("/users/professors/");
+                let list: User[] = response.data || [];
+                // Fallback: seed from schedules (unique instructors in current faculty) if API returns empty
+                if (!Array.isArray(list) || list.length === 0) {
+                    const seen = new Map<number, User>();
+                    for (const s of schedules) {
+                        if (s.instructor && !seen.has(s.instructor)) {
+                            seen.set(s.instructor, {
+                                id: s.instructor,
+                                first_name: (s as any).instructor_name?.split(" ")?.[0] || "",
+                                last_name: (s as any).instructor_name?.split(" ")?.slice(1).join(" ") || "",
+                            });
+                        }
+                    }
+                    list = Array.from(seen.values());
+                }
+                // Ensure initialInstructor is present in options for immediate selection display
+                if (initialInstructor && !list.some((u) => u.id === initialInstructor.id)) {
+                    list = [initialInstructor, ...list];
+                }
+                setInstructors(list);
+            } catch (err) {
+                console.error("Error fetching instructors:", err);
+                // As a fallback, try to build from schedules
+                const seen = new Map<number, User>();
+                for (const s of schedules) {
+                    if (s.instructor && !seen.has(s.instructor)) {
+                        seen.set(s.instructor, {
+                            id: s.instructor,
+                            first_name: (s as any).instructor_name?.split(" ")?.[0] || "",
+                            last_name: (s as any).instructor_name?.split(" ")?.slice(1).join(" ") || "",
+                        });
+                    }
+                }
+                const list = Array.from(seen.values());
+                setInstructors(list);
+                setError("Failed to load instructors");
+            }
+        };
 
-		fetchInstructors();
-	}, [schedules, initialInstructor]);
+        fetchInstructors();
+    }, [schedules, initialInstructor]);
 
-	// When instructor changes, clear schedule and filter schedules
-	const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
+    // When instructor changes, clear schedule and filter schedules
+    const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
 
-	useEffect(() => {
-		if (selectedInstructor) {
-			const filtered = schedules.filter(
-				(s) => s.instructor === selectedInstructor.id
-			);
-			setFilteredSchedules(filtered);
-			// Clear schedule selection if it doesn't belong to this instructor
-			if (!filtered.some((s) => String(s.id) === formData.schedule)) {
-				setFormData((f) => ({ ...f, schedule: "" }));
-			}
-		} else {
-			setFilteredSchedules([]);
-			setFormData((f) => ({ ...f, schedule: "" }));
-		}
-	}, [selectedInstructor, schedules, formData.schedule]);
+    useEffect(() => {
+        if (selectedInstructor) {
+            const filtered = schedules.filter((s) => s.instructor === selectedInstructor.id);
+            setFilteredSchedules(filtered);
+            // Clear schedule selection if it doesn't belong to this instructor
+            if (!filtered.some((s) => String(s.id) === formData.schedule)) {
+                setFormData((f) => ({...f, schedule: ""}));
+            }
+        } else {
+            setFilteredSchedules([]);
+            setFormData((f) => ({...f, schedule: ""}));
+        }
+    }, [selectedInstructor, schedules, formData.schedule]);
 
-	// When schedule changes, update instructor to match the schedule's instructor
-	useEffect(() => {
-		// If no schedule is selected, keep the current selectedInstructor (do NOT clear it).
-		if (!formData.schedule) return;
+    // When schedule changes, update instructor to match the schedule's instructor
+    useEffect(() => {
+        // If no schedule is selected, keep the current selectedInstructor (do NOT clear it).
+        if (!formData.schedule) return;
 
-		const selectedSchedule = schedules.find(
-			(s) => String(s.id) === formData.schedule,
-		);
-		if (!selectedSchedule) return;
+        const selectedSchedule = schedules.find((s) => String(s.id) === formData.schedule);
+        if (!selectedSchedule) return;
 
-		const instructor = instructors.find(
-			(i) => i.id === selectedSchedule.instructor,
-		);
+        const instructor = instructors.find((i) => i.id === selectedSchedule.instructor);
 
-		setFormData((f) => ({
-			...f,
-			instructor: selectedSchedule.instructor
-				? String(selectedSchedule.instructor)
-				: "",
-		}));
+        setFormData((f) => ({
+            ...f,
+            instructor: selectedSchedule.instructor ? String(selectedSchedule.instructor) : "",
+        }));
 
-		// Only update selectedInstructor when we can resolve it from the schedule.
-		if (instructor) {
-			setSelectedInstructor(instructor);
-		}
-	}, [formData.schedule, instructors, schedules]);
+        // Only update selectedInstructor when we can resolve it from the schedule.
+        if (instructor) {
+            setSelectedInstructor(instructor);
+        }
+    }, [formData.schedule, instructors, schedules]);
 
-	// Keep formData.instructor in sync when selectedInstructor changes (ensures payload)
-	useEffect(() => {
-		setFormData((f) => ({...f, instructor: selectedInstructor ? String(selectedInstructor.id) : ""}));
-	}, [selectedInstructor]);
+    // Keep formData.instructor in sync when selectedInstructor changes (ensures payload)
+    useEffect(() => {
+        setFormData((f) => ({
+            ...f,
+            instructor: selectedInstructor ? String(selectedInstructor.id) : "",
+        }));
+    }, [selectedInstructor]);
 
-	const handleChange = (
-		e: React.ChangeEvent<
-			HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-		>,
-	) => {
-		const { name, value } = e.target;
-		if (name === "schedule") {
-			// Find the selected schedule and set the instructor to match
-			const selectedSchedule = schedules.find(
-				(s) => String(s.id) === value,
-			);
-			setFormData({
-				...formData,
-				schedule: value,
-				instructor: selectedSchedule
-					? String(selectedSchedule.instructor)
-					: "",
-			});
-		} else {
-			setFormData({ ...formData, [name]: value });
-		}
-	};
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+    ) => {
+        const {name, value} = e.target;
+        if (name === "schedule") {
+            // Find the selected schedule and set the instructor to match
+            const selectedSchedule = schedules.find((s) => String(s.id) === value);
+            setFormData({
+                ...formData,
+                schedule: value,
+                instructor: selectedSchedule ? String(selectedSchedule.instructor) : "",
+            });
+        } else {
+            setFormData({...formData, [name]: value});
+        }
+    };
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		setLoading(true);
-		setError("");
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
 
-		try {
-			const response = await api.post(
-				"/evaluation/evaluations/",
-				formData,
-			);
-			onSuccess(response.data.data);
-			// Reset form
-			setFormData({
-				schedule: "",
-				observation_date: getToday(),
-				evaluation_type: "copus_1",
-				instructor: selectedInstructor ? String(selectedInstructor.id) : "",
-				additional_comments: "",
-			});
-			setSelectedInstructor(initialInstructor || null);
+        try {
+            const response = await api.post("/evaluation/evaluations/", formData);
+            onSuccess(response.data.data);
+            // Reset form
+            setFormData({
+                schedule: "",
+                observation_date: getToday(),
+                evaluation_type: "copus_1",
+                instructor: selectedInstructor ? String(selectedInstructor.id) : "",
+                additional_comments: "",
+            });
+            setSelectedInstructor(initialInstructor || null);
+        } catch (error) {
+            console.error("Error creating evaluation:", error);
+            setError("Failed to create evaluation. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-		} catch (error) {
-			console.error("Error creating evaluation:", error);
-			setError("Failed to create evaluation. Please try again.");
-		} finally {
-			setLoading(false);
-		}
-	};
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            {error && <div className="text-red-500">{error}</div>}
 
-	return (
-		<form onSubmit={handleSubmit} className="space-y-4">
-			{error && <div className="text-red-500">{error}</div>}
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Instructor</label>
+                <select
+                    name="instructor_select"
+                    value={selectedInstructor ? String(selectedInstructor.id) : ""}
+                    onChange={(e) => {
+                        const instructor = instructors.find((i) => String(i.id) === e.target.value);
+                        setSelectedInstructor(instructor || null);
+                    }}
+                    className="mt-1 block w-full rounded-md border border-gray-300 p-2"
+                    required
+                    disabled={!!initialInstructor}
+                >
+                    <option value="">Select an instructor</option>
+                    {instructors.map((instructor) => (
+                        <option key={instructor.id} value={instructor.id}>
+                            {instructor.first_name} {instructor.last_name}
+                        </option>
+                    ))}
+                </select>
+            </div>
 
-			<div>
-				<label className="block text-sm font-medium text-gray-700">
-					Instructor
-				</label>
-				<select
-					name="instructor_select"
-					value={selectedInstructor ? String(selectedInstructor.id) : ""}
-					onChange={e => {
-						const instructor = instructors.find(i => String(i.id) === e.target.value);
-						setSelectedInstructor(instructor || null);
-					}}
-					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-					required
-					disabled={!!initialInstructor}
-				>
-					<option value="">Select an instructor</option>
-					{instructors.map((instructor) => (
-						<option key={instructor.id} value={instructor.id}>
-							{instructor.first_name} {instructor.last_name}
-						</option>
-					))}
-				</select>
-			</div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Schedule</label>
+                <select
+                    name="schedule"
+                    value={formData.schedule}
+                    onChange={handleChange}
+                    className="mt-1 block w-full rounded-md border border-gray-300 p-2"
+                    required
+                    disabled={!selectedInstructor}
+                >
+                    <option value="">
+                        {selectedInstructor ? "Select a schedule" : "Select an instructor first"}
+                    </option>
+                    {filteredSchedules.map((schedule) => (
+                        <option key={schedule.id} value={schedule.id}>
+                            {schedule.name} - {schedule.subject_name || schedule.subject}
+                        </option>
+                    ))}
+                </select>
+            </div>
 
-			<div>
-				<label className="block text-sm font-medium text-gray-700">
-					Schedule
-				</label>
-				<select
-					name="schedule"
-					value={formData.schedule}
-					onChange={handleChange}
-					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-					required
-					disabled={!selectedInstructor}
-				>
-					<option value="">{selectedInstructor ? "Select a schedule" : "Select an instructor first"}</option>
-					{filteredSchedules.map((schedule) => (
-						<option key={schedule.id} value={schedule.id}>
-							{schedule.name} - {schedule.subject_name || schedule.subject}
-						</option>
-					))}
-				</select>
-			</div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Observation Date</label>
+                <input
+                    type="date"
+                    name="observation_date"
+                    value={formData.observation_date}
+                    onChange={handleChange}
+                    className="mt-1 block w-full rounded-md border border-gray-300 p-2"
+                    required
+                />
+            </div>
 
-			<div>
-				<label className="block text-sm font-medium text-gray-700">
-					Observation Date
-				</label>
-				<input
-					type="date"
-					name="observation_date"
-					value={formData.observation_date}
-					onChange={handleChange}
-					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-					required
-				/>
-			</div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Evaluation Type</label>
+                <select
+                    name="evaluation_type"
+                    value={formData.evaluation_type}
+                    onChange={handleChange}
+                    className="mt-1 block w-full rounded-md border border-gray-300 p-2"
+                    required
+                >
+                    <option value="copus_1">COPUS 1</option>
+                    <option value="copus_2">COPUS 2</option>
+                    <option value="copus_3">COPUS 3</option>
+                </select>
+            </div>
 
-			<div>
-				<label className="block text-sm font-medium text-gray-700">
-					Evaluation Type
-				</label>
-				<select
-					name="evaluation_type"
-					value={formData.evaluation_type}
-					onChange={handleChange}
-					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-					required
-				>
-					<option value="copus_1">COPUS 1</option>
-					<option value="copus_2">COPUS 2</option>
-					<option value="copus_3">COPUS 3</option>
-				</select>
-			</div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Additional Comments</label>
+                <textarea
+                    name="additional_comments"
+                    value={formData.additional_comments}
+                    onChange={handleChange}
+                    className="mt-1 block w-full rounded-md border border-gray-300 p-2"
+                    rows={3}
+                    placeholder="Optional comments about the evaluation..."
+                />
+            </div>
 
-			<div>
-				<label className="block text-sm font-medium text-gray-700">
-					Additional Comments
-				</label>
-				<textarea
-					name="additional_comments"
-					value={formData.additional_comments}
-					onChange={handleChange}
-					className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-					rows={3}
-					placeholder="Optional comments about the evaluation..."
-				/>
-			</div>
-
-			<div className="modal-action">
-				<button type="submit" className="btn bg-[#1c402a] text-white" disabled={loading}>
-					{loading ? "Creating..." : "Create Evaluation"}
-				</button>
-				<button
-					type="button"
-					className="btn btn-error"
-					onClick={() => {
-						(
-							document.getElementById(
-								"create_new_copus",
-							) as HTMLDialogElement
-						)?.close();
-					}}
-				>
-					Cancel
-				</button>
-			</div>
-		</form>
-	);
+            <div className="modal-action">
+                <button type="submit" className="btn bg-[#1c402a] text-white" disabled={loading}>
+                    {loading ? "Creating..." : "Create Evaluation"}
+                </button>
+                <button
+                    type="button"
+                    className="btn btn-error"
+                    onClick={() => {
+                        (document.getElementById("create_new_copus") as HTMLDialogElement)?.close();
+                    }}
+                >
+                    Cancel
+                </button>
+            </div>
+        </form>
+    );
 };
 
 export default CreateEvaluationForm;

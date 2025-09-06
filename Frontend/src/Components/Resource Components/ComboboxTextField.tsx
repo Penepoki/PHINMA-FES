@@ -43,7 +43,7 @@ function ComboboxTextField<T extends Item = Item>({
         const res = await api.get(fetchUrl, {
           params: searchTerm ? { search: searchTerm } : {},
         });
-        let data = Array.isArray(res.data) ? res.data : res.data.results ?? [];
+        let data = Array.isArray(res.data) ? res.data : (res.data.results ?? []);
         if (mapResponse) data = mapResponse(data);
         setItems(data);
       } catch (err) {
@@ -112,10 +112,7 @@ function ComboboxTextField<T extends Item = Item>({
             {isLoading ? (
               <div className="p-2">
                 {Array.from({ length: skeletonCount }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="mb-2 last:mb-0 rounded-md"
-                  >
+                    <div key={i} className="mb-2 rounded-md last:mb-0">
                     <div className="skeleton h-8 w-full" />
                   </div>
                 ))}

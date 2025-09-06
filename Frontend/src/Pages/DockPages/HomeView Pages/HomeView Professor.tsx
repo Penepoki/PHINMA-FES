@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import EvalCards from "../../../Components/Dashboard Components/Professor Components/Evaluation Cards.tsx";
@@ -57,7 +56,7 @@ function Home() {
         fullname: e.evaluation_type || "COPUS",
         image: null,
       })),
-    [evaluations]
+      [evaluations],
   );
 
   const handleEvalClick = (evalName: string) => {
@@ -65,7 +64,9 @@ function Home() {
     if (!evaluation) return;
     setSelectedEvaluation(evaluation);
     // you can compute professor/schedule display fields here if your serializer includes them
-    setSelectedProfessor((evaluation as any).instructor || (evaluation as any).professor_details || null);
+      setSelectedProfessor(
+          (evaluation as any).instructor || (evaluation as any).professor_details || null,
+      );
     setSelectedSchedule((evaluation as any).schedule || null);
     setAppearModal(true);
   };
@@ -78,7 +79,7 @@ function Home() {
       {error && <div className="alert alert-error mt-2">{error}</div>}
 
       {/* Summary gauges */}
-      <div className="w-full mt-50 px-4">
+        <div className="mt-50 w-full px-4">
         <CopusActiveSummary
           evaluations={evaluations}
           evaluationTallies={copusTallies}
@@ -96,8 +97,8 @@ function Home() {
         <dialog open className="modal">
           <div className="modal-box max-h-full w-full max-w-5xl text-black">
             <h3 className="mt-2 mb-6 text-xl font-bold">
-              {(selectedProfessor?.first_name || "")} {(selectedProfessor?.last_name || "")} — COPUS Evaluation —{" "}
-              {selectedEvaluation?.evaluation_type}
+                {selectedProfessor?.first_name || ""} {selectedProfessor?.last_name || ""} — COPUS
+                Evaluation — {selectedEvaluation?.evaluation_type}
             </h3>
 
             {/* Basic Information */}
@@ -123,19 +124,25 @@ function Home() {
                   <div className="input input-bordered w-full bg-transparent">
                     <span className="text-gray-400">Section:</span>
                     <span className="text-black">
-                      {(selectedSchedule && (selectedSchedule.section_name || selectedSchedule.section?.name)) || ""}
+                      {(selectedSchedule &&
+                              (selectedSchedule.section_name || selectedSchedule.section?.name)) ||
+                          ""}
                     </span>
                   </div>
                   <div className="input input-bordered w-full bg-transparent">
                     <span className="text-gray-400">Subject:</span>
                     <span className="text-black">
-                      {(selectedSchedule && (selectedSchedule.subject_name || selectedSchedule.subject?.name)) || ""}
+                      {(selectedSchedule &&
+                              (selectedSchedule.subject_name || selectedSchedule.subject?.name)) ||
+                          ""}
                     </span>
                   </div>
                   <div className="input input-bordered w-full bg-transparent">
                     <span className="text-gray-400">Room:</span>
                     <span className="text-black">
-                      {(selectedSchedule && (selectedSchedule.room_name || selectedSchedule.room?.name)) || ""}
+                      {(selectedSchedule &&
+                              (selectedSchedule.room_name || selectedSchedule.room?.name)) ||
+                          ""}
                     </span>
                   </div>
                   <div className="input input-bordered w-full bg-transparent">

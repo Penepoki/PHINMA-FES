@@ -5,8 +5,8 @@ type Schools = {
   name: string;
   fullname: string;
   image?: string | null;
-  bgColor?: string;     // e.g. "bg-[#1c402a]/30" or "backdrop-hue-700"
-  textColor?: string;   // e.g. "text-white"
+    bgColor?: string; // e.g. "bg-[#1c402a]/30" or "backdrop-hue-700"
+    textColor?: string; // e.g. "text-white"
   isAddCard?: boolean;
   onClick?: () => void;
 };
@@ -37,7 +37,7 @@ const SkeletonSchoolCard: React.FC = () => {
       </div>
       {/* bottom (texts) */}
       <div className="flex h-30 w-full flex-col rounded-br-lg rounded-bl-xl px-5 py-2 shadow-2xl backdrop-hue-rotate-300">
-        <div className="mt-4 flex flex-col text-start gap-2">
+          <div className="mt-4 flex flex-col gap-2 text-start">
           <SkeletonLine width="w-2/3" height="h-5" />
           <SkeletonLine width="w-5/6" height="h-4" className="opacity-70" />
         </div>
@@ -87,7 +87,9 @@ const SchoolCard: React.FC<Schools> = ({
       onClick={onClick}
     >
       <div className="flex h-40 w-full cursor-pointer flex-col items-center justify-center rounded-tl-xl rounded-tr-xl bg-black/20 shadow-2xl">
-        <div className={`${bgColor} text-neutral-content flex size-30 items-center justify-center rounded-full`}>
+          <div
+              className={`${bgColor} text-neutral-content flex size-30 items-center justify-center rounded-full`}
+          >
           {image ? (
             <img src={image} alt={name} className="h-full w-full rounded-full object-cover" />
           ) : (
@@ -131,10 +133,7 @@ const SchoolCards: React.FC<{
     <div className="mt-6 flex h-full w-screen flex-col flex-wrap justify-center gap-6 md:flex-row">
       {school.map((s, idx) => (
         <div key={idx} className="h-1/2 w-full md:w-1/5">
-          <SchoolCard
-            {...s}
-            onClick={() => !s.isAddCard && onSchoolClick?.(s.name)}
-          />
+            <SchoolCard {...s} onClick={() => !s.isAddCard && onSchoolClick?.(s.name)}/>
         </div>
       ))}
     </div>

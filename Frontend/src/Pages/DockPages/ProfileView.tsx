@@ -1,21 +1,29 @@
-import React, { useState, useRef } from "react";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import React, {useEffect, useRef, useState} from "react";
 import BreadAndLogout from "../../Components/Bread and Logout";
-// import ProfilePic from "../../assets/Dashboard Page Assets/Renzo_Picture no background.png"; // fallback if needed
 
 interface ProfileProps {
   setActiveView: (view: string) => void;
 }
 
-const API_BASE = "https://api.phinma-fes.com"; // adjust if your API prefix differs
-const DEAN_ID = 42; // TODO: replace with the actual dean/user id from your app state
+type MeResponse = {
+    id: number;
+    email: string;
+    full_name?: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image?: string | null;
+    // add any other fields your serializer returns
+};
 
-function Profile({ setActiveView }: ProfileProps) {
+const API_BASE = "https://api.phinma-fes.com"; // adjust if needed
+
+export default function Profile({setActiveView}: ProfileProps) {
+    const [me, setMe] = useState<MeResponse | null>(null);
   const [profileData, setProfileData] = useState({
-    name: "John Doe",
-    email: "johndoe@example.com",
-    joined: "January 2021",
-    avatar: "", // populated after upload
+      name: "User",
+      email: "",
+      joined: "", // optional
+      avatar: "",
   });
 
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
@@ -28,6 +36,38 @@ function Profile({ setActiveView }: ProfileProps) {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+    // Helpers
+    const getToken = () => localStorage.getItem("token");
+    const authHeaders = () => ({Authorization: `Token ${getToken()}`});
+
+    // 1) Load current user on mount so avatar persists across routes
+    useEffect(() => {
+        (async () => {
+            const token = getToken();
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_BASE}/user-dashboard/`, {headers: authHeaders()});
+                if (!res.ok) throw new Error(`GET /user-dashboard/ failed: ${res.status}`);
+                const user: MeResponse = await res.json();
+                setMe(user);
+                const name =
+                    user.full_name ||
+                    [user.first_name || "", user.last_name || ""].join(" ").trim() ||
+                    "User";
+                setProfileData((p) => ({
+                    ...p,
+                    name,
+                    email: user.email || "",
+                    avatar: user.profile_image || "",
+                }));
+            } catch (e: any) {
+                console.error(e);
+                setErrorMsg(e?.message || "Failed to load profile.");
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setProfileData((prev) => ({ ...prev, [name]: value }));
@@ -38,20 +78,44 @@ function Profile({ setActiveView }: ProfileProps) {
     setPasswords((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwords.new && passwords.new !== passwords.confirm) {
       alert("New passwords do not match!");
       return;
     }
-    // TODO: call your backend to save profile/password changes
-    alert("Profile and password changes saved!");
+
+        try {
+            // OPTIONAL: if you allow editing name or password here, PATCH those endpoints
+            // Example (name fields):
+            const body: Record<string, any> = {};
+            // If you keep a name field editable, split to first/last or send full_name if your serializer supports it
+            // body.first_name = ...
+            // body.last_name = ...
+
+            if (Object.keys(body).length) {
+                const res = await fetch(`${API_BASE}/user-dashboard/`, {
+                    method: "PATCH",
+                    headers: {"Content-Type": "application/json", ...authHeaders()},
+                    body: JSON.stringify(body),
+                });
+                if (!res.ok) throw new Error(`PATCH /user-dashboard/ failed: ${res.status}`);
+                const updated: MeResponse = await res.json();
+                setMe(updated);
+            }
+
+            // OPTIONAL: change password endpoint (not shown here)
+            alert("Profile changes saved!");
+        } catch (err: any) {
+            console.error(err);
+            alert(err?.message || "Failed to save changes");
+        }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMsg(null);
     const file = e.target.files?.[0];
-    if (!file) return;
+      if (!file || !me) return;
 
     // basic client-side validation
     if (!/^image\/(png|jpe?g|webp|avif)$/.test(file.type)) {
@@ -69,22 +133,16 @@ function Profile({ setActiveView }: ProfileProps) {
       setUploading(true);
       setProgress(5);
 
-      // 1) get presigned URL from backend
-      const token = localStorage.getItem("token"); // DRF Token auth (Authorization: Token <token>)
-      if (!token) throw new Error("Not authenticated. Please log in again.");
+        // Decide a stable logical path; backend appends a uuid
+        // Example: users/<id>/profile
+        const logicalPath = `users/${me.id}/profile`;
 
+        // 1) get presigned URL
       const presignRes = await fetch(`${API_BASE}/api/uploads/presign`, {
         method: "POST",
-        headers: {
-          "Authorization": `Token ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          path: `deans/${DEAN_ID}/photo.png`,
-          contentType: file.type,
-        }),
+          headers: {"Content-Type": "application/json", ...authHeaders()},
+          body: JSON.stringify({path: logicalPath, contentType: file.type}),
       });
-
       if (!presignRes.ok) {
         const txt = await presignRes.text();
         throw new Error(`Presign failed (${presignRes.status}): ${txt}`);
@@ -92,8 +150,7 @@ function Profile({ setActiveView }: ProfileProps) {
       const { uploadUrl, fileUrl } = await presignRes.json();
       setProgress(25);
 
-      // 2) PUT directly to MinIO using the presigned URL
-      // Use XHR to track progress
+        // 2) PUT directly to storage (track progress)
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", uploadUrl, true);
@@ -101,7 +158,7 @@ function Profile({ setActiveView }: ProfileProps) {
 
         xhr.upload.onprogress = (evt) => {
           if (evt.lengthComputable) {
-            const pct = 25 + Math.round((evt.loaded / evt.total) * 70); // 25->95%
+              const pct = 25 + Math.round((evt.loaded / evt.total) * 70);
             setProgress(Math.min(95, pct));
           }
         };
@@ -117,9 +174,22 @@ function Profile({ setActiveView }: ProfileProps) {
         xhr.send(file);
       });
 
-      // 3) Save/Display final CDN URL
+        // 3) Persist to user record so it survives navigation
+        const patchRes = await fetch(`${API_BASE}/user-dashboard/`, {
+            method: "PATCH",
+            headers: {"Content-Type": "application/json", ...authHeaders()},
+            body: JSON.stringify({profile_image: fileUrl}),
+        });
+        if (!patchRes.ok) {
+            const txt = await patchRes.text();
+            throw new Error(`Saving avatar failed (${patchRes.status}): ${txt}`);
+        }
+        const updated: MeResponse = await patchRes.json();
+        setMe(updated);
+
+        // 4) Update UI immediately
       setProfileData((prev) => ({ ...prev, avatar: fileUrl }));
-      setCacheBust(Date.now()); // bust CDN cache on UI
+        setCacheBust(Date.now());
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
       console.error(err);
@@ -134,17 +204,15 @@ function Profile({ setActiveView }: ProfileProps) {
     <div className="custom-container">
       <BreadAndLogout
         setActiveView={setActiveView}
-        breadcrumbs={[
-          { label: "Home", view: "home" },
-          { label: "Profile" },
-        ]}
+        breadcrumbs={[{label: "Home", view: "home"}, {label: "Profile"}]}
       />
 
       <div className="profile-page z-10 flex h-full w-full flex-col items-center justify-center gap-6 p-4 md:flex-row md:p-8">
-        {/* Profile Card Section */}
+          {/* Profile Card */}
         <div className="flex h-1/2 w-full flex-col items-center justify-center rounded-xl p-6 text-white shadow-2xl backdrop-blur-lg md:h-full md:w-1/2">
           <div className="avatar">
-            <div className="ring-primary ring-offset-base-100 w-40 rounded-full ring ring-offset-2 md:w-72 overflow-hidden bg-white/5">
+              <div
+                  className="ring-primary ring-offset-base-100 w-40 overflow-hidden rounded-full bg-white/5 ring ring-offset-2 md:w-72">
               {profileData.avatar ? (
                 <img
                   src={`${profileData.avatar}?v=${cacheBust}`}
@@ -152,9 +220,7 @@ function Profile({ setActiveView }: ProfileProps) {
                   className="object-cover"
                 />
               ) : (
-                // fallback image if you have one
-                // <img src={ProfilePic} alt="User Avatar" />
-                <div className="w-full h-full flex items-center justify-center text-sm text-gray-300">
+                  <div className="flex h-full w-full items-center justify-center text-sm text-gray-300">
                   No photo
                 </div>
               )}
@@ -179,18 +245,15 @@ function Profile({ setActiveView }: ProfileProps) {
               <div className="mt-1 text-center text-sm text-gray-300">{progress}%</div>
             </div>
           )}
-          {errorMsg && (
-            <div className="mt-3 text-sm text-red-300">
-              {errorMsg}
-            </div>
-          )}
+            {errorMsg && <div className="mt-3 text-sm text-red-300">{errorMsg}</div>}
         </div>
 
-        {/* Profile Details Section */}
+          {/* Profile Details */}
         <div className="h-full w-full overflow-x-clip overflow-y-auto rounded-xl p-12 text-white shadow-2xl backdrop-blur-lg md:w-1/2">
           <h3 className="mb-4 text-2xl font-bold">Profile Information</h3>
           <span className="mb-6 block font-thin text-[#888888]">
-            This is where you can manage your personal details, update your information, and adjust your preferences so everything in the system stays accurate and tailored to you.
+            Manage your personal details and preferences so everything stays accurate and tailored
+            to you.
           </span>
 
           <form onSubmit={handleSave} className="space-y-4 text-lg">
@@ -232,15 +295,14 @@ function Profile({ setActiveView }: ProfileProps) {
                 <button
                   type="button"
                   onClick={() =>
-                    setShowPassword((prev) => ({ ...prev, [field]: !prev[field as keyof typeof prev] }))
+                      setShowPassword((prev) => ({
+                          ...prev,
+                          [field]: !prev[field as keyof typeof prev],
+                      }))
                   }
-                  className="absolute right-3 top-9 -translate-y-1/2 transform text-gray-500"
+                  className="absolute top-9 right-3 -translate-y-1/2 transform text-gray-500"
                 >
-                  {showPassword[field as keyof typeof showPassword] ? (
-                    <EyeSlashIcon className="h-5 w-5" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5" />
-                  )}
+                    {showPassword[field as keyof typeof showPassword] ? "🙈" : "👁️"}
                 </button>
               </div>
             ))}
@@ -254,5 +316,3 @@ function Profile({ setActiveView }: ProfileProps) {
     </div>
   );
 }
-
-export default Profile;

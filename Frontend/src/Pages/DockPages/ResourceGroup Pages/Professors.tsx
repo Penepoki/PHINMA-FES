@@ -255,7 +255,11 @@ function Professors({ setActiveView }: ProfessorsProps) {
       <div className="custom-container">
         <BreadAndLogout
           setActiveView={setActiveView}
-          breadcrumbs={[{ label: "Home", view: "home" }, { label: "Resource Group" }, { label: "Professors" }]}
+          breadcrumbs={[
+            {label: "Home", view: "home"},
+            {label: "Resource Group"},
+            {label: "Professors"},
+          ]}
         />
         <div className="mt-6 text-white">This page is restricted to authorized users.</div>
       </div>
@@ -266,13 +270,17 @@ function Professors({ setActiveView }: ProfessorsProps) {
     <div className="custom-container gap-y-6">
       <BreadAndLogout
         setActiveView={setActiveView}
-        breadcrumbs={[{ label: "Home", view: "home" }, { label: "Resource Group" }, { label: "Professors" }]}
+        breadcrumbs={[
+          {label: "Home", view: "home"},
+          {label: "Resource Group"},
+          {label: "Professors"},
+        ]}
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Professors</h2>
-      <span className="font-thin text-[#888888] block mx-6">
-        Manage professor accounts within your institution. Create, edit, or remove users and assign roles to ensure access
-        aligns with your processes.
+      <span className="mx-6 block font-thin text-[#888888]">
+        Manage professor accounts within your institution. Create, edit, or remove users and assign
+        roles to ensure access aligns with your processes.
       </span>
 
       {/* Toolbar: New + Export (mirrors Rooms layout) */}
@@ -386,7 +394,9 @@ function Professors({ setActiveView }: ProfessorsProps) {
                 <button
                   type="button"
                   className="btn btn-cancel"
-                  onClick={() => (document.getElementById("create_prof_modal") as HTMLDialogElement)?.close()}
+                  onClick={() =>
+                      (document.getElementById("create_prof_modal") as HTMLDialogElement)?.close()
+                  }
                 >
                   Cancel
                 </button>
@@ -473,7 +483,9 @@ function Professors({ setActiveView }: ProfessorsProps) {
         {/* Export (placeholder to mirror Rooms UX) */}
         <div className="flex flex-row justify-center">
           <button
-            onClick={() => (document.getElementById("export_prof_modal") as HTMLDialogElement)?.showModal()}
+              onClick={() =>
+                  (document.getElementById("export_prof_modal") as HTMLDialogElement)?.showModal()
+              }
             className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
           >
             Export Professors
@@ -497,7 +509,9 @@ function Professors({ setActiveView }: ProfessorsProps) {
                   <button
                     type="button"
                     className="btn btn-cancel"
-                    onClick={() => (document.getElementById("export_prof_modal") as HTMLDialogElement)?.close()}
+                    onClick={() =>
+                        (document.getElementById("export_prof_modal") as HTMLDialogElement)?.close()
+                    }
                   >
                     Cancel
                   </button>
@@ -535,8 +549,8 @@ function Professors({ setActiveView }: ProfessorsProps) {
         <div className="modal-box w-11/12 max-w-md">
           <h3 className="mb-4 text-center text-2xl font-bold">Delete Professor</h3>
           <p className="mb-6 text-center">
-            Are you sure you want to delete "{currentEditing?.full_name}"?
-            This action cannot be undone.
+            Are you sure you want to delete "{currentEditing?.full_name}"? This action cannot be
+            undone.
           </p>
           <div className="modal-action">
             <button

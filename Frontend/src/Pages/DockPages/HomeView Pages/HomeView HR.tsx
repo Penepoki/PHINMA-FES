@@ -48,9 +48,7 @@ function Home() {
   const handleSchoolClick = async (schoolNameOrId: any) => {
     try {
       const picked =
-        schools.find(
-          (s) => s.name === schoolNameOrId || s.id === schoolNameOrId
-        ) || null;
+          schools.find((s) => s.name === schoolNameOrId || s.id === schoolNameOrId) || null;
       if (!picked) return;
 
       const token = localStorage.getItem("token");
@@ -59,14 +57,14 @@ function Home() {
       await api.post(
         "/clear-faculty-context/",
         {},
-        { headers: { Authorization: `Token ${token}` } }
+          {headers: {Authorization: `Token ${token}`}},
       );
 
       // 2) Set the new context
       await api.post(
         "/set-faculty-context/",
         { faculty_id: picked.id },
-        { headers: { Authorization: `Token ${token}` } }
+          {headers: {Authorization: `Token ${token}`}},
       );
 
       // 3) Mark this session as “viewing as Dean”
@@ -99,9 +97,7 @@ function Home() {
               ← Back to Schools
             </button>
             {/* You can show more details or CollegeCards here if needed */}
-            <div className="text-white">
-              Selected School ID: {selectedSchool.id}
-            </div>
+              <div className="text-white">Selected School ID: {selectedSchool.id}</div>
           </>
         ) : (
           <>
@@ -112,8 +108,8 @@ function Home() {
             )}
             <SchoolCards
               school={schools}
-              isLoading={isLoading}       // ← toggles daisyUI skeletons
-              skeletonCount={5}           // ← adjust how many placeholders you want
+              isLoading={isLoading} // ← toggles daisyUI skeletons
+              skeletonCount={5} // ← adjust how many placeholders you want
               onSchoolClick={(schoolNameOrId: any) => {
                 handleSchoolClick(schoolNameOrId);
               }}
