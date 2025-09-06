@@ -11,7 +11,7 @@ type MeResponse = {
     full_name?: string;
     first_name?: string;
     last_name?: string;
-    profile_image?: string | null;
+    profile_picture_url?: string | null;
     // add any other fields your serializer returns
 };
 
@@ -22,12 +22,17 @@ export default function Profile({setActiveView}: ProfileProps) {
   const [profileData, setProfileData] = useState({
       name: "User",
       email: "",
+      first_name: "",
+      last_name: "",
       joined: "", // optional
       avatar: "",
   });
 
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
   const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
+    const [otp, setOtp] = useState("");
+    const [otpRequested, setOtpRequested] = useState(false);
+    const [otpVerified, setOtpVerified] = useState(false);
 
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -46,8 +51,8 @@ export default function Profile({setActiveView}: ProfileProps) {
             const token = getToken();
             if (!token) return;
             try {
-                const res = await fetch(`${API_BASE}/user-dashboard/`, {headers: authHeaders()});
-                if (!res.ok) throw new Error(`GET /user-dashboard/ failed: ${res.status}`);
+                const res = await fetch(`${API_BASE}/user-profile/`, {headers: authHeaders()});
+                if (!res.ok) throw new Error(`GET /user-profile/ failed: ${res.status}`);
                 const user: MeResponse = await res.json();
                 setMe(user);
                 const name =
@@ -58,7 +63,9 @@ export default function Profile({setActiveView}: ProfileProps) {
                     ...p,
                     name,
                     email: user.email || "",
-                    avatar: user.profile_image || "",
+                    first_name: user.first_name || "",
+                    last_name: user.last_name || "",
+                    avatar: user.profile_picture_url || "",
                 }));
             } catch (e: any) {
                 console.error(e);
@@ -89,22 +96,43 @@ export default function Profile({setActiveView}: ProfileProps) {
             // OPTIONAL: if you allow editing name or password here, PATCH those endpoints
             // Example (name fields):
             const body: Record<string, any> = {};
-            // If you keep a name field editable, split to first/last or send full_name if your serializer supports it
-            // body.first_name = ...
-            // body.last_name = ...
+            if (profileData.first_name !== undefined) body.first_name = profileData.first_name;
+            if (profileData.last_name !== undefined) body.last_name = profileData.last_name;
+            if (profileData.email !== undefined) body.email = profileData.email;
 
             if (Object.keys(body).length) {
-                const res = await fetch(`${API_BASE}/user-dashboard/`, {
+                const res = await fetch(`${API_BASE}/user-profile/`, {
                     method: "PATCH",
                     headers: {"Content-Type": "application/json", ...authHeaders()},
                     body: JSON.stringify(body),
                 });
-                if (!res.ok) throw new Error(`PATCH /user-dashboard/ failed: ${res.status}`);
+                if (!res.ok) throw new Error(`PATCH /user-profile/ failed: ${res.status}`);
                 const updated: MeResponse = await res.json();
                 setMe(updated);
+                setProfileData((p) => ({
+                    ...p,
+                    email: updated.email || p.email,
+                    first_name: updated.first_name || p.first_name,
+                    last_name: updated.last_name || p.last_name,
+                    name: (updated.full_name) || `${updated.first_name || ''} ${updated.last_name || ''}`.trim()
+                }));
             }
 
-            // OPTIONAL: change password endpoint (not shown here)
+            // Change password if provided and OTP verified
+            if (otpVerified && passwords.new) {
+                const res2 = await fetch(`${API_BASE}/user-profile/change-password/`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json", ...authHeaders()},
+                    body: JSON.stringify({
+                        old_password: passwords.current,
+                        new_password: passwords.new,
+                        otp
+                    })
+                });
+                const data2 = await res2.json();
+                if (!res2.ok) throw new Error(data2?.detail || data2?.message || `Change password failed: ${res2.status}`);
+            }
+
             alert("Profile changes saved!");
         } catch (err: any) {
             console.error(err);
@@ -138,57 +166,22 @@ export default function Profile({setActiveView}: ProfileProps) {
         const logicalPath = `users/${me.id}/profile`;
 
         // 1) get presigned URL
-      const presignRes = await fetch(`${API_BASE}/api/uploads/presign`, {
+        // Local upload via multipart form-data
+        const form = new FormData();
+        form.append("avatar", file);
+        const uploadRes = await fetch(`${API_BASE}/user-profile/upload-avatar/`, {
         method: "POST",
-          headers: {"Content-Type": "application/json", ...authHeaders()},
-          body: JSON.stringify({path: logicalPath, contentType: file.type}),
+            headers: {...authHeaders()},
+            body: form,
       });
-      if (!presignRes.ok) {
-        const txt = await presignRes.text();
-        throw new Error(`Presign failed (${presignRes.status}): ${txt}`);
-      }
-      const { uploadUrl, fileUrl } = await presignRes.json();
-      setProgress(25);
-
-        // 2) PUT directly to storage (track progress)
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", uploadUrl, true);
-        xhr.setRequestHeader("Content-Type", file.type);
-
-        xhr.upload.onprogress = (evt) => {
-          if (evt.lengthComputable) {
-              const pct = 25 + Math.round((evt.loaded / evt.total) * 70);
-            setProgress(Math.min(95, pct));
-          }
-        };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            setProgress(100);
-            resolve();
-          } else {
-            reject(new Error(`Upload failed (${xhr.status})`));
-          }
-        };
-        xhr.onerror = () => reject(new Error("Network error during upload"));
-        xhr.send(file);
-      });
-
-        // 3) Persist to user record so it survives navigation
-        const patchRes = await fetch(`${API_BASE}/user-dashboard/`, {
-            method: "PATCH",
-            headers: {"Content-Type": "application/json", ...authHeaders()},
-            body: JSON.stringify({profile_image: fileUrl}),
-        });
-        if (!patchRes.ok) {
-            const txt = await patchRes.text();
-            throw new Error(`Saving avatar failed (${patchRes.status}): ${txt}`);
+        if (!uploadRes.ok) {
+            const txt = await uploadRes.text();
+            throw new Error(`Upload failed (${uploadRes.status}): ${txt}`);
         }
-        const updated: MeResponse = await patchRes.json();
+        const updated: MeResponse = await uploadRes.json();
         setMe(updated);
-
         // 4) Update UI immediately
-      setProfileData((prev) => ({ ...prev, avatar: fileUrl }));
+        setProfileData((prev) => ({...prev, avatar: updated.profile_picture_url || prev.avatar}));
         setCacheBust(Date.now());
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
@@ -267,6 +260,28 @@ export default function Profile({setActiveView}: ProfileProps) {
                 className="input input-bordered w-full text-black"
               />
             </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                      <label className="mb-1 block text-sm">First name</label>
+                      <input
+                          name="first_name"
+                          value={profileData.first_name}
+                          onChange={handleChange}
+                          type="text"
+                          className="input input-bordered w-full text-black"
+                      />
+                  </div>
+                  <div>
+                      <label className="mb-1 block text-sm">Last name</label>
+                      <input
+                          name="last_name"
+                          value={profileData.last_name}
+                          onChange={handleChange}
+                          type="text"
+                          className="input input-bordered w-full text-black"
+                      />
+                  </div>
+              </div>
             <div>
               <label className="mb-1 block text-sm">Joined</label>
               <input
@@ -280,7 +295,63 @@ export default function Profile({setActiveView}: ProfileProps) {
             <hr className="my-4 border-gray-500" />
 
             <h4 className="text-xl font-semibold">Change Password</h4>
-            {["current", "new", "confirm"].map((field) => (
+
+              {!otpRequested && (
+                  <button
+                      type="button"
+                      className="btn btn-outline btn-primary mb-2"
+                      onClick={async () => {
+                          try {
+                              const res = await fetch(`${API_BASE}/user-profile/request-otp/`, {
+                                  method: "POST",
+                                  headers: {"Content-Type": "application/json", ...authHeaders()},
+                              });
+                              if (!res.ok) throw new Error(`Request OTP failed: ${res.status}`);
+                              setOtpRequested(true);
+                              alert("OTP sent to your email.");
+                          } catch (err: any) {
+                              alert(err?.message || "Failed to request OTP");
+                          }
+                      }}
+                  >
+                      Request OTP
+                  </button>
+              )}
+
+              {otpRequested && !otpVerified && (
+                  <div className="space-y-2">
+                      <label className="mb-1 block text-sm">Enter OTP from your email</label>
+                      <input
+                          type="text"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          className="input input-bordered w-full text-black"
+                      />
+                      <button
+                          type="button"
+                          className="btn btn-success"
+                          onClick={async () => {
+                              try {
+                                  const res = await fetch(`${API_BASE}/user-profile/verify-otp/`, {
+                                      method: "POST",
+                                      headers: {"Content-Type": "application/json", ...authHeaders()},
+                                      body: JSON.stringify({otp})
+                                  });
+                                  const data = await res.json();
+                                  if (!res.ok) throw new Error(data?.detail || data?.message || `Verify OTP failed: ${res.status}`);
+                                  setOtpVerified(true);
+                                  alert("OTP verified. You can now change your password.");
+                              } catch (err: any) {
+                                  alert(err?.message || "Failed to verify OTP");
+                              }
+                          }}
+                      >
+                          Verify OTP
+                      </button>
+                  </div>
+              )}
+
+              {otpVerified && ["current", "new", "confirm"].map((field) => (
               <div key={field} className="relative">
                 <label className="mb-1 block text-sm capitalize">
                   {field === "confirm" ? "Confirm New Password" : `${field} Password`}

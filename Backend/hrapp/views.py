@@ -161,12 +161,121 @@ def user_view_dashboard(request):
     serializer = UserDashboardSerializer(user, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
-@api_view(['GET'])
+
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def user_view_profile(request):
     user = request.user
+    if request.method == 'GET':
+        serializer = UserSerializer(user, context={'request': request})
+        return Response(serializer.data)
+    # PATCH update first_name, last_name, email with domain restriction
+    allowed_fields = {'first_name', 'last_name', 'email'}
+    payload = {k: v for k, v in request.data.items() if k in allowed_fields}
+    if not payload:
+        return Response({'detail': 'No allowed fields to update.'}, status=status.HTTP_400_BAD_REQUEST)
+    # email domain restriction
+    if 'email' in payload:
+        email = payload['email']
+        if not email or not re.search(r"@sjc@phinmaed\.com$", email) and not re.search(r"\.sjc@phinmaed\.com$", email):
+            return Response({'detail': 'Email must be within the .sjc@phinmaed.com domain.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        # ensure uniqueness
+        if User.objects.filter(email=email).exclude(id=user.id).exists():
+            return Response({'detail': 'Email already in use.'}, status=status.HTTP_400_BAD_REQUEST)
+        user.email = email
+    if 'first_name' in payload:
+        user.first_name = payload['first_name']
+    if 'last_name' in payload:
+        user.last_name = payload['last_name']
+    user.save()
     serializer = UserSerializer(user, context={'request': request})
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password_with_otp(request):
+    user = request.user
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('new_password')
+    otp = request.data.get('otp')
+
+    if not old_password or not new_password:
+        return Response({'detail': 'old_password and new_password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # verify old password
+    if not user.check_password(old_password):
+        return Response({'detail': 'Old password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verify OTP
+    if not otp:
+        return Response({'detail': 'OTP is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not verify_otp(user, otp):
+        return Response({'detail': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+    return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_password_change_otp(request):
+    user = request.user
+    send_otp_via_email(user)
+    return Response({'message': 'OTP sent to your email.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verify_password_change_otp(request):
+    user = request.user
+    otp = request.data.get('otp')
+    if not otp:
+        return Response({'detail': 'OTP is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not verify_otp(user, otp):
+        return Response({'detail': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'message': 'OTP verified.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_profile_picture(request):
+    user = request.user
+    parser_classes = (MultiPartParser,)
+    file_obj = request.FILES.get('avatar') or request.FILES.get('file') or request.FILES.get('profile_picture')
+    if not file_obj:
+        return Response({'detail': 'No file uploaded.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # basic validation
+    mime = mimetypes.guess_type(file_obj.name)[0] or ''
+    if not mime.startswith('image/'):
+        return Response({'detail': 'Only image files are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+    # limit size to ~5MB
+    if hasattr(file_obj, 'size') and file_obj.size > 5 * 1024 * 1024:
+        return Response({'detail': 'File too large. Max 5MB.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Save into ImageField storage (MEDIA_ROOT/profile_pictures)
+    from django.core.files.base import ContentFile
+    ext = os.path.splitext(file_obj.name)[1].lower()
+    filename = f"{uuid.uuid4().hex}{ext}"
+    user.profile_picture.save(filename, ContentFile(file_obj.read()), save=True)
+
+    # Also persist a copy to project root folder as requested
+    try:
+        base_dir = os.getenv('BASE_DIR') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        dest_dir = os.path.join(os.path.dirname(base_dir), 'profile_pictures_root')
+        os.makedirs(dest_dir, exist_ok=True)
+        with open(os.path.join(dest_dir, filename), 'wb') as f:
+            for chunk in file_obj.chunks() if hasattr(file_obj, 'chunks') else [file_obj.read()]:
+                f.write(chunk)
+    except Exception:
+        pass
+
+    serializer = UserSerializer(user, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 # Evaluation View

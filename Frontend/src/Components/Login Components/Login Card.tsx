@@ -45,27 +45,40 @@ function LoginCard() {
 
   const handleLogin = async () => {
     setIsLoading(true);
-    setError(null); // Clear previous error
+    setError(null);
 
     try {
       const response = await api.post(
         "/login/",
         {
-          username: identifier, // can be username or email
+          username: identifier,
           password,
         },
-          {skipAuth: true},
+          {skipAuth: true}
       );
 
-      // Success — extract info
-      const { token, roles, faculty_id } = response.data;
+      const data = response.data;
 
+      // Step 1: OTP required
+      if (data.otp_required) {
+        setIsOtpSent(true);
+        // If backend exposes dev_otp in DEBUG, prefill for convenience (optional)
+        if (data.dev_otp) {
+          const digits = String(data.dev_otp).split("").slice(0, 6);
+          setOtp([digits[0] || "", digits[1] || "", digits[2] || "", digits[3] || "", digits[4] || "", digits[5] || ""]);
+        }
+        // focus first OTP box
+        setTimeout(() => otpRefs.current[0]?.focus(), 0);
+        return;
+      }
+
+      // Step 2 success path (in case backend returns token directly)
+      const {token, roles, faculty_id} = data;
       if (!token || !roles || roles.length === 0) {
         setError("Login failed: missing authentication data.");
         return;
       }
 
-      // Handle "Remember Me"
       if (rememberMe) {
         localStorage.setItem("rememberedIdentifier", identifier);
       } else {
@@ -75,7 +88,6 @@ function LoginCard() {
       const userRole = roles[0];
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", userRole);
-
       if (faculty_id) {
         localStorage.setItem("faculty_id", faculty_id);
       }
@@ -98,16 +110,14 @@ function LoginCard() {
       }
     } catch (error: any) {
       console.error("Login error:", error);
-
       if (error.response) {
         const { status, data } = error.response;
-
         if (status === 401) {
           setError(data?.detail || "Invalid username or password.");
         } else if (status === 403) {
           setError("Access denied. Please Contact administrator.");
         } else {
-          setError("Server error. Please try again later.");
+          setError(data?.detail || "Server error. Please try again later.");
         }
       } else if (error.request) {
         setError("No response from server. Check your internet connection.");
@@ -247,32 +257,63 @@ function LoginCard() {
 
   const verifyOtp = async () => {
     const enteredOtp = otp.join("");
-    console.log("Verifying OTP:", enteredOtp);
-    setIsLoading(true); // Start loading
+    setIsLoading(true);
 
     try {
-      const response = await api.post("/verify-otp/", {
-        email,
-        otp: enteredOtp,
-      });
-      if (response.data.message === "OTP verified") {
-        setIsOtpVerified(true);
-        setError("");
-      } else {
-        setError("Wrong OTP");
-        setIsOtpVerified(true);
+      // Step 2: submit login with OTP to receive token
+      const res = await api.post(
+          "/login/",
+          {
+            username: identifier,
+            password,
+            otp: enteredOtp,
+          },
+          {skipAuth: true}
+      );
+
+      const {token, roles, faculty_id} = res.data;
+      if (!token || !roles || roles.length === 0) {
+        setError("Login failed after OTP: missing data.");
+        return;
       }
-    } catch (err) {
-      const error = err as AxiosError;
-      if (error.response?.status === 400) {
-        setError("Missing required fields");
-      } else if (error.response?.status === 409) {
-        setError("Username does not exist");
+
+      if (rememberMe) {
+        localStorage.setItem("rememberedIdentifier", identifier);
       } else {
-        setError("Unexpected error during OTP verification");
+        localStorage.removeItem("rememberedIdentifier");
+      }
+
+      const userRole = roles[0];
+      localStorage.setItem("token", token);
+      localStorage.setItem("userRole", userRole);
+      if (faculty_id) localStorage.setItem("faculty_id", faculty_id);
+
+      // navigate according to role
+      switch (userRole) {
+        case "Dean":
+          navigate("/Dashboard/dean");
+          break;
+        case "HR":
+          navigate("/Dashboard/hr");
+          break;
+        case "Student":
+          navigate("/Dashboard/student");
+          break;
+        case "Professor":
+          navigate("/Dashboard/professor");
+          break;
+        default:
+          setError("Invalid user role.");
+      }
+    } catch (err: any) {
+      const error = err as AxiosError;
+      if (error.response?.status === 401) {
+        setError(error.response.data?.detail || "Invalid OTP or credentials.");
+      } else {
+        setError(error.response?.data?.detail || "Error verifying OTP. Try again.");
       }
     } finally {
-      setIsLoading(false); // Stop loading
+      setIsLoading(false);
     }
   };
 
@@ -356,16 +397,46 @@ function LoginCard() {
               </a>
             </div>
 
-            <div className="card-actions justify-center">
-              <button
-                onClick={handleLogin}
-                disabled={isLoading}
-                className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
-              >
-                {isLoading ? "Logging In..." : "Login"}
-              </button>
-              {error && <p className="text-red-500">{error}</p>}
-            </div>
+            {!isOtpSent ? (
+                <div className="card-actions justify-center">
+                  <button
+                      onClick={handleLogin}
+                      disabled={isLoading}
+                      className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
+                  >
+                    {isLoading ? "Logging In..." : "Login"}
+                  </button>
+                  {error && <p className="text-red-500">{error}</p>}
+                </div>
+            ) : (
+                <>
+                  <div className="my-4 flex justify-center gap-2">
+                    {otp.map((digit, index) => (
+                        <input
+                            key={index}
+                            ref={(el) => {
+                              otpRefs.current[index] = el;
+                            }}
+                            type="text"
+                            maxLength={1}
+                            className="input w-12 text-center text-xl"
+                            value={digit}
+                            onChange={(e) => handleOtpChange(e, index)}
+                            onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                        />
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button
+                        onClick={verifyOtp}
+                        disabled={isLoading}
+                        className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
+                    >
+                      {isLoading ? "Verifying OTP..." : "Verify OTP"}
+                    </button>
+                  </div>
+                </>
+            )}
 
             <div className="text-center">
               <span>Don't have an account? </span>
