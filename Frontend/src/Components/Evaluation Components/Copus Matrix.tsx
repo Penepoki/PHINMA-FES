@@ -961,12 +961,12 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
                       !canEditEvaluation)
                   }
                   className={`h-10 w-10 rounded-md text-sm font-semibold ${minute === m
-                      ? hasStudentAndTeacherSelected
-                        ? "bg-[#1c402a] text-white"
-                        : "bg-gray-400 text-white"
-                      : answered
-                        ? "bg-[#1c402a] text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    ? hasStudentAndTeacherSelected
+                      ? "bg-[#1c402a] text-white"
+                      : "bg-gray-400 text-white"
+                    : answered
+                      ? "bg-[#1c402a] text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                     }`}
                 >
                   {m}
@@ -1043,72 +1043,6 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({
         </div>
       </div>
 
-      {/* Activity Summary */}
-      <div className="collapse-arrow collapse mt-8 rounded-xl border border-gray-300">
-        <input type="checkbox" />
-        <div className="collapse-title text-center text-lg font-semibold">
-          Activity Summary
-        </div>
-        <div className="collapse-content">
-          <div className="grid gap-8 md:grid-cols-2">
-            {/* Student Activities */}
-            <div>
-              <h4 className="mb-2 text-center font-semibold">
-                Student Activities
-              </h4>
-              <div className="space-y-2">
-                {studentOptions.map((activity) => (
-                  <div
-                    key={activity}
-                    className="flex justify-between"
-                  >
-                    <span>{activity}:</span>
-                    <span>
-                      {studentTallies[activity]?.count ||
-                        0}{" "}
-                      times (
-                      {studentTallies[
-                        activity
-                      ]?.percentage?.toFixed(2) || "0.00"}
-                      %)
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Teacher Activities */}
-            <div>
-              <h4 className="mb-2 text-center font-semibold">
-                Teacher Activities
-              </h4>
-              <div className="space-y-2">
-                {teacherOptions.map((activity) => (
-                  <div
-                    key={activity}
-                    className="flex justify-between"
-                  >
-                    <span>{activity}:</span>
-                    <span>
-                      {teacherTallies[activity]?.count ||
-                        0}{" "}
-                      times (
-                      {teacherTallies[
-                        activity
-                      ]?.percentage?.toFixed(2) || "0.00"}
-                      %)
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 text-center text-sm text-gray-600">
-            Total Minutes Observed: {getTotalMinutesObserved() * 2}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

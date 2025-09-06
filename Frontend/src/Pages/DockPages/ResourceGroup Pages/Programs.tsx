@@ -402,7 +402,7 @@ function Programs({ setActiveView }: ProgramProps) {
                         setComboboxSelectedProfessor(null);
                       }
                     }}
-                    mapResponse={data => data.map(p => ({id: p.id, name: p.full_name}))}
+                    mapResponse={data => data.map(p => ({ id: p.id, name: p.full_name }))}
                     skeletonCount={5}
                   />
                 </div>
@@ -468,7 +468,7 @@ function Programs({ setActiveView }: ProgramProps) {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-neutral"
+                  className="btn btn-cancel"
                   onClick={() => {
                     resetEditForm();
                     (document.getElementById("edit_program_modal") as HTMLDialogElement)?.close();
