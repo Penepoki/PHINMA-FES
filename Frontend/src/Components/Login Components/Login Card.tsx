@@ -1,6 +1,6 @@
 import {EyeIcon, EyeSlashIcon, EnvelopeIcon, UserIcon} from "@heroicons/react/24/outline";
 import api from "../../utils/api.ts";
-import { AxiosError } from "axios";
+import {AxiosError, isAxiosError} from "axios";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 
@@ -305,12 +305,12 @@ function LoginCard() {
         default:
           setError("Invalid user role.");
       }
-    } catch (err: any) {
-      const error = err as AxiosError;
-      if (error.response?.status === 401) {
-        setError(error.response.data?.detail || "Invalid OTP or credentials.");
+    } catch (err: unknown) {
+      if (isAxiosError<{ detail?: string; message?: string; error?: string }>(err)) {
+        const data = err.response?.data;
+        setError(data?.detail || data?.message || data?.error || "Error verifying OTP. Try again.");
       } else {
-        setError(error.response?.data?.detail || "Error verifying OTP. Try again.");
+        setError("Error verifying OTP. Try again.");
       }
     } finally {
       setIsLoading(false);
