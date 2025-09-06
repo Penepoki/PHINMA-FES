@@ -26,6 +26,7 @@ function Professors({ setActiveView }: ProfessorsProps) {
 
   const [createForm, setCreateForm] = useState({
     email: "",
+    username: "",
     first_name: "",
     last_name: "",
     password: "",
@@ -39,6 +40,30 @@ function Professors({ setActiveView }: ProfessorsProps) {
   });
 
   const isHR = useMemo(() => localStorage.getItem("isTempFaculty") === "true", []);
+  const [myRoles, setMyRoles] = useState<string[]>([]);
+  const isSuperuser = useMemo(() => localStorage.getItem("is_superuser") === "true", []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get("/admin/users/me/");
+        const roles = res.data?.roles_read || [];
+        setMyRoles(roles);
+      } catch (e) {
+        // ignore; fallback to existing flags
+      }
+    })();
+  }, []);
+
+  const availableRoles = useMemo(() => {
+    if (myRoles.includes("HR") || isSuperuser) {
+      return ["professor", "Program Head", "Dean", "HR"];
+    }
+    if (myRoles.includes("Dean")) {
+      return ["HR", "Program Head", "Dean"];
+    }
+    return ["professor"]; // safe fallback
+  }, [myRoles, isSuperuser]);
 
   // ----- effects -----
   useEffect(() => {
@@ -84,7 +109,7 @@ function Professors({ setActiveView }: ProfessorsProps) {
 
   // ----- create -----
   const resetCreateForm = () =>
-    setCreateForm({ email: "", first_name: "", last_name: "", password: "", roles: [] });
+      setCreateForm({email: "", username: "", first_name: "", last_name: "", password: "", roles: []});
 
   const openCreateDialog = () => {
     resetCreateForm();
@@ -92,6 +117,9 @@ function Professors({ setActiveView }: ProfessorsProps) {
   };
 
   const createProfessor = async () => {
+    if (!(isSuperuser || myRoles.includes("HR"))) {
+      return alert("You don’t have permission to create users.");
+    }
     const token = localStorage.getItem("token");
     if (!token) return alert("You are not authenticated. Please login.");
 
@@ -100,6 +128,7 @@ function Professors({ setActiveView }: ProfessorsProps) {
         `/admin/users/`,
         {
           email: createForm.email,
+          username: createForm.username,
           first_name: createForm.first_name,
           last_name: createForm.last_name,
           password: createForm.password || undefined,
@@ -138,6 +167,9 @@ function Professors({ setActiveView }: ProfessorsProps) {
 
   const updateProfessor = async () => {
     if (!currentEditing) return;
+    if (!(isSuperuser || myRoles.includes("HR"))) {
+      return alert("You don’t have permission to update users.");
+    }
     const token = localStorage.getItem("token");
     if (!token) return alert("You are not authenticated. Please login.");
 
@@ -169,6 +201,9 @@ function Professors({ setActiveView }: ProfessorsProps) {
   };
 
   const deleteProfessor = async (id: number) => {
+    if (!(isSuperuser || myRoles.includes("HR"))) {
+      return alert("You don’t have permission to delete users.");
+    }
     const token = localStorage.getItem("token");
     if (!token) return alert("You are not authenticated. Please login.");
 
@@ -196,28 +231,33 @@ function Professors({ setActiveView }: ProfessorsProps) {
       <button
         title="Edit"
         onClick={() => openEditDialog(r)}
-        className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
+        className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline disabled:opacity-40"
+        disabled={!canModify}
       >
         Edit
       </button>
       <button
         title="Delete"
         onClick={() => openDeleteDialog(r)}
-        className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline"
+        className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline disabled:opacity-40"
+        disabled={!canModify}
       >
         Delete
       </button>
     </div>
   );
 
-  if (!isHR) {
+  const canView = isSuperuser || myRoles.includes("HR") || myRoles.includes("Dean");
+  const canModify = isSuperuser || myRoles.includes("HR");
+
+  if (!canView) {
     return (
       <div className="custom-container">
         <BreadAndLogout
           setActiveView={setActiveView}
           breadcrumbs={[{ label: "Home", view: "home" }, { label: "Resource Group" }, { label: "Professors" }]}
         />
-        <div className="mt-6 text-white">This page is restricted to HR users.</div>
+        <div className="mt-6 text-white">This page is restricted to authorized users.</div>
       </div>
     );
   }
@@ -240,7 +280,8 @@ function Professors({ setActiveView }: ProfessorsProps) {
         {/* New Professor */}
         <button
           onClick={openCreateDialog}
-          className="w-full rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
+          className="w-full rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!canModify}
         >
           New Professor
         </button>
@@ -266,6 +307,17 @@ function Professors({ setActiveView }: ProfessorsProps) {
                   placeholder="name@example.com"
                   className="input input-bordered w-full"
                   required
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                <label className="text-left text-lg font-bold md:w-1/6">Username:</label>
+                <input
+                    value={createForm.username}
+                    onChange={(e) => setCreateForm({...createForm, username: e.target.value})}
+                    placeholder="username"
+                    className="input input-bordered w-full"
+                    required
                 />
               </div>
 
@@ -306,7 +358,7 @@ function Professors({ setActiveView }: ProfessorsProps) {
               <div className="flex flex-col gap-2">
                 <label className="text-left text-lg font-bold">Roles:</label>
                 <div className="flex gap-3 flex-wrap">
-                  {["professor", "Program Head", "Dean", "HR"].map((r) => (
+                  {availableRoles.map((r) => (
                     <label key={r} className="inline-flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -328,7 +380,7 @@ function Professors({ setActiveView }: ProfessorsProps) {
               </div>
 
               <div className="modal-action">
-                <button type="submit" className="btn btn-success text-white">
+                <button type="submit" className="btn btn-success text-white" disabled={!canModify}>
                   Submit
                 </button>
                 <button
@@ -380,7 +432,7 @@ function Professors({ setActiveView }: ProfessorsProps) {
               <div className="flex flex-col gap-2">
                 <label className="text-left text-lg font-bold">Roles:</label>
                 <div className="flex gap-3 flex-wrap">
-                  {["professor", "Program Head", "Dean", "HR"].map((r) => (
+                  {availableRoles.map((r) => (
                     <label key={r} className="inline-flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -399,7 +451,7 @@ function Professors({ setActiveView }: ProfessorsProps) {
               </div>
 
               <div className="modal-action">
-                <button type="submit" className="btn btn-success text-white">
+                <button type="submit" className="btn btn-success text-white" disabled={!canModify}>
                   Update
                 </button>
                 <button

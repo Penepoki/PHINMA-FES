@@ -32,7 +32,7 @@ ChartJS.register(
   PointElement,
   LineController,
   Flow,
-  SankeyController,
+    SankeyController
 );
 
 interface ResourceGroupProps {
@@ -154,6 +154,7 @@ const fetchEvaluationProfessorMapByFaculty = async (
   return map;
 };
 
+
 function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   // --- Modal state + ref ---
   const [showRetentionDialog, setShowRetentionDialog] = useState(false);
@@ -268,7 +269,31 @@ const escapeHtml = (s: string) =>
     return { size: px, family: "'Cabin', sans-serif", weight: 600 as const };
   };
 
-  // Fetch copus summary data on mount
+  // Sankey professor selection and filters
+  const [selectedProfessors, setSelectedProfessors] = useState<string[]>([]);
+  const [filterYear, setFilterYear] = useState<string>("");
+  const [filterSemester, setFilterSemester] = useState<string>("");
+  const [filterProgram, setFilterProgram] = useState<string>("");
+  const [availablePrograms, setAvailablePrograms] = useState<{ id: string; name: string }[]>([]);
+
+  // Fetch programs for current faculty
+  useEffect(() => {
+    (async () => {
+      try {
+        const fid = await resolveFacultyId();
+        if (!fid) return;
+        // Backend ProgramViewSet filters by faculty via query
+        const res = await api.get("/program/programs/", {params: {faculty: String(fid), is_active: "true"}});
+        const items = (res.data || []).map((p: any) => ({id: String(p.id), name: p.name}));
+        setAvailablePrograms(items);
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
+
+
+  // Fetch copus summary data on mount and when filters change
   useEffect(() => {
     const fetchCopusSummary = async () => {
       setCopusLoading(true);
@@ -280,6 +305,14 @@ const escapeHtml = (s: string) =>
         let endpoint = "/evaluation/evaluations/copus-summary-by-faculty";
         if (!isSuperuser && faculty_id) params.faculty = String(faculty_id);
         else if (isSuperuser) endpoint = "/evaluation/evaluations/latest-with-tallies";
+        // Only send year if it looks like an ISO date (YYYY-MM-DD)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(filterYear)) params.year = filterYear;
+        if (filterSemester) params.semester = filterSemester;
+        if (filterProgram) {
+          endpoint = "/evaluation/evaluations/copus-summary-by-program";
+          params.program = filterProgram;
+          delete params.faculty;
+        }
         const response = await api.get(endpoint, { params });
         const raw = response.data || {};
 
@@ -346,9 +379,16 @@ const escapeHtml = (s: string) =>
 
         setCopusData(professorAggregates);
 
-        // Build Sankey flows
+        // Default selection to first 3 professors if none selected
+        const allProfessors = Object.keys(professorAggregates);
+        if (selectedProfessors.length === 0 && allProfessors.length > 0) {
+          setSelectedProfessors(allProfessors.slice(0, 3));
+        }
+
+        // Build Sankey flows limited to selected professors
         const flows: any[] = [];
         Object.entries(professorAggregates).forEach(([profName, agg]) => {
+          if (selectedProfessors.length && !selectedProfessors.includes(profName)) return;
           const st = agg.studentTallies || {};
           const tt = agg.teacherTallies || {};
           [...Object.entries(st), ...Object.entries(tt)].forEach(([activity, info]) => {
@@ -385,15 +425,27 @@ const escapeHtml = (s: string) =>
           ],
         });
       } catch (e: any) {
-        console.error("[DEBUG] Error fetching copus summary:", e);
-        setCopusError(e?.message || "Unknown error");
+        if (e?.response?.status === 404) {
+          // No data for filters; set empty state gracefully
+          setStudentTallies([]);
+          setTeacherTallies([]);
+          setProfessorCount(0);
+          setAvgActiveLearning(null);
+          setMaxActivityPoints(0);
+          setCopusData({});
+          setSankeyData(null);
+          setCopusError(null);
+        } else {
+          console.error("[DEBUG] Error fetching copus summary:", e);
+          setCopusError(e?.message || "Unknown error");
+        }
       } finally {
         setCopusLoading(false);
       }
     };
 
     fetchCopusSummary();
-  }, []);
+  }, [filterYear, filterSemester, filterProgram, selectedProfessors]);
 
   // Also fetch Student Evaluations (SFF) by faculty and print debug logs
   useEffect(() => {
@@ -465,7 +517,7 @@ const escapeHtml = (s: string) =>
           // Inject inline styles into <pre> to force wrapping and avoid horizontal scroll
           const processed = html.replace(
             /<pre(.*?)>/,
-            (m) => m.includes("style=")
+              (m: string) => m.includes("style=")
               ? m.replace(
                   /style="/,
                   'style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;'
@@ -666,11 +718,45 @@ const escapeHtml = (s: string) =>
         continuous improvement.
       </span>
 
-      <div className="flex w-full flex-row items-center justify-center gap-4 border-b border-gray-600 pb-4 text-white shadow-2xl">
-        Filter:
-        <button className="btn btn-primary text-white">College</button>
-        <button className="btn btn-primary text-white">Semester</button>
-        <button className="btn btn-primary text-white">School Year</button>
+      <div
+          className="flex w-full flex-wrap items-center justify-center gap-4 border-b border-gray-600 pb-4 text-white shadow-2xl">
+        <span>Filter:</span>
+        {/* Program filter (replaces College) */}
+        <select
+            className="select select-bordered"
+            value={filterProgram}
+            onChange={(e) => setFilterProgram(e.target.value)}
+        >
+          <option value="">All Programs</option>
+          {availablePrograms.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        {/* Semester filter */}
+        <select
+            className="select select-bordered"
+            value={filterSemester}
+            onChange={(e) => setFilterSemester(e.target.value)}
+        >
+          <option value="">All Semesters</option>
+          <option value="First">First</option>
+          <option value="Second">Second</option>
+          <option value="Summer">Summer</option>
+        </select>
+        {/* School Year filter */}
+        <select
+            className="select select-bordered"
+            value={filterYear}
+            onChange={(e) => setFilterYear(e.target.value)}
+        >
+          <option value="">All Years</option>
+          {Array.from({length: 6}).map((_, idx) => {
+            const y = new Date().getFullYear() - idx;
+            return (
+                <option key={y} value={`${y}-01-01`}>{y}</option>
+            );
+          })}
+        </select>
         <button
           className="btn btn-primary text-white"
           onClick={() => setShowRetentionDialog(true)}
@@ -827,14 +913,60 @@ const escapeHtml = (s: string) =>
           </div>
         </div>
 
+        {/* Professor selector buttons (max 3 selected) */}
+        <div className="flex flex-wrap items-center gap-2 text-white">
+          <span className="opacity-80 mr-2">Professors:</span>
+          {copusData &&
+              Object.keys(copusData).map((name) => {
+                const active = selectedProfessors.includes(name);
+                return (
+                    <button
+                        key={name}
+                        className={`btn btn-xs ${active ? 'btn-success' : 'btn-outline'} `}
+                        onClick={() => {
+                          setSelectedProfessors((prev) => {
+                            if (prev.includes(name)) return prev.filter((n) => n !== name);
+                            if (prev.length >= 3) return [prev[1], prev[2], name].filter((x): x is string => Boolean(x));
+                            return [...prev, name];
+                          });
+                        }}
+                    >
+                      {name}
+                    </button>
+                );
+              })}
+        </div>
+
         {/* --- Responsive + Scrollable Sankey wrapper --- */}
         <div className="flex w-full items-center justify-center rounded-lg p-4 shadow-2xl bg-black/20 backdrop-blur-lg">
           <div className="w-full overflow-x-auto">
             <div className="relative h-[50vh] min-h-[360px] lg:h-[60vh] min-w-[900px]">
-              {sankeyData ? (
+              {copusLoading ? (
+                  <div className="h-full w-full animate-pulse">
+                    <div className="absolute inset-0 flex flex-col gap-3 p-4">
+                      <div className="h-6 w-40 bg-white/10 rounded"/>
+                      <div className="flex-1 grid grid-cols-12 gap-2">
+                        {Array.from({length: 12}).map((_, i) => (
+                            <div key={i} className="bg-white/10 rounded"/>
+                        ))}
+                      </div>
+                      <div className="h-4 w-2/3 bg-white/10 rounded"/>
+                    </div>
+                  </div>
+              ) : sankeyData ? (
                 <Chart type="sankey" data={sankeyData} options={sankeyOptions} />
               ) : (
-                <p className="text-white">Loading chart...</p>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center text-gray-300">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                           className="mx-auto mb-2 h-10 w-10 opacity-60">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                              d="M9 17v-2a4 4 0 10-8 0v2m8 0H1m8 0h8m-6 0v-2a4 4 0 118 0v2m-8 0h8"/>
+                      </svg>
+                      <div>No Sankey data available for the selected filters.</div>
+                      <div className="text-sm opacity-70">Try adjusting Program, Semester, or Year.</div>
+                    </div>
+                  </div>
               )}
             </div>
           </div>

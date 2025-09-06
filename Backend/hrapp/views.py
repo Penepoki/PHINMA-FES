@@ -511,8 +511,14 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         faculty_id = request.query_params.get('faculty')
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
-        evals = Evaluation.objects.filter(schedule__program__faculty_id=faculty_id, deleted_at__isnull=True)
-        eval_ids = [e.id for e in evals]
+        year = request.query_params.get('year')
+        semester = request.query_params.get('semester')
+        qs = Evaluation.objects.filter(schedule__program__faculty_id=faculty_id, deleted_at__isnull=True)
+        if year:
+            qs = qs.filter(schedule__year=year)
+        if semester:
+            qs = qs.filter(schedule__semester=semester)
+        eval_ids = list(qs.values_list('id', flat=True))
         if not eval_ids:
             return Response({'error': 'No evaluations found for this faculty'}, status=status.HTTP_404_NOT_FOUND)
         result = get_copus_bulk_tallies_data(eval_ids)
@@ -523,10 +529,16 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': "program is required"}, status=status.HTTP_400_BAD_REQUEST)
-        evals = Evaluation.objects.filter(schedule__program_id=program_id, deleted_at__isnull=True)
-        eval_ids = [e.id for e in evals]
+        year = request.query_params.get('year')
+        semester = request.query_params.get('semester')
+        qs = Evaluation.objects.filter(schedule__program_id=program_id, deleted_at__isnull=True)
+        if year:
+            qs = qs.filter(schedule__year=year)
+        if semester:
+            qs = qs.filter(schedule__semester=semester)
+        eval_ids = list(qs.values_list('id', flat=True))
         if not eval_ids:
-            return Response({'error': 'No evaluations found for this program'}, status=status.HTTP_404_BAD_REQUEST)
+            return Response({'error': 'No evaluations found for this program'}, status=status.HTTP_404_NOT_FOUND)
         result = get_copus_bulk_tallies_data(eval_ids)
         return Response(result)
 
@@ -2918,7 +2930,7 @@ class UserAdminSerializer(drf_serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = [
-            'id', 'email', 'first_name', 'last_name', 'is_active',
+            'id', 'email', 'username', 'first_name', 'last_name', 'is_active',
             'roles', 'roles_read', 'password'
         ]
         read_only_fields = []
@@ -2926,9 +2938,24 @@ class UserAdminSerializer(drf_serializers.ModelSerializer):
     def get_roles_read(self, obj):
         return list(obj.groups.values_list('name', flat=True))
 
+    def _filter_roles_by_requester(self, roles):
+        """Restrict roles a Dean can assign; HR can assign all."""
+        request = self.context.get('request')
+        if not roles:
+            return roles
+        try:
+            if request and request.user and request.user.groups.filter(name__iexact='Dean').exists() \
+                    and not request.user.groups.filter(name__iexact='HR').exists() and not request.user.is_superuser:
+                allowed = {'HR', 'Program Head', 'Dean'}
+                return [r for r in roles if r in allowed]
+        except Exception:
+            pass
+        return roles
+
     def create(self, validated_data):
         request = self.context.get('request')
         roles = validated_data.pop('roles', [])
+        roles = self._filter_roles_by_requester(roles)
         raw_password = validated_data.pop('password', None)
         user = super().create(validated_data)
         # Set password if provided
@@ -2951,8 +2978,10 @@ class UserAdminSerializer(drf_serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         roles = validated_data.pop('roles', None)
-        # Email must not be changed
+        roles = self._filter_roles_by_requester(roles) if roles is not None else None
+        # Email and username must not be changed here
         validated_data.pop('email', None)
+        validated_data.pop('username', None)
         user = super().update(instance, validated_data)
         if roles is not None:
             groups = Group.objects.filter(name__in=roles)
@@ -2991,6 +3020,29 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         if is_active in ['true', 'false']:
             qs = qs.filter(is_active=(is_active == 'true'))
         return qs.distinct()
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        user = request.user
+        data = {
+            'id': user.id,
+            'email': getattr(user, 'email', None),
+            'username': getattr(user, 'username', None),
+            'first_name': getattr(user, 'first_name', ''),
+            'last_name': getattr(user, 'last_name', ''),
+            'roles_read': list(user.groups.values_list('name', flat=True)),
+            'is_superuser': user.is_superuser,
+        }
+        return Response(data)
+
+    def update(self, request, *args, **kwargs):
+        # Make update partial to avoid requiring unchanged fields like email
+        partial = True
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
     @transaction.atomic
     def destroy(self, request, *args, **kwargs):
