@@ -15,7 +15,7 @@ type MeResponse = {
     // add any other fields your serializer returns
 };
 
-const API_BASE = "https://api.phinma-fes.com"; // adjust if needed
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
 
 export default function Profile({setActiveView}: ProfileProps) {
     const [me, setMe] = useState<MeResponse | null>(null);
