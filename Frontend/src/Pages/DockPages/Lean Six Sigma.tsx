@@ -1,23 +1,23 @@
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
   BarElement,
-  Title,
-  Tooltip,
+  CategoryScale,
+  Chart as ChartJS,
   Legend,
+  LinearScale,
+  LineController,
   LineElement,
   PointElement,
-  LineController,
+  Title,
+  Tooltip,
 } from "chart.js";
 ChartJS.defaults.font.family = "'Cabin', sans-serif";
 ChartJS.defaults.color = "#fff"; // keep chart text readable on dark bg
 
-import { Scatter, Chart } from "react-chartjs-2";
-import { SankeyController, Flow } from "chartjs-chart-sankey";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import api from "../../utils/api.ts";
+import { Flow, SankeyController } from "chartjs-chart-sankey";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Chart, Scatter } from "react-chartjs-2";
 import BreadAndLogout from "../../Components/Bread and Logout.tsx";
+import api from "../../utils/api.ts";
 import { resolveFacultyId } from "../../utils/facultyContext.ts";
 
 // --- Register once ---
@@ -151,6 +151,53 @@ const fetchEvaluationProfessorMapByFaculty = async (
   return map;
 };
 
+// Move constants outside component to avoid recreating them on every render
+const STUDENT_CODE_MAP: Record<string, string> = {
+  Listening: "L",
+  "Individual Thinking": "Ind",
+  Group: "Grp",
+  "Answer Question": "AnQ",
+  "Ask Question": "AsQ",
+  "Whole Class Discussion": "WC",
+  "Student Presentations": "SP",
+  "Test/Quiz": "TQ",
+  Waiting: "Wait",
+  Other: "Other",
+};
+
+const TEACHER_CODE_MAP: Record<string, string> = {
+  Lecture: "Lec",
+  "Realtime Writing": "RW",
+  "Moving/Guiding": "MG",
+  "Answer Questions": "AnQs",
+  "Pose Question": "PQ",
+  "Follow-up Question": "FUp",
+  "1-on-1 discussion": "1o1",
+  "Demonstrate/Video": "D/v",
+  Administrative: "Admin",
+  Waiting: "Wait",
+  Other: "Other",
+};
+
+const makeCode = (summary: string, map: Record<string, string>) =>
+  map[summary] ||
+  summary
+    .replace(/[^A-Za-z0-9 ]/g, "")
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 4);
+
+// Move colorPool outside component to avoid recreating on every render
+const colorPool = [
+  "rgba(59,130,246,0.8)", // blue
+  "rgba(34,197,94,0.8)", // green
+  "rgba(234,179,8,0.8)", // amber
+  "rgba(244,63,94,0.8)", // rose
+  "rgba(168,85,247,0.8)", // purple
+  "rgba(20,184,166,0.8)", // teal
+];
+
 function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   // --- Modal state + ref ---
   const [showRetentionDialog, setShowRetentionDialog] = useState(false);
@@ -209,40 +256,6 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   const [sentimentError, setSentimentError] = useState<string | null>(null);
   const [sentimentBySemester, setSentimentBySemester] = useState<any>(null);
   const [sentimentByYear, setSentimentByYear] = useState<any>(null);
-
-  const STUDENT_CODE_MAP: Record<string, string> = {
-    Listening: "L",
-    "Individual Thinking": "Ind",
-    Group: "Grp",
-    "Answer Question": "AnQ",
-    "Ask Question": "AsQ",
-    "Whole Class Discussion": "WC",
-    "Student Presentations": "SP",
-    "Test/Quiz": "TQ",
-    Waiting: "Wait",
-    Other: "Other",
-  };
-  const TEACHER_CODE_MAP: Record<string, string> = {
-    Lecture: "Lec",
-    "Realtime Writing": "RW",
-    "Moving/Guiding": "MG",
-    "Answer Questions": "AnQs",
-    "Pose Question": "PQ",
-    "Follow-up Question": "FUp",
-    "1-on-1 discussion": "1o1",
-    "Demonstrate/Video": "D/v",
-    Administrative: "Admin",
-    Waiting: "Wait",
-    Other: "Other",
-  };
-  const makeCode = (summary: string, map: Record<string, string>) =>
-    map[summary] ||
-    summary
-      .replace(/[^A-Za-z0-9 ]/g, "")
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 4);
 
   // Simple HTML escape for safe fallback rendering when backend HTML is unavailable
   const escapeHtml = (s: string) =>
@@ -460,7 +473,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         const text = typeof res.data?.recommendations === "string" ? res.data.recommendations : "";
         if (html) {
           // Inject inline styles into <pre> to force wrapping and avoid horizontal scroll
-          const processed = html.replace(/<pre(.*?)>/, (m) =>
+          const processed = html.replace(/<pre(.*?)>/, (m: string) =>
             m.includes("style=")
               ? m.replace(
                   /style="/,
@@ -534,15 +547,6 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
   }, []);
 
   // --- Scatter chart config ---
-  const colorPool = [
-    "rgba(59,130,246,0.8)", // blue
-    "rgba(34,197,94,0.8)", // green
-    "rgba(234,179,8,0.8)", // amber
-    "rgba(244,63,94,0.8)", // rose
-    "rgba(168,85,247,0.8)", // purple
-    "rgba(20,184,166,0.8)", // teal
-  ];
-
   const scatterData = useMemo(() => {
     if (!Array.isArray(retentionPoints)) return null;
     const datasets: any[] = [];
