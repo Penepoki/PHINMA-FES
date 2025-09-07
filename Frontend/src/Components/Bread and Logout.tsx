@@ -27,12 +27,22 @@ export default function BreadAndLogout({ setActiveView, breadcrumbs }: BreadAndL
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No token found");
 
+        // Best-effort: clear HR temporary faculty context first
+        try {
+            await api.post("/clear-faculty-context/");
+        } catch {
+        }
+
       await api.post("/logout/", null, {
         headers: { Authorization: `Token ${token}` },
       });
 
+        // Clear local data (not delete from server)
       localStorage.removeItem("token");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("faculty_id");
       localStorage.removeItem("firstName");
+        localStorage.removeItem("lastName");
       sessionStorage.removeItem("firstName");
 
       setLogoutMessage("Logout successful!");

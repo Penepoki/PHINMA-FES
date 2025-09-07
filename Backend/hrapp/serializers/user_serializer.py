@@ -1,6 +1,10 @@
 from rest_framework import serializers
 from hrapp.models.user_models import User
 from hrapp.utils import get_full_name
+from django.conf import settings
+import os
+from pathlib import Path
+from django.core.files.base import File
 
 
 
@@ -17,11 +21,32 @@ class UserProgramProfessorSerializer(serializers.ModelSerializer):
 
     def get_profile_picture_url(self, obj):
         request = self.context.get('request')
-        if getattr(obj, 'profile_picture', None) and request:
-            try:
+        if not request:
+            return None
+        pp = getattr(obj, 'profile_picture', None)
+        name = getattr(pp, 'name', None)
+        if not name:
+            return None
+        # If file exists in default storage, return its URL
+        try:
+            if pp.storage.exists(name):
+                return request.build_absolute_uri(pp.url)
+        except Exception:
+            pass
+        # Fallback: try to locate a copy under project root 'profile_pictures_root' and re-save into MEDIA_ROOT
+        try:
+            basename = os.path.basename(name)
+            fallback_dir = Path(settings.BASE_DIR).parent / 'profile_pictures_root'
+            fallback_path = fallback_dir / basename
+            if fallback_path.exists():
+                with open(fallback_path, 'rb') as f:
+                    saved_name = pp.storage.save(f"profile_pictures/{basename}", File(f))
+                # Update model field to new storage path
+                obj.profile_picture.name = saved_name
+                obj.save(update_fields=['profile_picture'])
                 return request.build_absolute_uri(obj.profile_picture.url)
-            except Exception:
-                return None
+        except Exception:
+            pass
         return None
 
 
@@ -39,8 +64,30 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_profile_picture_url(self, obj):
         request = self.context.get('request')
-        if obj.profile_picture and request:
-            return request.build_absolute_uri(obj.profile_picture.url)
+        if not request:
+            return None
+        pp = getattr(obj, 'profile_picture', None)
+        name = getattr(pp, 'name', None)
+        if not name:
+            return None
+        try:
+            if pp.storage.exists(name):
+                return request.build_absolute_uri(pp.url)
+        except Exception:
+            pass
+        # Fallback attempt from project-level directory
+        try:
+            basename = os.path.basename(name)
+            fallback_dir = Path(settings.BASE_DIR).parent / 'profile_pictures_root'
+            fallback_path = fallback_dir / basename
+            if fallback_path.exists():
+                with open(fallback_path, 'rb') as f:
+                    saved_name = pp.storage.save(f"profile_pictures/{basename}", File(f))
+                obj.profile_picture.name = saved_name
+                obj.save(update_fields=['profile_picture'])
+                return request.build_absolute_uri(obj.profile_picture.url)
+        except Exception:
+            pass
         return None
 
     def get_full_name_professor(self, obj):

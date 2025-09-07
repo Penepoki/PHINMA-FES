@@ -99,7 +99,7 @@ JAZZMIN_SETTINGS = {
 }
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",   # must be first
+    "corsheaders.middleware.CorsMiddleware",  # must be first
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -173,12 +173,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-
 # Media files
 MEDIA_URL = '/media/'
 
-MEDIA_ROOT =  "/var/www/fes/media"
+MEDIA_ROOT = "/var/www/fes/media"
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-

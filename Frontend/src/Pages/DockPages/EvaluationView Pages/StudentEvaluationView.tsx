@@ -37,12 +37,11 @@ const ProgramListSkeleton = () => (
 const FacultyChartsSkeleton = () => (
     <div className="w-full flex-col items-center justify-center">
         <div
-            className="flex h-12 items-center justify-center rounded-t-xl bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
+            className="flex h-12 py-8 px-4 items-center bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
       Faculty Response Charts
     </div>
-        <div className="rounded-b-xl bg-black/20 p-6">
-            <div className="skeleton mb-4 h-40 w-full"/>
-      <div className="skeleton h-40 w-full" />
+        <div className="rounded-b-xl bg-black/20 p-3">
+            <div className="skeleton h-8 w-full"/>
     </div>
   </div>
 );
@@ -410,48 +409,51 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               />
             ) : null)}
 
-          {/* Programs: either skeletons or actual cards */}
-          {programsLoading ? (
-            <ProgramListSkeleton />
-          ) : (
-            <ProgramCards
-              programs={programs}
-              onClick={(program) => {
-                setSelectedProgram(program);
-              }}
-            />
-          )}
+            {/* Filters for year/semester */}
+            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+                {/* Semester filter */}
+                <div className="flex items-center gap-2">
+                    <label className="text-white">Semester:</label>
+                    <select
+                        className="input input-bordered w-40"
+                        value={filterSemester}
+                        onChange={(e) => setFilterSemester(e.target.value)}
+                    >
+                        <option value="">All</option>
+                        <option value="First">First</option>
+                        <option value="Second">Second</option>
+                        <option value="Summer">Summer</option>
+                    </select>
+                </div>
+
+                {/* Year filter */}
+                <div className="flex items-center gap-2">
+                    <label className="text-white">Year:</label>
+                    <input
+                        type="number"
+                        min={2000}
+                        max={2100}
+                        className="input input-bordered w-40"
+                        value={filterYear}
+                        onChange={(e) => setFilterYear(e.target.value)}
+                        placeholder="YYYY"
+                    />
+                </div>
+            </div>
+            {/* Programs: either skeletons or actual cards */}
+            {programsLoading ? (
+                <ProgramListSkeleton/>
+            ) : (
+                <ProgramCards
+                    programs={programs}
+                    onClick={(program) => {
+                        setSelectedProgram(program);
+                    }}
+                />
+            )}
         </>
       )}
 
-      {/* Filters for year/semester */}
-          <div className="mb-4 flex items-center gap-4">
-        <div>
-            <label className="mr-2 text-white">Semester:</label>
-          <select
-              className="input input-bordered"
-              value={filterSemester}
-              onChange={(e) => setFilterSemester(e.target.value)}
-          >
-            <option value="">All</option>
-            <option value="First">First</option>
-            <option value="Second">Second</option>
-            <option value="Summer">Summer</option>
-          </select>
-        </div>
-        <div>
-            <label className="mr-2 text-white">Year:</label>
-          <input
-              type="number"
-              min={2000}
-              max={2100}
-              className="input input-bordered w-28"
-              value={filterYear}
-              onChange={(e) => setFilterYear(e.target.value)}
-              placeholder="YYYY"
-          />
-        </div>
-      </div>
 
       {/* Step 2: Professors Table */}
       {selectedProgram && !selectedProfessor && (

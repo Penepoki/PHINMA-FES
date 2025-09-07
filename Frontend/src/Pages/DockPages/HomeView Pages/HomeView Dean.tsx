@@ -179,7 +179,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
           </span>
 
           <button
-              className="rounded bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 px-3 py-1 text-white transition duration-300 ease-in-out hover:scale-105 hover:opacity-90"
+              className="rounded-xl px-3 bg-[#1b2e3e] px-3 py-1 text-white transition duration-300 ease-in-out hover:scale-105 hover:opacity-90"
             onClick={handleBackToHR}
             title="Return to HR dashboard and clear faculty context"
           >

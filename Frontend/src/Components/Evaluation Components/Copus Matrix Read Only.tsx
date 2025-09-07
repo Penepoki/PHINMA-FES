@@ -7,9 +7,10 @@ type ToggleBoxProps = { label: string; active: boolean };
 function ToggleBox({ label, active }: ToggleBoxProps) {
   return (
     <motion.div
-        className={`min-w-[140px] rounded-xl px-6 py-3 text-center text-base transition-colors ${
-            active ? "bg-[#1c402a] text-white" : "bg-gray-200 text-black"
+        className={`min-w-[140px] rounded-xl px-6 py-3 text-center text-base ${active ? "bg-[#1c402a] text-white" : "bg-gray-200 text-black"
         }`}
+        animate={{y: [2, -1, 2], scale: [1, 1.01, 1]}}
+        transition={{duration: 6, repeat: Infinity, repeatType: "loop"}}
     >
       {label}
     </motion.div>
@@ -18,10 +19,8 @@ function ToggleBox({ label, active }: ToggleBoxProps) {
 
 interface CopusMatrixReadOnlyProps {
   evaluationId: number;
-  tallyData: Record<string, any>;
+    tallyData?: Record<string, any>;
 }
-
-type Tallied = Record<string, { count: number; percentage: number }>;
 
 interface TimestampData {
   id: number;
@@ -30,21 +29,20 @@ interface TimestampData {
   instructor_activities: Record<string, boolean> | string[] | null;
   student_comments?: Record<string, string> | null;
   instructor_comments?: Record<string, string> | null;
-  time_record: string; // "HH:MM:SS"
+    time_record: string;
 }
 
 export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnlyProps) {
-  // Use 0–60 to cover legacy 00:00:00 and 01:00:00
   const MIN_MINUTE = 0;
   const MAX_MINUTE = 58;
   const INCREMENT = 2;
 
+    const [loading, setLoading] = useState<boolean>(true);
   const [minute, setMinute] = useState<number>(MIN_MINUTE);
+    const [error, setError] = useState<string | null>(null);
+
   const [selectionsByMinute, setSelectionsByMinute] = useState<
-      Record<
-          number,
-          { student: string[]; teacher: string[]; studentComments: string; teacherComments: string }
-      >
+      Record<number, { student: string[]; teacher: string[]; studentComments: string; teacherComments: string }>
   >({});
 
   const minuteBoxes = Array.from(
@@ -52,7 +50,6 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
       (_, i) => MIN_MINUTE + i * INCREMENT,
   );
 
-  // Display labels used everywhere in UI
   const studentOptions = [
     "Listening",
     "Individual Thinking",
@@ -79,7 +76,6 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
     "Other",
   ];
 
-  // Frontend label -> backend key
   const studentActivityMap: Record<string, string> = {
     Listening: "listening",
     "Individual Thinking": "individual_thinking",
@@ -106,11 +102,11 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
     Other: "other",
   };
 
-  // Reverse: backend key -> display label
   const keyToStudentLabel = (key: string) =>
       Object.keys(studentActivityMap).find((lbl) => studentActivityMap[lbl] === key) || key;
   const keyToTeacherLabel = (key: string) =>
       Object.keys(teacherActivityMap).find((lbl) => teacherActivityMap[lbl] === key) || key;
+
   useEffect(() => {
     if (!evaluationId) return;
 
@@ -130,49 +126,33 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
             .map(([k]) => toLabel(k));
     };
 
-    const loadTimestamps = async () => {
+      (async () => {
+          setLoading(true);
+          setError(null);
       try {
-        const url = `/timestamp/timestamps/`;
-          const res = await api.get(url, {params: {evaluation: evaluationId}});
+          const res = await api.get(`/timestamp/timestamps/`, {params: {evaluation: evaluationId}});
+          const rows: TimestampData[] = Array.isArray(res.data) ? res.data : res.data?.results || [];
 
-        // 🔍 Debug entire response
-        console.log("Fetched raw timestamps for evaluation", evaluationId, res.data);
+          const next: Record<number, {
+              student: string[];
+              teacher: string[];
+              studentComments: string;
+              teacherComments: string
+          }> =
+              {};
 
-        const rows = Array.isArray(res.data) ? res.data : res.data?.results || [];
-
-          const next: Record<
-              number,
-              {
-                  student: string[];
-                  teacher: string[];
-                  studentComments: string;
-                  teacherComments: string;
-              }
-          > = {};
-
-        rows.forEach((ts: any) => {
+          rows.forEach((ts) => {
           const m = timeToMinutes(ts.time_record);
-          console.log("Processing timestamp:", ts, "→ minute =", m);
-
-          if (m < MIN_MINUTE || m > MAX_MINUTE || m % INCREMENT !== 0) {
-            console.warn("Skipping timestamp, not aligned with grid:", ts.time_record, "=>", m);
-            return;
-          }
+              if (m < MIN_MINUTE || m > MAX_MINUTE || m % INCREMENT !== 0) return;
 
           next[m] = {
             student: toLabels(ts.student_activities, keyToStudentLabel),
             teacher: toLabels(ts.instructor_activities, keyToTeacherLabel),
-              studentComments:
-                  (ts.student_comments?.comment ?? ts.student_comments?.notes ?? "") || "",
-              teacherComments:
-                  (ts.instructor_comments?.comment ?? ts.instructor_comments?.notes ?? "") || "",
+              studentComments: (ts.student_comments?.comment ?? ts.student_comments?.notes ?? "") || "",
+              teacherComments: (ts.instructor_comments?.comment ?? ts.instructor_comments?.notes ?? "") || "",
           };
-
-          // 🔍 Debug mapping result
-          console.log("Minute", m, "mapped selections:", next[m]);
         });
 
-        console.log("Final selectionsByMinute:", next);
         setSelectionsByMinute(next);
 
         if (!next[minute]) {
@@ -180,17 +160,15 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
             const s = next[m];
             return s && (s.student.length > 0 || s.teacher.length > 0);
           });
-          if (typeof firstWithData === "number") {
-            console.log("Jumping to first minute with data:", firstWithData);
-            setMinute(firstWithData);
-          }
+            if (typeof firstWithData === "number") setMinute(firstWithData);
         }
       } catch (e) {
         console.error("Failed to load timestamps:", e);
+          setError("Failed to load COPUS timestamps.");
+      } finally {
+          setLoading(false);
       }
-    };
-
-    void loadTimestamps();
+      })();
   }, [evaluationId]);
 
   const hasData = (m: number) => {
@@ -205,56 +183,99 @@ export default function CopusMatrixReadOnly({ evaluationId }: CopusMatrixReadOnl
 
   return (
     <div className="mb-4 rounded-lg border border-gray-300 p-4">
-      {/* Minute navigation */}
-      <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
-        {minuteBoxes.map((m) => {
-          const active = m === minute;
-          const filled = hasData(m);
-          return (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMinute(m)}
-              className={[
-                "h-10 w-12 rounded-md text-sm font-semibold shadow",
-                active
-                    ? "bg-[#1c402a] text-white"
-                    : filled
-                        ? "bg-gray-300"
-                        : "bg-gray-200 text-gray-700",
-              ].join(" ")}
-              title={filled ? "Has data" : "No data"}
-            >
-              {m}
-            </button>
-          );
-        })}
+        {error && (
+            <div className="alert alert-error mb-4">
+                <span>{error}</span>
+            </div>
+        )}
+
+        {/* Centered minute range */}
+        <div className="mb-4 flex flex-col items-center">
+            <h2 className="text-xl font-bold text-gray-800">{`Minutes ${minute}-${minute + INCREMENT}`}</h2>
+            <p className="mt-1 text-sm text-gray-500 text-center">
+                Select a minute box below to review recorded classroom activities and comments for that time segment.
+            </p>
+            <div className="mt-3 text-base font-semibold text-gray-600 flex gap-6">
+                <div className="flex items-center gap-2">
+                    <span className="inline-block h-3 w-3 rounded" style={{background: "#2f6b49"}}/>
+                    Selected
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="inline-block h-3 w-3 rounded" style={{background: "#1c402a"}}/>
+                    Has data
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="inline-block h-3 w-3 rounded bg-gray-300"/>
+                    No data
+                </div>
+            </div>
+        </div>
+
+        {/* Minute grid */}
+        <div className="mb-4 flex items-center justify-center">
+            <div className="grid grid-cols-5 gap-2 md:grid-cols-15">
+                {minuteBoxes.map((m) => {
+                    const active = m === minute;
+                    const filled = hasData(m);
+                    const label = m + INCREMENT; // show end number
+                    const baseClass =
+                        "h-10 w-10 rounded-md text-sm font-semibold transition-transform hover:scale-105 focus:outline-none";
+                    const style = filled
+                        ? {background: active ? "#2f6b49" : "#1c402a", color: "#fff"}
+                        : {background: "#e5e7eb", color: "#374151"};
+
+                    return (
+                        <motion.button
+                            key={m}
+                            type="button"
+                            onClick={() => setMinute(m)}
+                            className={baseClass}
+                            style={style}
+                            animate={{y: [1, -1, 1], scale: [1, 1.01, 1]}}
+                            transition={{duration: 7, repeat: Infinity, repeatType: "loop", ease: [0.42, 0, 0.58, 1]}}
+                            title={filled ? "Has data" : "No data"}
+                        >
+                            {label}
+                        </motion.button>
+                    );
+                })}
+            </div>
       </div>
 
-      {/* Student */}
-      <div className="mb-3">
-        <div className="mb-2 font-semibold">Student Activities</div>
-        <div className="flex flex-wrap gap-2">
-          {studentOptions.map((label) => (
-              <ToggleBox key={label} label={label} active={selectedStudent.includes(label)}/>
-          ))}
-        </div>
-        {studentComments && (
-            <div className="mt-2 text-sm text-gray-700 italic">Notes: {studentComments}</div>
-        )}
+        {/* Students */}
+        <div className="mb-6 text-center text-lg font-semibold text-gray-700">Students Doing</div>
+        <div className="mb-6 flex flex-wrap justify-center gap-2">
+            {studentOptions.map((label) => (
+                <ToggleBox key={label} label={label} active={selectedStudent.includes(label)}/>
+            ))}
       </div>
 
-      {/* Teacher */}
-      <div className="mb-3">
-        <div className="mb-2 font-semibold">Teacher Activities</div>
-        <div className="flex flex-wrap gap-2">
-          {teacherOptions.map((label) => (
-              <ToggleBox key={label} label={label} active={selectedTeacher.includes(label)}/>
-          ))}
+        {/* Teachers */}
+        <div className="mb-6 text-center text-lg font-semibold text-gray-700">Teacher Doing</div>
+        <div className="mb-4 flex flex-wrap justify-center gap-2">
+            {teacherOptions.map((label) => (
+                <ToggleBox key={label} label={label} active={selectedTeacher.includes(label)}/>
+            ))}
         </div>
-        {teacherComments && (
-            <div className="mt-2 text-sm text-gray-700 italic">Notes: {teacherComments}</div>
-        )}
+
+        {/* Comments */}
+        <div className="collapse-arrow collapse mt-4 border border-gray-300">
+            <input type="checkbox"/>
+            <div className="collapse-title text-lg font-semibold">Observation Comments</div>
+            <div className="collapse-content">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col">
+                        <label className="mb-1 text-sm font-medium text-gray-700">Comments for the Professor</label>
+                        <textarea className="w-full rounded border border-gray-300 p-2" value={teacherComments}
+                                  readOnly/>
+                    </div>
+                    <div className="flex flex-col">
+                        <label className="mb-1 text-sm font-medium text-gray-700">Comments for the Students</label>
+                        <textarea className="w-full rounded border border-gray-300 p-2" value={studentComments}
+                                  readOnly/>
+                    </div>
+                </div>
+            </div>
       </div>
     </div>
   );

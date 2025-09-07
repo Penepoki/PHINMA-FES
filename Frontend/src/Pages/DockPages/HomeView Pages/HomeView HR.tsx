@@ -84,7 +84,8 @@ function Home() {
   return (
     <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
       <DashboardHeader />
-      <div className="mt-60 flex h-full w-full flex-col items-center justify-start overflow-auto bg-black/20">
+        <div
+            className="mt-60 flex h-full w-full flex-col items-center justify-start overflow-auto bg-black/5 rounded-2xl">
         {selectedSchool ? (
           <>
             <h2 className="mt-6 mb-4 text-4xl font-bold text-white">
@@ -106,6 +107,15 @@ function Home() {
                 <span>{loadError}</span>
               </div>
             )}
+
+              {/* ▼ New title above the cards */}
+              <div className="w-full text-center px-6 pt-6">
+                  <h2 className="text-2xl font-semibold text-white">
+                      PHINMA Saint Jude College Manila Departments
+                  </h2>
+                  <div className="mt-2 h-px w-full bg-white/20"/>
+              </div>
+
             <SchoolCards
               school={schools}
               isLoading={isLoading} // ← toggles daisyUI skeletons

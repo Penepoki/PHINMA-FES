@@ -177,8 +177,9 @@ def user_view_profile(request):
     # email domain restriction
     if 'email' in payload:
         email = payload['email']
-        if not email or not re.search(r"@sjc@phinmaed\.com$", email) and not re.search(r"\.sjc@phinmaed\.com$", email):
-            return Response({'detail': 'Email must be within the .sjc@phinmaed.com domain.'},
+        # Enforce sjc.phinmaed.com email domain (fix previous invalid regex)
+        if not email or not email.lower().endswith("@sjc.phinmaed.com"):
+            return Response({'detail': 'Email must end with @sjc.phinmaed.com.'},
                             status=status.HTTP_400_BAD_REQUEST)
         # ensure uniqueness
         if User.objects.filter(email=email).exclude(id=user.id).exists():
@@ -751,13 +752,33 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         teacher_options = [choice[1] for choice in Timestamp.INSTRUCTOR_ACTIVITY_CHOICES]
 
         for e in latest_evals:
-            # Build absolute image URL using request if profile_picture exists
-            if getattr(e.instructor, 'profile_picture', None):
-                try:
-                    faculty_image = request.build_absolute_uri(e.instructor.profile_picture.url)
-                except Exception:
-                    faculty_image = None
-            else:
+            # Build absolute image URL with existence check and fallback
+            faculty_image = None
+            pp = getattr(e.instructor, 'profile_picture', None)
+            try:
+                if pp and getattr(pp, 'name', None):
+                    # Primary: if file exists in storage
+                    try:
+                        if pp.storage.exists(pp.name):
+                            faculty_image = request.build_absolute_uri(pp.url)
+                        else:
+                            raise FileNotFoundError
+                    except Exception:
+                        # Fallback: try project-level 'profile_pictures_root'
+                        import os
+                        from pathlib import Path
+                        from django.conf import settings
+                        from django.core.files.base import File as DjangoFile
+                        basename = os.path.basename(pp.name)
+                        fallback_dir = Path(settings.BASE_DIR).parent / 'profile_pictures_root'
+                        fallback_path = fallback_dir / basename
+                        if fallback_path.exists():
+                            with open(fallback_path, 'rb') as f:
+                                saved_name = pp.storage.save(f"profile_pictures/{basename}", DjangoFile(f))
+                            e.instructor.profile_picture.name = saved_name
+                            e.instructor.save(update_fields=['profile_picture'])
+                            faculty_image = request.build_absolute_uri(e.instructor.profile_picture.url)
+            except Exception:
                 faculty_image = None
 
             data.append({

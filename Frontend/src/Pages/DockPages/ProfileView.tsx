@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from "react";
+import api from "../../utils/api";
 import BreadAndLogout from "../../Components/Bread and Logout";
 
 interface ProfileProps {
@@ -15,7 +16,6 @@ type MeResponse = {
     // add any other fields your serializer returns
 };
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
 
 export default function Profile({setActiveView}: ProfileProps) {
     const [me, setMe] = useState<MeResponse | null>(null);
@@ -43,7 +43,6 @@ export default function Profile({setActiveView}: ProfileProps) {
 
     // Helpers
     const getToken = () => localStorage.getItem("token");
-    const authHeaders = () => ({Authorization: `Token ${getToken()}`});
 
     // 1) Load current user on mount so avatar persists across routes
     useEffect(() => {
@@ -51,9 +50,7 @@ export default function Profile({setActiveView}: ProfileProps) {
             const token = getToken();
             if (!token) return;
             try {
-                const res = await fetch(`${API_BASE}/user-profile/`, {headers: authHeaders()});
-                if (!res.ok) throw new Error(`GET /user-profile/ failed: ${res.status}`);
-                const user: MeResponse = await res.json();
+                const {data: user} = await api.get<MeResponse>(`/user-profile/`);
                 setMe(user);
                 const name =
                     user.full_name ||
@@ -101,13 +98,7 @@ export default function Profile({setActiveView}: ProfileProps) {
             if (profileData.email !== undefined) body.email = profileData.email;
 
             if (Object.keys(body).length) {
-                const res = await fetch(`${API_BASE}/user-profile/`, {
-                    method: "PATCH",
-                    headers: {"Content-Type": "application/json", ...authHeaders()},
-                    body: JSON.stringify(body),
-                });
-                if (!res.ok) throw new Error(`PATCH /user-profile/ failed: ${res.status}`);
-                const updated: MeResponse = await res.json();
+                const {data: updated} = await api.patch<MeResponse>(`/user-profile/`, body);
                 setMe(updated);
                 setProfileData((p) => ({
                     ...p,
@@ -120,23 +111,18 @@ export default function Profile({setActiveView}: ProfileProps) {
 
             // Change password if provided and OTP verified
             if (otpVerified && passwords.new) {
-                const res2 = await fetch(`${API_BASE}/user-profile/change-password/`, {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json", ...authHeaders()},
-                    body: JSON.stringify({
+                const {data: data2} = await api.post(`/user-profile/change-password/`, {
                         old_password: passwords.current,
                         new_password: passwords.new,
                         otp
-                    })
                 });
-                const data2 = await res2.json();
-                if (!res2.ok) throw new Error(data2?.detail || data2?.message || `Change password failed: ${res2.status}`);
             }
 
             alert("Profile changes saved!");
         } catch (err: any) {
             console.error(err);
-            alert(err?.message || "Failed to save changes");
+            const detail = err?.response?.data?.detail || err?.response?.data?.message;
+            alert(detail || err?.message || "Failed to save changes");
         }
   };
 
@@ -169,16 +155,7 @@ export default function Profile({setActiveView}: ProfileProps) {
         // Local upload via multipart form-data
         const form = new FormData();
         form.append("avatar", file);
-        const uploadRes = await fetch(`${API_BASE}/user-profile/upload-avatar/`, {
-        method: "POST",
-            headers: {...authHeaders()},
-            body: form,
-      });
-        if (!uploadRes.ok) {
-            const txt = await uploadRes.text();
-            throw new Error(`Upload failed (${uploadRes.status}): ${txt}`);
-        }
-        const updated: MeResponse = await uploadRes.json();
+        const {data: updated} = await api.post<MeResponse>(`/user-profile/upload-avatar/`, form, {headers: {"Content-Type": "multipart/form-data"}});
         setMe(updated);
         // 4) Update UI immediately
         setProfileData((prev) => ({...prev, avatar: updated.profile_picture_url || prev.avatar}));
@@ -186,7 +163,8 @@ export default function Profile({setActiveView}: ProfileProps) {
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err?.message || "Upload failed.");
+        const detail = err?.response?.data?.detail || err?.response?.data?.message;
+        setErrorMsg(detail || err?.message || "Upload failed.");
     } finally {
       setUploading(false);
       setProgress(0);
@@ -302,15 +280,12 @@ export default function Profile({setActiveView}: ProfileProps) {
                       className="btn btn-outline btn-primary mb-2"
                       onClick={async () => {
                           try {
-                              const res = await fetch(`${API_BASE}/user-profile/request-otp/`, {
-                                  method: "POST",
-                                  headers: {"Content-Type": "application/json", ...authHeaders()},
-                              });
-                              if (!res.ok) throw new Error(`Request OTP failed: ${res.status}`);
+                              await api.post(`/user-profile/request-otp/`);
                               setOtpRequested(true);
                               alert("OTP sent to your email.");
                           } catch (err: any) {
-                              alert(err?.message || "Failed to request OTP");
+                              const detail = err?.response?.data?.detail || err?.response?.data?.message;
+                              alert(detail || err?.message || "Failed to request OTP");
                           }
                       }}
                   >
@@ -332,17 +307,12 @@ export default function Profile({setActiveView}: ProfileProps) {
                           className="btn btn-success"
                           onClick={async () => {
                               try {
-                                  const res = await fetch(`${API_BASE}/user-profile/verify-otp/`, {
-                                      method: "POST",
-                                      headers: {"Content-Type": "application/json", ...authHeaders()},
-                                      body: JSON.stringify({otp})
-                                  });
-                                  const data = await res.json();
-                                  if (!res.ok) throw new Error(data?.detail || data?.message || `Verify OTP failed: ${res.status}`);
+                                  await api.post(`/user-profile/verify-otp/`, {otp});
                                   setOtpVerified(true);
                                   alert("OTP verified. You can now change your password.");
                               } catch (err: any) {
-                                  alert(err?.message || "Failed to verify OTP");
+                                  const detail = err?.response?.data?.detail || err?.response?.data?.message;
+                                  alert(detail || err?.message || "Failed to verify OTP");
                               }
                           }}
                       >

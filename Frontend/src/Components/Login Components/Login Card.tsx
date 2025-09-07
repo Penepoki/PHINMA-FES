@@ -48,6 +48,9 @@ function LoginCard() {
     setError(null);
 
     try {
+      // Clear any stale faculty context id on the client before starting a new login
+      localStorage.removeItem("faculty_id");
+
       const response = await api.post(
         "/login/",
         {
@@ -90,6 +93,22 @@ function LoginCard() {
       localStorage.setItem("userRole", userRole);
       if (faculty_id) {
         localStorage.setItem("faculty_id", faculty_id);
+      }
+
+      // Clear HR temp context on backend (ignore errors for non-HR)
+      try {
+        await api.post("/clear-faculty-context/");
+      } catch {
+      }
+
+      // Fetch dashboard info to store name and avoid stale UI
+      try {
+        const me = await api.get("/user-dashboard/");
+        if (me?.data) {
+          if (me.data.first_name) localStorage.setItem("firstName", me.data.first_name);
+          if (me.data.last_name) localStorage.setItem("lastName", me.data.last_name);
+        }
+      } catch {
       }
 
       switch (userRole) {
@@ -288,6 +307,22 @@ function LoginCard() {
       localStorage.setItem("userRole", userRole);
       if (faculty_id) localStorage.setItem("faculty_id", faculty_id);
 
+      // Clear HR temp context on backend (ignore errors for non-HR)
+      try {
+        await api.post("/clear-faculty-context/");
+      } catch {
+      }
+
+      // Fetch dashboard info to store name and avoid stale UI
+      try {
+        const me = await api.get("/user-dashboard/");
+        if (me?.data) {
+          if (me.data.first_name) localStorage.setItem("firstName", me.data.first_name);
+          if (me.data.last_name) localStorage.setItem("lastName", me.data.last_name);
+        }
+      } catch {
+      }
+
       // navigate according to role
       switch (userRole) {
         case "Dean":
@@ -322,7 +357,8 @@ function LoginCard() {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
-    <div className="card card-border z-50 mx-auto w-[90%] max-w-[28rem] bg-white opacity-95 shadow-2xl transition-opacity duration-300 ease-in-out hover:opacity-100 lg:mr-40">
+      <div
+          className="card card-border relative z-50 mx-auto w-[90%] max-w-[28rem] bg-white opacity-95 shadow-2xl transition-opacity duration-300 ease-in-out hover:opacity-100 lg:mr-40">
       <div className="card-body space-y-1 md:space-y-3">
         <h2 className="card-title text-center text-3xl font-bold">
           {isSignUp
@@ -334,6 +370,41 @@ function LoginCard() {
 
         {!isSignUp && !isForgotPassword ? (
           <>
+            {/* OTP Full-Card Overlay */}
+            {isOtpSent && (
+                <div
+                    className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-white/95 p-6 shadow-2xl">
+                  <h3 className="mb-4 text-2xl font-bold">Enter the 6-digit OTP</h3>
+                  <p className="mb-4 text-center text-gray-600">We sent a one-time passcode to your email.</p>
+                  <div className="mb-4 flex justify-center gap-2">
+                    {otp.map((digit, index) => (
+                        <input
+                            key={index}
+                            ref={(el) => {
+                              otpRefs.current[index] = el;
+                            }}
+                            type="text"
+                            maxLength={1}
+                            className="input w-12 text-center text-xl"
+                            value={digit}
+                            onChange={(e) => handleOtpChange(e, index)}
+                            onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                        />
+                    ))}
+                  </div>
+                  <div className="flex w-full max-w-sm flex-col gap-2">
+                    <button
+                        onClick={verifyOtp}
+                        disabled={isLoading}
+                        className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
+                    >
+                      {isLoading ? "Verifying OTP..." : "Verify OTP"}
+                    </button>
+                    {error && <p className="text-center text-red-500">{error}</p>}
+                  </div>
+                </div>
+            )}
+
             {/* Login Fields */}
             <div className="floating-label relative">
               <span>Username or Email</span>
