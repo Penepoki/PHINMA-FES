@@ -173,13 +173,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-<<<<<<< HEAD
+
 # Media files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-=======
-MEDIA_ROOT = BASE_DIR / "/var/www/fes/media"
->>>>>>> 89e82bc478d22f3b399d8dd75ffc704a1a8f4518
+MEDIA_ROOT =  "/var/www/fes/media"
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
