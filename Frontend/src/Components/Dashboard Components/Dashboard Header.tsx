@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import api from "../../utils/api.ts";
 
-const greetings = ["Hi", "Bonjour", "Mabuhay"];
-
 // Priority consistent with your app's expectations
 const ROLE_PRIORITY = ["Dean", "Program Head", "HR", "Professor", "Student"] as const;
 
@@ -37,25 +35,18 @@ const pickPrimaryRole = (
   roles: string[],
   { isTempFaculty, isSuperuser }: { isTempFaculty: boolean; isSuperuser: boolean }
 ) => {
-  // Mirror how your Professors page treats power: HR and superuser can modify.
-  // For DISPLAY, we’ll prefer the explicit roles; if acting-as-HR (isTempFaculty),
-  // we inject HR as a candidate too so the header reflects that capability.
   let pool = roles.map(normalizeRole);
 
   if (isTempFaculty && !pool.includes("HR")) pool = [...pool, "HR"];
 
-  // NOTE: You might want to show something special for superusers. For now,
-  // we do not add a visible "Admin" prefix. Superuser just gains HR-like power,
-  // and we keep display focused on functional roles above.
   for (const p of ROLE_PRIORITY) {
     if (pool.includes(p)) return p;
   }
-  return pool[0]; // fallback to the first role we saw
+  return pool[0]; // fallback
 };
 
 const DashboardHeader = () => {
   const [displayName, setDisplayName] = useState("User");
-  const [greeting, setGreeting] = useState("Hi");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutMessage, setLogoutMessage] = useState("");
   const [primaryRole, setPrimaryRole] = useState<string | undefined>(
@@ -63,39 +54,29 @@ const DashboardHeader = () => {
   );
   const navigate = useNavigate();
 
-  // Mirror flags the same way your Professors page does
   const isTempFaculty = useMemo(() => localStorage.getItem("isTempFaculty") === "true", []);
   const isSuperuser = useMemo(() => localStorage.getItem("is_superuser") === "true", []);
 
   useEffect(() => {
-    // Greeting based on visit counter
-    const visitCount = parseInt(localStorage.getItem("visitCount") || "0", 10);
-    const nextCount = visitCount + 1;
-    localStorage.setItem("visitCount", nextCount.toString());
-    setGreeting(greetings[visitCount % greetings.length]);
-
     const cachedName = sessionStorage.getItem("fullName");
     if (cachedName) setDisplayName(cachedName);
 
-    // Fetch roles the same way as Professors page: /admin/users/me/
     (async () => {
       try {
         const me = await api.get("/admin/users/me/");
         const rolesRead: string[] = Array.isArray(me.data?.roles_read) ? me.data.roles_read : [];
-
         const primary = pickPrimaryRole(rolesRead, { isTempFaculty, isSuperuser });
         if (primary) {
           setPrimaryRole(primary);
           sessionStorage.setItem("userRole", primary);
         }
       } catch {
-        // ignore; we still might have cached role
+        // ignore
       }
     })();
 
-    // Fetch the display name (your existing source)
     (async () => {
-      if (cachedName) return; // already cached
+      if (cachedName) return;
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
@@ -132,7 +113,6 @@ const DashboardHeader = () => {
         headers: { Authorization: `Token ${token}` },
       });
 
-      // Clear both storages (mirror your project’s keys)
       localStorage.removeItem("token");
       localStorage.removeItem("fullName");
       localStorage.removeItem("visitCount");
@@ -156,7 +136,7 @@ const DashboardHeader = () => {
       <header className="absolute top-0 z-1 flex h-[15%] w-full items-end justify-between border-b-2 border-gray-600 px-6 shadow-2xl backdrop-blur-lg">
         <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:gap-6">
           <h1 className="text-5xl text-white md:text-7xl">
-            <span className="font-thin">{greeting}</span>
+            <span className="font-thin">Hi</span>
             {", "}
             <span className="font-bold">{prefixedName}</span>
           </h1>
@@ -168,7 +148,6 @@ const DashboardHeader = () => {
             (document.getElementById("logout_modal") as HTMLDialogElement)?.showModal()
           }
         >
-          {/* logout icon */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"

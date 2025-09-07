@@ -8,11 +8,21 @@ interface GaugeChartProps {
   value: number; // 0-100
   label?: string;
   color?: string;
+  textColor?: string; // ✅ NEW PROP
   onRendered?: (img: string) => void;
 }
 
 const GaugeChart = forwardRef<any, GaugeChartProps>(
-  ({ value, label = "Active Learning %", color = "#4ECDC4", onRendered }, ref) => {
+  (
+    {
+      value,
+      label = "Active Learning %",
+      color = "#4ECDC4",
+      textColor = "text-white", // ✅ default keeps old behavior
+      onRendered,
+    },
+    ref,
+  ) => {
     // Clamp value between 0 and 100
     const displayValue = Math.max(0, Math.min(100, value));
     const formattedValue = displayValue.toFixed(2);
@@ -41,10 +51,9 @@ const GaugeChart = forwardRef<any, GaugeChartProps>(
       cutout: "80%",
     } as const;
 
-    // Ref to Chart.js instance
     const chartRef = useRef<any>(null);
 
-    // Expose Chart.js instance methods to parent via ref
+    // Expose Chart.js instance methods
     useImperativeHandle(
       ref,
       () => ({
@@ -54,7 +63,6 @@ const GaugeChart = forwardRef<any, GaugeChartProps>(
       [],
     );
 
-    // Add onAfterRender callback
     const chartOptions = {
       ...baseOptions,
       plugins: {
@@ -72,9 +80,11 @@ const GaugeChart = forwardRef<any, GaugeChartProps>(
       <div className="relative flex h-28 w-48 flex-col items-center justify-center">
         <Doughnut ref={chartRef} data={data} options={chartOptions as any} width={192} height={112} />
         <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-          {/* Forced white text */}
-          <span className="text-3xl mt-8 font-bold text-white drop-shadow-lg">{formattedValue}%</span>
-          <span className="text-md text-white">{label}</span>
+          {/* ✅ Text color now controlled via prop */}
+          <span className={`mt-8 text-3xl font-bold drop-shadow-lg ${textColor}`}>
+            {formattedValue}%
+          </span>
+          <span className={`text-md ${textColor}`}>{label}</span>
         </div>
       </div>
     );
