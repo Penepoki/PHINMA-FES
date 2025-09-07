@@ -5,6 +5,15 @@ import DashboardHeader from "../../../Components/Dashboard Components/Dashboard 
 import api from "../../../utils/api";
 import { mapTypeToFrontend } from "../../../Components/Evaluation Components/CreateStudentQuestion";
 
+// --- If SubjectCardItem is exported from Subject Cards, import it instead.
+// For safety we redeclare the minimal shape SubjectCards expects:
+type SubjectCardItem = {
+  name: string;
+  image?: string | null;
+  bgColor?: string;
+  textColor?: string;
+};
+
 interface Schedule {
   id: number;
   subject_name: string;
@@ -212,6 +221,18 @@ function Home() {
   const unfinishedSubjects = subjects.filter((s) => !s.isCompleted);
   const finishedSubjects = subjects.filter((s) => s.isCompleted);
 
+  // Map internal Subject → SubjectCardItem with visual cue when completed
+  const toCardItem = (s: Subject): SubjectCardItem => ({
+    name: s.name,
+    image: s.image ?? null,
+    textColor: "text-white",
+    // green-ish / distinct look when finished; fallback style when unfinished
+    bgColor: s.isCompleted ? "backdrop-hue-rotate-700" : "backdrop-hue-700",
+  });
+
+  const unfinishedCardItems: SubjectCardItem[] = unfinishedSubjects.map(toCardItem);
+  const finishedCardItems: SubjectCardItem[] = finishedSubjects.map(toCardItem);
+
   return (
     <div className="home-page z-10 flex h-full w-full flex-col items-center justify-center gap-y-6">
       {/* Header */}
@@ -224,18 +245,21 @@ function Home() {
           <div>
             <SectionHeader title="Unfinished Subjects" />
             <SubjectCards
-              subjects={unfinishedSubjects}
-              onClick={handleSubjectClick}
-              completedSubjects={new Set()}
+              subjects={unfinishedCardItems}
+              onClick={(name) => {
+                // SubjectCards expects void-returning handler
+                void handleSubjectClick(name);
+              }}
             />
           </div>
 
           <div>
             <SectionHeader title="Finished Subjects" />
             <SubjectCards
-              subjects={finishedSubjects}
-              onClick={handleSubjectClick}
-              completedSubjects={new Set()}
+              subjects={finishedCardItems}
+              onClick={(name) => {
+                void handleSubjectClick(name);
+              }}
             />
           </div>
         </div>
@@ -281,7 +305,7 @@ function Home() {
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
-                handleSubmitEvaluation(formData);
+                void handleSubmitEvaluation(formData);
               }}
             >
               <div className="flex flex-col gap-12">

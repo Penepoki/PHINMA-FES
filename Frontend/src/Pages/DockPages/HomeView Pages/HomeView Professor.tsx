@@ -155,7 +155,7 @@ function Home() {
       </div>
 
       {/* Cards */}
-      <div className="mt-4 flex h-full w-full flex-col items-center justify-start overflow-auto">
+      <div className="mt-4 flex bg-black/5 h-full w-full rounded-2xl flex-col items-center justify-start overflow-auto">
         <EvalCards
           evaluations={evaluationCardData}
           onEvalClick={handleEvalClick}
