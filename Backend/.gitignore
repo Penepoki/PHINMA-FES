@@ -22,6 +22,8 @@ db.sqlite3
 staticfiles/
 media/
 
+SaintJudeDjango/settings.py
+
 # Don't ignore migrations
 # Only ignore Python bytecode
 **/migrations/__pycache__/
