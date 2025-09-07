@@ -33,20 +33,20 @@ function Dashboard({ role }: { role: string }) {
   const viewComponents: Record<string, JSX.Element> = {
     home:
       role === "Dean" || role === "Program Head" ? (
-          <HomeViewDean activeView={activeView} setActiveView={setActiveView}/>
+        <HomeViewDean activeView={activeView} setActiveView={setActiveView} />
       ) : role === "HR" ? (
         <HomeViewHR />
       ) : role === "Student" ? (
         <HomeViewStudent />
       ) : role === "Professor" ? (
-          <HomeViewProfessor/>
+        <HomeViewProfessor />
       ) : (
         <div>Home</div>
       ),
     profile: <Profile setActiveView={setActiveView} />,
     //Evaluation sub-components
     evaluation: <Evaluation setActiveView={setActiveView} />,
-      createStudentEval: <CreateStudentEvaluation setActiveView={setActiveView}/>,
+    createStudentEval: <CreateStudentEvaluation setActiveView={setActiveView} />,
     studentEval: <StudentEvaluation setActiveView={setActiveView} />,
     evalSummary: <EvaluationSummary setActiveView={setActiveView} />,
     // Resource Group sub-components
@@ -56,7 +56,7 @@ function Dashboard({ role }: { role: string }) {
     schedules: <Schedules setActiveView={setActiveView} />,
     subjects: <Subject setActiveView={setActiveView} />,
     sections: <Sections setActiveView={setActiveView} />,
-      professors: <Professors setActiveView={setActiveView}/>,
+    professors: <Professors setActiveView={setActiveView} />,
     //Lean Six Sigma
     leansixsigma: <LeanSixSigma setActiveView={setActiveView} />,
   };
@@ -94,7 +94,7 @@ function Dashboard({ role }: { role: string }) {
         <header
           className="absolute top-0 left-0 z-1 flex h-[20%] w-full items-center justify-end space-x-5 pl-7"
           style={{
-              background: "linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0))",
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0))",
           }}
         ></header>
 
@@ -104,17 +104,15 @@ function Dashboard({ role }: { role: string }) {
 
           {/* Main content that grows to fill available space */}
           <main
-              className={`z-40 flex-1 overflow-y-auto px-3 pt-6 pb-6 transition-all duration-300 md:px-10 ${
-                  isDockVisible ? (isExpandedDock ? "pb-6 md:pb-6" : "pb-0 md:pb-0") : "pb-0"
+            className={`z-40 flex-1 overflow-y-auto px-3 pt-6 pb-6 transition-all duration-300 md:px-10 ${isDockVisible ? (isExpandedDock ? "pb-6 md:pb-6" : "pb-0 md:pb-0") : "pb-0"
               }`}
           >
-              {viewComponents[activeView] || <div>View not found</div>}
+            {viewComponents[activeView] || <div>View not found</div>}
           </main>
 
           {/* Dock: height transition controlled */}
           <nav
-              className={`z-41 transition-all duration-300 ${
-                  isDockVisible ? (isExpandedDock ? "h-[100px]" : "h-[50px]") : "h-0"
+            className={`z-41 transition-all duration-300 ${isDockVisible ? (isExpandedDock ? "h-[100px]" : "h-[50px]") : "h-0"
               } overflow-hidden`}
           >
             {role === "Dean" || role === "Program Head" ? (
@@ -124,7 +122,7 @@ function Dashboard({ role }: { role: string }) {
                 isDockVisible={isDockVisible}
                 setIsDockVisible={setIsDockVisible}
               />
-            ) : role === "Student" ? (
+            ) : role === "Student" || role === "Professor" ? (
               <NavbarStudent
                 activeView={activeView}
                 setActiveView={setActiveView}
