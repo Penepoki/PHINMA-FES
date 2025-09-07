@@ -49,7 +49,9 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const FacultyCardSkeleton = () => {
   return (
     <>
-        <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">Recently Evaluated Faculty:</p>
+        <p className="mb-2 text-lg text-center text-gray-300 sm:text-xl md:mb-6">
+            Recently Evaluated Faculty:
+        </p>
 
       <div
         className="tooltip tooltip-top flex w-full flex-col items-center justify-center"
@@ -222,7 +224,7 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
 
   return (
     <>
-        <p className="mb-2 text-lg text-gray-300 sm:text-xl md:mb-6">Recently Evaluated Faculty:</p>
+        <p className="mb-2 text-lg text-center text-gray-300 sm:text-xl md:mb-6">Recently Evaluated Faculty:</p>
 
       <div
         className="tooltip tooltip-top flex w-full flex-col items-center justify-center"

@@ -69,7 +69,7 @@ const COLORS = {
     green: "#16a34a", // success
     yellow: "#f59e0b", // warning
     red: "#ef4444", // error
-    blueHeader: "bg-blue-600", // table header background
+    blueHeader: "bg-gradient-to-r from-[#1c402a] to-[#1b2e3e]", // table header background
 };
 
 const CopusSummaryTable: React.FC<CopusSummaryTableProps> = ({
@@ -112,6 +112,7 @@ const CopusSummaryTable: React.FC<CopusSummaryTableProps> = ({
               value={avgActiveLearning}
               label="Active Learning % (Avg)"
               color={avgGaugeColor} // keep the colored arc
+              textColor="text-black"
             />
           </div>
 
@@ -144,86 +145,81 @@ const CopusSummaryTable: React.FC<CopusSummaryTableProps> = ({
       </div>
 
       {/* Card: Per‑COPUS Gauges (TRULY WHITE) */}
-        <div className="card border border-gray-200 bg-white shadow-lg">
-        <div className="card-body">
-          <h4 className="text-lg font-bold text-gray-900">
-            Active Learning Percentage for Each COPUS
-          </h4>
+        <div className="border rounded-2xl p-12 border-gray-200 bg-white shadow-lg">
+            <h4 className="text-lg font-bold text-gray-900">
+                Active Learning Percentage for Each COPUS
+            </h4>
 
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-6">
-            {copusEvals.map((copuseval, idx) => {
-                const perc = evaluationTallies[copuseval.id]?.activeLearningPercentage ?? 0;
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-6">
+                {copusEvals.map((copuseval, idx) => {
+                    const perc = evaluationTallies[copuseval.id]?.activeLearningPercentage ?? 0;
 
-              let gaugeColor = COLORS.green;
-              if (perc < 40) gaugeColor = COLORS.red;
-              else if (perc < 70) gaugeColor = COLORS.yellow;
+                    let gaugeColor = COLORS.green;
+                    if (perc < 40) gaugeColor = COLORS.red;
+                    else if (perc < 70) gaugeColor = COLORS.yellow;
 
-              return (
-                <GaugeChart
-                  key={copuseval.id}
-                  value={perc}
-                  label={`COPUS ${idx + 1}: ${perc.toFixed(2)}%`}
-                  color={gaugeColor} // keep explicit colored arc
-                />
-              );
-            })}
-          </div>
+                    return (
+                        <GaugeChart
+                            key={copuseval.id}
+                            value={perc}
+                            label={`COPUS ${idx + 1}: ${perc.toFixed(2)}%`}
+                            color={gaugeColor} // keep explicit colored arc
+                            textColor="text-black"
+                        />
+                    );
+                })}
         </div>
       </div>
 
       {/* Student Activities (TRULY WHITE, BLUE HEADERS) */}
-        <div className="card border border-gray-200 bg-white shadow-lg">
-        <div className="card-body">
-            <h4 className="mb-2 font-bold text-gray-900">
-            Student Activities (Average across 3 COPUS Evaluations)
-          </h4>
+        <div className="border p-12 border-gray-200 bg-white shadow-lg rounded-2xl">
+            <h4 className="mb-2 font-bold text-lg text-gray-900">
+                Student Activities (Average across 3 COPUS Evaluations)
+            </h4>
 
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="table">
-              <thead className={`${COLORS.blueHeader} text-white`}>
-                <tr>
-                  <th className="font-bold">Activity</th>
-                    <th className="text-right font-bold">Student Avg</th>
-                </tr>
-              </thead>
-              <tbody className="text-gray-900">
-                {studentOptions.map((activity) => (
-                    <tr key={activity} className="transition-colors hover:bg-blue-50">
-                    <td className="whitespace-pre-line">{activity}</td>
-                        <td className="text-right">{avgStudent[activity]?.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="table">
+                    <thead className={`${COLORS.blueHeader} text-white`}>
+                    <tr>
+                        <th className="font-bold">Activity</th>
+                        <th className="text-right font-bold">Student Avg</th>
+                    </tr>
+                    </thead>
+                    <tbody className="text-gray-900">
+                    {studentOptions.map((activity) => (
+                        <tr key={activity} className="transition-colors hover:bg-blue-50">
+                            <td className="whitespace-pre-line">{activity}</td>
+                            <td className="text-right">{avgStudent[activity]?.toFixed(2)}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
         </div>
       </div>
 
       {/* Teacher Activities (TRULY WHITE, BLUE HEADERS) */}
-        <div className="card border border-gray-200 bg-white shadow-lg">
-        <div className="card-body">
-            <h4 className="mb-2 font-bold text-gray-900">
-            Teacher Activities (Average across 3 COPUS Evaluations)
-          </h4>
+        <div className="border p-12 rounded-2xl border-gray-200 bg-white shadow-lg">
+            <h4 className="mb-2 font-bold text-lg text-gray-900">
+                Teacher Activities (Average across 3 COPUS Evaluations)
+            </h4>
 
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="table">
-              <thead className={`${COLORS.blueHeader} text-white`}>
-                <tr>
-                  <th className="font-bold">Activity</th>
-                    <th className="text-right font-bold">Teacher Avg</th>
-                </tr>
-              </thead>
-              <tbody className="text-gray-900">
-                {teacherOptions.map((activity) => (
-                    <tr key={activity} className="transition-colors hover:bg-blue-50">
-                    <td className="whitespace-pre-line">{activity}</td>
-                        <td className="text-right">{avgTeacher[activity]?.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="table">
+                    <thead className={`${COLORS.blueHeader} text-white`}>
+                    <tr>
+                        <th className="font-bold">Activity</th>
+                        <th className="text-right font-bold">Teacher Avg</th>
+                    </tr>
+                    </thead>
+                    <tbody className="text-gray-900">
+                    {teacherOptions.map((activity) => (
+                        <tr key={activity} className="transition-colors hover:bg-blue-50">
+                            <td className="whitespace-pre-line">{activity}</td>
+                            <td className="text-right">{avgTeacher[activity]?.toFixed(2)}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
         </div>
       </div>
     </div>

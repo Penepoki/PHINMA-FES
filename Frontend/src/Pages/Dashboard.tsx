@@ -104,8 +104,7 @@ function Dashboard({ role }: { role: string }) {
 
           {/* Main content that grows to fill available space */}
           <main
-              className={`z-40 flex-1 overflow-y-auto px-3 pt-6 pb-6 transition-all duration-300 md:px-10 ${
-                  isDockVisible ? (isExpandedDock ? "pb-6 md:pb-6" : "pb-0 md:pb-0") : "pb-0"
+              className={`z-40 flex-1 overflow-y-auto px-3 pt-6 pb-6 transition-all duration-300 md:px-10 ${isDockVisible ? (isExpandedDock ? "pb-6 md:pb-6" : "pb-0 md:pb-0") : "pb-0"
               }`}
           >
               {viewComponents[activeView] || <div>View not found</div>}
@@ -113,8 +112,7 @@ function Dashboard({ role }: { role: string }) {
 
           {/* Dock: height transition controlled */}
           <nav
-              className={`z-41 transition-all duration-300 ${
-                  isDockVisible ? (isExpandedDock ? "h-[100px]" : "h-[50px]") : "h-0"
+              className={`z-41 transition-all duration-300 ${isDockVisible ? (isExpandedDock ? "h-[100px]" : "h-[50px]") : "h-0"
               } overflow-hidden`}
           >
             {role === "Dean" || role === "Program Head" ? (
@@ -124,7 +122,7 @@ function Dashboard({ role }: { role: string }) {
                 isDockVisible={isDockVisible}
                 setIsDockVisible={setIsDockVisible}
               />
-            ) : role === "Student" ? (
+            ) : role === "Student" || role === "Professor" ? (
               <NavbarStudent
                 activeView={activeView}
                 setActiveView={setActiveView}
