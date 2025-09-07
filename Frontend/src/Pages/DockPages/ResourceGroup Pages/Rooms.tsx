@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import api from "../../../utils/api";
-import DataTable, {Column} from "../../../Components/Evaluation Components/Data Table";
+import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 
 interface RoomsProps {
   setActiveView: (view: string) => void;
 }
 
-// Define the Room Type
 interface Room {
   id: number;
   name: string;
@@ -24,6 +23,15 @@ function Rooms({ setActiveView }: RoomsProps) {
   // Edit form state
   const [editRoomName, setEditRoomName] = useState("");
   const [currentEditingRoom, setCurrentEditingRoom] = useState<Room | null>(null);
+
+  // Export state
+  const defaultExportName = () => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const d = new Date();
+    const name = `rooms_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.csv`;
+    return name;
+  };
+  const [exportFilename, setExportFilename] = useState<string>(defaultExportName());
 
   const fetchRooms = async () => {
     setLoading(true);
@@ -78,7 +86,6 @@ function Rooms({ setActiveView }: RoomsProps) {
         },
       );
 
-      // Reset edit form and close modal
       resetEditForm();
       (document.getElementById("edit_room_modal") as HTMLDialogElement)?.close();
       fetchRooms();
@@ -131,6 +138,50 @@ function Rooms({ setActiveView }: RoomsProps) {
     (document.getElementById("delete_room_modal") as HTMLDialogElement)?.showModal();
   };
 
+  // --- CSV helpers ---
+  const csvEscape = (value: unknown) => {
+    // Convert to string, handle commas/quotes/newlines
+    const s = String(value ?? "");
+    if (/[",\n]/.test(s)) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  };
+
+  const buildCSV = (rows: Room[]) => {
+    const headers = ["ID", "Name", "Status"];
+    const lines = [
+      headers.join(","), // header row
+      ...rows.map((r) =>
+        [csvEscape(r.id), csvEscape(r.name), csvEscape(r.is_active ? "Active" : "Inactive")].join(","),
+      ),
+    ];
+    return lines.join("\n");
+  };
+
+  const downloadCSV = (csv: string, filename: string) => {
+    // Prepend UTF-8 BOM for Excel compatibility
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename || defaultExportName();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = () => {
+    if (!rooms?.length) {
+      alert("There is no data to export.");
+      return;
+    }
+    const csv = buildCSV(rooms);
+    downloadCSV(csv, exportFilename.endsWith(".csv") ? exportFilename : `${exportFilename}.csv`);
+    (document.getElementById("modal_export_rooms") as HTMLDialogElement)?.close();
+  };
+
   // Actions column render function
   const roomActions = (room: Room) => (
     <div className="flex flex-col items-start gap-2">
@@ -158,7 +209,6 @@ function Rooms({ setActiveView }: RoomsProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
-  // Define columns with proper accessors
   const roomColumns: Column<Room>[] = [
     {
       header: "Name",
@@ -172,6 +222,7 @@ function Rooms({ setActiveView }: RoomsProps) {
           className="toggle"
           type="checkbox"
           checked={room.is_active}
+          onChange={() => { }}
         />
       ),
     },
@@ -189,7 +240,7 @@ function Rooms({ setActiveView }: RoomsProps) {
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Rooms</h2>
-        <span className="mx-6 block font-thin text-[#888888]">
+      <span className="mx-6 block font-thin text-[#888888]">
         This is where you can manage physical or virtual classrooms and link them to evaluations and
         schedules. This is where you can access and organize your institution’s resources—programs,
         subjects, rooms, sections, and schedules—so that evaluation and classroom management run
@@ -200,7 +251,7 @@ function Rooms({ setActiveView }: RoomsProps) {
         {/* New Room Button */}
         <button
           onClick={() =>
-              (document.getElementById("create_new_room") as HTMLDialogElement)?.showModal()
+            (document.getElementById("create_new_room") as HTMLDialogElement)?.showModal()
           }
           className="w-full rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
         >
@@ -210,19 +261,18 @@ function Rooms({ setActiveView }: RoomsProps) {
         {/* Create Room Modal */}
         <dialog id="create_new_room" className="modal">
           <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="mb-4 text-center text-2xl font-bold">Create New Room</h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Create New Room</h3>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 createRoom();
-                  (document.getElementById("create_new_room") as HTMLDialogElement)?.close();
+                (document.getElementById("create_new_room") as HTMLDialogElement)?.close();
               }}
               className="flex flex-col gap-6"
             >
-              {/* Room Name */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
+                <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
                 <input
                   type="text"
                   value={newRoomName}
@@ -233,16 +283,15 @@ function Rooms({ setActiveView }: RoomsProps) {
                 />
               </div>
 
-              {/* Action Buttons */}
               <div className="modal-action">
-                  <button type="submit" className="btn btn-success text-white">
+                <button type="submit" className="btn btn-success text-white">
                   Submit
                 </button>
                 <button
                   type="button"
                   className="btn btn-cancel"
                   onClick={() =>
-                      (document.getElementById("create_new_room") as HTMLDialogElement)?.close()
+                    (document.getElementById("create_new_room") as HTMLDialogElement)?.close()
                   }
                 >
                   Cancel
@@ -255,7 +304,7 @@ function Rooms({ setActiveView }: RoomsProps) {
         {/* Edit Room Modal */}
         <dialog id="edit_room_modal" className="modal">
           <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="mb-4 text-center text-2xl font-bold">Edit Room</h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Edit Room</h3>
 
             <form
               onSubmit={(e) => {
@@ -268,9 +317,8 @@ function Rooms({ setActiveView }: RoomsProps) {
               }}
               className="flex flex-col gap-6"
             >
-              {/* Room Name */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
+                <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
                 <input
                   type="text"
                   value={editRoomName}
@@ -281,9 +329,8 @@ function Rooms({ setActiveView }: RoomsProps) {
                 />
               </div>
 
-              {/* Action Buttons */}
               <div className="modal-action">
-                  <button type="submit" className="btn btn-success text-white">
+                <button type="submit" className="btn btn-success text-white">
                   Update
                 </button>
                 <button
@@ -304,10 +351,10 @@ function Rooms({ setActiveView }: RoomsProps) {
         {/* Delete Room Modal */}
         <dialog id="delete_room_modal" className="modal">
           <div className="modal-box w-11/12 max-w-md">
-              <h3 className="mb-4 text-center text-2xl font-bold">Delete Room</h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Delete Room</h3>
             <p className="mb-6 text-center">
-                Are you sure you want to delete the room "{currentEditingRoom?.name}"? This action
-                cannot be undone.
+              Are you sure you want to delete the room "{currentEditingRoom?.name}"? This action
+              cannot be undone.
             </p>
             <div className="modal-action">
               <button
@@ -337,40 +384,57 @@ function Rooms({ setActiveView }: RoomsProps) {
         <div className="flex flex-row justify-center">
           {/* Export Rooms Button */}
           <button
-            onClick={() =>
-                (document.getElementById("modal_export_rooms") as HTMLDialogElement)?.showModal()
-            }
+            onClick={() => {
+              // refresh default name each open so timestamp is fresh
+              setExportFilename(defaultExportName());
+              (document.getElementById("modal_export_rooms") as HTMLDialogElement)?.showModal();
+            }}
             className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
           >
-            Export Room
+            Export Rooms
           </button>
 
+          {/* Export Modal */}
           <dialog id="modal_export_rooms" className="modal">
             <div className="modal-box w-11/12 max-w-3xl">
-                <h3 className="mb-4 text-center text-2xl font-bold">Export Room</h3>
+              <h3 className="mb-4 text-center text-2xl font-bold">Export Rooms</h3>
 
-                <form method="dialog" className="flex flex-col gap-6">
-                {/* Name Field */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleExport();
+                }}
+                className="flex flex-col gap-6"
+              >
+                {/* Filename Field */}
                 <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                    <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
+                  <label className="text-left text-lg font-bold md:w-1/4">Filename:</label>
                   <input
                     type="text"
-                    value="Room A"
-                    readOnly
-                    className="input input-bordered w-full cursor-not-allowed bg-gray-100"
+                    value={exportFilename}
+                    onChange={(e) => setExportFilename(e.target.value)}
+                    placeholder="rooms_export.csv"
+                    className="input input-bordered w-full"
+                    required
                   />
+                </div>
+
+                {/* Info */}
+                <div className="rounded-lg bg-base-200 p-3 text-sm">
+                  This will export the <strong>currently listed rooms</strong> (after search/filter)
+                  with columns: ID, Name, Status.
                 </div>
 
                 {/* Action Buttons */}
                 <div className="modal-action">
-                    <button type="submit" className="btn btn-success text-white">
+                  <button type="submit" className="btn btn-success text-white">
                     Export
                   </button>
                   <button
                     type="button"
                     className="btn btn-cancel"
                     onClick={() =>
-                        (document.getElementById("modal_export_rooms") as HTMLDialogElement)?.close()
+                      (document.getElementById("modal_export_rooms") as HTMLDialogElement)?.close()
                     }
                   >
                     Cancel
@@ -381,14 +445,15 @@ function Rooms({ setActiveView }: RoomsProps) {
           </dialog>
         </div>
       </div>
-      {/* Search and New Room button */}
+
+      {/* Search */}
       <div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
-          <label htmlFor="search" className="text-lg font-bold text-white"></label>
+        <label htmlFor="search" className="text-lg font-bold text-white"></label>
         <input
           id="search"
           type="text"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
+          onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search by room name"
           className="input input-bordered w-full max-w-md"
         />

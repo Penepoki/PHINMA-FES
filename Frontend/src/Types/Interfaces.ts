@@ -44,4 +44,5 @@ export interface Professor {
   first_name: string;
   last_name: string;
   department?: string;
+    profile_picture_url?: string | null;
 }

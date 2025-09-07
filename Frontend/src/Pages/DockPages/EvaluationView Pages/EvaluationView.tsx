@@ -34,7 +34,9 @@ function Evaluation({ setActiveView }: EvalProps) {
 
   const [loading, setLoading] = useState(true);
   const [searchProfessor, setSearchProfessor] = useState("");
-  const [searchSemester, setSearchSemester] = useState("");
+  // New Year/Semester filters replacing free-text year & semester
+  const [selectedYear, setSelectedYear] = useState<string>("");
+  const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
   // UI state for collapses in the View/Edit modal
@@ -81,6 +83,32 @@ function Evaluation({ setActiveView }: EvalProps) {
       }
     })();
   }, []);
+
+  // Refetch schedules and evaluations when Year/Semester changes
+  useEffect(() => {
+    const fetchWithFilters = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params: Record<string, string> = {};
+        if (selectedYear) params.year = selectedYear;
+        if (selectedSemester) params.semester = selectedSemester;
+        const [evalRes, schedRes] = await Promise.all([
+          api.get("/evaluation/evaluations/", {params}),
+          api.get("/schedule/schedules/", {params}),
+        ]);
+        setEvaluations(evalRes.data || []);
+        setSchedules(schedRes.data || []);
+      } catch (err) {
+        console.error("Error refetching with filters:", err);
+        setError("Failed to apply filters. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    // Always refetch when selection changes (empty selections fetch all via backend)
+    fetchWithFilters();
+  }, [selectedYear, selectedSemester]);
 
   // Prefetch AI feedback when a specific evaluation is selected (view modal path)
   useEffect(() => {
@@ -213,20 +241,12 @@ function Evaluation({ setActiveView }: EvalProps) {
     "Other",
   ];
 
-  // Filtering (professor + semester keyword)
+  // Filtering: by professor name; allow display even if no schedules in current period (to avoid empty UI)
   const filteredProfessors = professors.filter((prof) => {
     const matchName = `${prof.first_name} ${prof.last_name}`
         .toLowerCase()
         .includes(searchProfessor.toLowerCase());
-
-    if (!searchSemester.trim()) return matchName;
-
-    // if semester is provided, keep profs who have any schedule that includes the searchSemester text
-    const hasMatchingSemester = getProfessorSchedules(prof).some((s) =>
-      `${s.year} ${s.semester}`.toLowerCase().includes(searchSemester.toLowerCase()),
-    );
-
-    return matchName && hasMatchingSemester;
+    return matchName;
   });
 
   const firstName = localStorage.getItem("firstName") || "User";
@@ -314,22 +334,34 @@ function Evaluation({ setActiveView }: EvalProps) {
           ))}
         </datalist>
 
-        <input
-          type="text"
-          className="input w-full max-w-md border border-gray-300"
-          placeholder="Year & Semester"
-          value={searchSemester}
-          onChange={(e) => setSearchSemester(e.target.value)}
-          list="year-semester-list"
-          aria-label="Filter by Year & Semester"
-        />
-        <datalist id="year-semester-list">
-          {Array.from(new Set(schedules.map((s) => `${s.year} ${s.semester}`))).map(
-              (item, index) => (
-                  <option key={index} value={item}/>
-              ),
-          )}
-        </datalist>
+        {/* Year combobox */}
+        <select
+            className="select select-bordered w-full max-w-xs"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            aria-label="Filter by Year"
+        >
+          <option value="">All Years</option>
+          {Array.from(new Set(schedules.map((s) => (s.year ? String(s.year).slice(0, 4) : ""))))
+              .filter((y) => y)
+              .sort()
+              .map((y) => (
+                  <option key={y} value={y}>{y}</option>
+              ))}
+        </select>
+
+        {/* Semester combobox */}
+        <select
+            className="select select-bordered w-full max-w-xs"
+            value={selectedSemester}
+            onChange={(e) => setSelectedSemester(e.target.value)}
+            aria-label="Filter by Semester"
+        >
+          <option value="">All Semesters</option>
+          <option value="First">First</option>
+          <option value="Second">Second</option>
+          <option value="Summer">Summer</option>
+        </select>
       </div>
 
       {/* Professors Table */}
@@ -504,7 +536,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                               <div className="avatar mt-3">
                                 <div className="h-24 w-24 rounded-full">
                                   <img
-                                    src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+                                      src={(prof as any)?.profile_picture_url || "https://via.placeholder.com/150"}
                                     alt="Professor avatar"
                                   />
                                 </div>

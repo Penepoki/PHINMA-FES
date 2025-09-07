@@ -751,10 +751,19 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         teacher_options = [choice[1] for choice in Timestamp.INSTRUCTOR_ACTIVITY_CHOICES]
 
         for e in latest_evals:
+            # Build absolute image URL using request if profile_picture exists
+            if getattr(e.instructor, 'profile_picture', None):
+                try:
+                    faculty_image = request.build_absolute_uri(e.instructor.profile_picture.url)
+                except Exception:
+                    faculty_image = None
+            else:
+                faculty_image = None
+
             data.append({
                 "evaluation_number": e.id,
                 "faculty_name": e.instructor.get_full_name() if e.instructor else "Unknown",
-                "faculty_image": getattr(e.instructor, "profile_image", None),
+                "faculty_image": faculty_image,
                 "student_tallies": [tallies[e.id]["studentTallies"][opt]["percentage"] for opt in student_options],
                 "teacher_tallies": [tallies[e.id]["teacherTallies"][opt]["percentage"] for opt in teacher_options]
             })

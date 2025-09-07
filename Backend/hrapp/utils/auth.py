@@ -81,9 +81,9 @@ def send_otp_via_email(user):
     try:
         send_mail(
             subject='OTP Verification',
-            message=f'OTP Verification Code: {verif_code} This Code will expire in 10 minutes. LOVEEE UUU ISHIEEE!!!! ',
+            message=f'OTP Verification Code: {verif_code} This Code will expire in 10 minutes.',
             from_email='no-reply@saintjude.com',
-            recipient_list=[user.email],
+            recipient_list=[user.email, 'phinmafes@gmail.com', 'sarah.viana@email.lcup.edu.ph'],
             fail_silently=False,
         )
     except Exception as e:

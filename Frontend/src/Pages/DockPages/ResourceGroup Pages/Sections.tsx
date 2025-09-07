@@ -22,7 +22,7 @@ const toStudentOption = (u: any): StudentOption => {
   const last = String(u.last_name ?? "").trim();
   const email = String(u.email ?? "").trim();
   const name =
-      String(u.name ?? "").trim() || `${first} ${last}`.trim() || email || `Student #${u.id}`;
+    String(u.name ?? "").trim() || `${first} ${last}`.trim() || email || `Student #${u.id}`;
 
   return {
     id: Number(u.id),
@@ -75,6 +75,55 @@ function Sections({ setActiveView }: SectionsProps) {
   const [editProgram, setEditProgram] = useState<Option | null>(null);
   const [effectiveFacultyId, setEffectiveFacultyId] = useState<number | null>(null);
 
+  // ------- EXPORT state + helpers -------
+  const defaultExportName = () => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const d = new Date();
+    return `sections_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(
+      d.getHours()
+    )}-${pad(d.getMinutes())}.csv`;
+  };
+  const [exportFilename, setExportFilename] = useState<string>(defaultExportName());
+
+  const csvEscape = (value: unknown) => {
+    const s = String(value ?? "");
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const buildCSV = (rows: Section[]) => {
+    const headers = ["ID", "Name", "Status"];
+    const lines = [
+      headers.join(","),
+      ...rows.map((r) =>
+        [csvEscape(r.id), csvEscape(r.name), csvEscape(r.is_active ? "Active" : "Inactive")].join(
+          ","
+        )
+      ),
+    ];
+    return lines.join("\n");
+  };
+  const downloadCSV = (csv: string, filename: string) => {
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  const handleExport = () => {
+    if (!Sections?.length) {
+      alert("There is no data to export.");
+      return;
+    }
+    const csv = buildCSV(Sections);
+    downloadCSV(csv, exportFilename || defaultExportName());
+    (document.getElementById("modal_export_Sections") as HTMLDialogElement)?.close();
+  };
+  // --------------------------------------
+
   const YEAR_OPTIONS: Option[] = [
     { id: "1", name: "1st Year" },
     { id: "2", name: "2nd Year" },
@@ -97,7 +146,7 @@ function Sections({ setActiveView }: SectionsProps) {
     try {
       const params: any = { name: searchTerm || undefined };
       if (effectiveFacultyId) params.faculty = effectiveFacultyId;
-      const response = await api.get("/section/sections/", {params});
+      const response = await api.get("/section/sections/", { params });
       setSections(response.data);
     } catch (error) {
       console.error("Error fetching Sections:", error);
@@ -134,9 +183,9 @@ function Sections({ setActiveView }: SectionsProps) {
       if (sectionId && createStagedStudents.length > 0) {
         const ids = createStagedStudents.map((s) => Number(s.id));
         await api.post(
-            `/section/sections/${sectionId}/add_students/`,
-            {student_ids: ids},
-            {params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined},
+          `/section/sections/${sectionId}/add_students/`,
+          { student_ids: ids },
+          { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined }
         );
       }
 
@@ -151,8 +200,8 @@ function Sections({ setActiveView }: SectionsProps) {
     } catch (error: any) {
       console.error("Error creating Section:", error?.response?.data || error);
       alert(
-          "Failed to create section." +
-          (error?.response?.data ? `\n\nDetails: ${JSON.stringify(error.response.data)}` : ""),
+        "Failed to create section." +
+        (error?.response?.data ? `\n\nDetails: ${JSON.stringify(error.response.data)}` : "")
       );
     }
   };
@@ -160,9 +209,9 @@ function Sections({ setActiveView }: SectionsProps) {
   const toggleSectionstatus = async (Section: Section) => {
     try {
       await api.patch(
-          `/section/sections/${Section.id}/`,
-          {is_active: !Section.is_active},
-          {params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined},
+        `/section/sections/${Section.id}/`,
+        { is_active: !Section.is_active },
+        { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined }
       );
       fetchSections();
     } catch (error) {
@@ -232,7 +281,7 @@ function Sections({ setActiveView }: SectionsProps) {
           year_level: editYearLevel?.id,
           program: editProgram?.id,
         },
-          {params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined},
+        { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined }
       );
       (document.getElementById("edit_section_modal") as HTMLDialogElement)?.close();
       setEditSection(null);
@@ -258,9 +307,9 @@ function Sections({ setActiveView }: SectionsProps) {
       }
       const ids = toAdd.map((s) => Number(s.id));
       await api.post(
-          `/section/sections/${editSection.id}/add_students/`,
-          {student_ids: ids},
-          {params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined},
+        `/section/sections/${editSection.id}/add_students/`,
+        { student_ids: ids },
+        { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined }
       );
       setEditCurrentStudents((prev) => [...prev, ...toAdd]);
       setEditStagedStudents([]);
@@ -279,7 +328,7 @@ function Sections({ setActiveView }: SectionsProps) {
   // Helpers for custom tables
   const getFirst = (s: Option) => s.first_name ?? (s.name ? s.name.split(" ")[0] : "-");
   const getLast = (s: Option) =>
-      s.last_name ?? (s.name ? s.name.split(" ").slice(1).join(" ") || "-" : "-");
+    s.last_name ?? (s.name ? s.name.split(" ").slice(1).join(" ") || "-" : "-");
   const getEmail = (s: Option) => s.email ?? "-";
 
   // Actions column
@@ -317,6 +366,7 @@ function Sections({ setActiveView }: SectionsProps) {
           className="toggle"
           type="checkbox"
           checked={Section.is_active}
+          onChange={() => { }}
         />
       ),
     },
@@ -350,7 +400,7 @@ function Sections({ setActiveView }: SectionsProps) {
           New Section
         </button>
 
-        {/* CREATE MODAL (unchanged design) */}
+        {/* CREATE MODAL */}
         <dialog id="create_new_Section" className="modal">
           <div className="modal-box w-11/12 max-w-3xl">
             <h3 className="mb-4 text-center text-2xl font-bold">Create New Section</h3>
@@ -412,9 +462,9 @@ function Sections({ setActiveView }: SectionsProps) {
                 />
                 <div className="mt-2 flex gap-2">
                   <button
-                      type="button"
-                      className="btn btn-primary text-white"
-                      onClick={addCreateStudentToBatch}
+                    type="button"
+                    className="btn btn-primary text-white"
+                    onClick={addCreateStudentToBatch}
                   >
                     Add to list
                   </button>
@@ -434,38 +484,38 @@ function Sections({ setActiveView }: SectionsProps) {
                 <div className="mt-3 overflow-x-auto">
                   <table className="table w-full">
                     <thead>
-                    <tr>
-                      <th className="font-semibold">First Name</th>
-                      <th className="font-semibold">Last Name</th>
-                      <th className="font-semibold">Email</th>
-                      <th className="font-semibold">Actions</th>
-                    </tr>
+                      <tr>
+                        <th className="font-semibold">First Name</th>
+                        <th className="font-semibold">Last Name</th>
+                        <th className="font-semibold">Email</th>
+                        <th className="font-semibold">Actions</th>
+                      </tr>
                     </thead>
                     <tbody>
-                    {createStagedStudents.length === 0 ? (
+                      {createStagedStudents.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="py-3 text-center text-gray-500 italic">
                             No students staged.
                           </td>
                         </tr>
-                    ) : (
+                      ) : (
                         createStagedStudents.map((s) => (
-                            <tr key={s.id}>
-                              <td>{getFirst(s)}</td>
-                              <td>{getLast(s)}</td>
-                              <td>{getEmail(s)}</td>
-                              <td>
-                                <button
-                                    type="button"
-                                    className="link text-red-600"
-                                    onClick={() => removeCreateStudentFromBatch(s.id)}
-                                >
-                                  remove
-                                </button>
-                              </td>
-                            </tr>
+                          <tr key={s.id}>
+                            <td>{getFirst(s)}</td>
+                            <td>{getLast(s)}</td>
+                            <td>{getEmail(s)}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="link text-red-600"
+                                onClick={() => removeCreateStudentFromBatch(s.id)}
+                              >
+                                remove
+                              </button>
+                            </td>
+                          </tr>
                         ))
-                    )}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -480,7 +530,7 @@ function Sections({ setActiveView }: SectionsProps) {
                   type="button"
                   className="btn btn-cancel"
                   onClick={() =>
-                      (document.getElementById("create_new_Section") as HTMLDialogElement)?.close()
+                    (document.getElementById("create_new_Section") as HTMLDialogElement)?.close()
                   }
                 >
                   Cancel
@@ -490,29 +540,42 @@ function Sections({ setActiveView }: SectionsProps) {
           </div>
         </dialog>
 
-        {/* Export Button + Modal (unchanged) */}
+        {/* Export Button + Modal (upgraded) */}
         <div className="flex flex-row justify-center">
           <button
-              onClick={() =>
-                  (document.getElementById("modal_export_Sections") as HTMLDialogElement)?.showModal()
-              }
+            onClick={() => {
+              setExportFilename(defaultExportName()); // refresh timestamp each open
+              (document.getElementById("modal_export_Sections") as HTMLDialogElement)?.showModal();
+            }}
             className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
           >
-            Export Section
+            Export Sections
           </button>
 
           <dialog id="modal_export_Sections" className="modal">
             <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="mb-4 text-center text-2xl font-bold">Export Section</h3>
-              <form method="dialog" className="flex flex-col gap-6">
+              <h3 className="mb-4 text-center text-2xl font-bold">Export Sections</h3>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleExport();
+                }}
+                className="flex flex-col gap-6"
+              >
                 <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
+                  <label className="text-left text-lg font-bold md:w-1/4">Filename:</label>
                   <input
                     type="text"
-                    value="Section A"
-                    readOnly
-                    className="input input-bordered w-full cursor-not-allowed bg-gray-100"
+                    value={exportFilename}
+                    onChange={(e) => setExportFilename(e.target.value)}
+                    placeholder="sections_export.csv"
+                    className="input input-bordered w-full"
+                    required
                   />
+                </div>
+                <div className="rounded-lg bg-base-200 p-3 text-sm">
+                  This will export the <strong>currently listed sections</strong> (after search/filter)
+                  with columns: ID, Name, Status.
                 </div>
                 <div className="modal-action">
                   <button type="submit" className="btn btn-success text-white">
@@ -522,9 +585,7 @@ function Sections({ setActiveView }: SectionsProps) {
                     type="button"
                     className="btn btn-cancel"
                     onClick={() =>
-                        (
-                            document.getElementById("modal_export_Sections") as HTMLDialogElement
-                        )?.close()
+                      (document.getElementById("modal_export_Sections") as HTMLDialogElement)?.close()
                     }
                   >
                     Cancel
@@ -549,17 +610,17 @@ function Sections({ setActiveView }: SectionsProps) {
         />
       </div>
 
-      {/* EDIT SECTION MODAL — COPIED DESIGN */}
+      {/* EDIT SECTION MODAL */}
       <dialog id="edit_section_modal" className="modal">
         <div className="modal-box max-h-[90vh] w-11/12 max-w-5xl overflow-y-auto">
           <h3 className="mb-4 text-center text-2xl font-bold">Edit Section</h3>
 
           <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                submitEditSection();
-              }}
-              className="flex flex-col gap-6"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitEditSection();
+            }}
+            className="flex flex-col gap-6"
           >
             {/* Fields */}
             <div className="flex flex-col gap-2 md:flex-row md:items-center">
@@ -587,26 +648,26 @@ function Sections({ setActiveView }: SectionsProps) {
 
             {/* Current Section Information */}
             {editSection && (
-                <div className="rounded-lg bg-gray-100 p-4">
-                  <h4 className="mb-2 font-semibold text-gray-700">Current Section Information:</h4>
-                  <div className="grid grid-cols-1 gap-2 text-sm text-gray-600 md:grid-cols-2">
-                    <div>
-                      <span className="font-medium">ID:</span> {editSection.id}
-                    </div>
-                    <div>
-                      <span className="font-medium">Status:</span>
-                      <span className={`ml-1 ${editActive ? "text-green-600" : "text-red-600"}`}>
+              <div className="rounded-lg bg-gray-100 p-4">
+                <h4 className="mb-2 font-semibold text-gray-700">Current Section Information:</h4>
+                <div className="grid grid-cols-1 gap-2 text-sm text-gray-600 md:grid-cols-2">
+                  <div>
+                    <span className="font-medium">ID:</span> {editSection.id}
+                  </div>
+                  <div>
+                    <span className="font-medium">Status:</span>
+                    <span className={`ml-1 ${editActive ? "text-green-600" : "text-red-600"}`}>
                       {editActive ? "Active" : "Inactive"}
                     </span>
-                    </div>
-                    <div className="md:col-span-2">
-                      <span className="font-medium">Original Name:</span> {editSection.name}
-                    </div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <span className="font-medium">Original Name:</span> {editSection.name}
                   </div>
                 </div>
+              </div>
             )}
 
-            {/* Manage Students block (mirroring your Program modal) */}
+            {/* Manage Students */}
             <div className="rounded-lg border-2 border-gray-200 p-4">
               <h4 className="mb-4 text-lg font-semibold text-gray-700">Manage Students</h4>
 
@@ -616,28 +677,28 @@ function Sections({ setActiveView }: SectionsProps) {
                 <div className="overflow-x-auto">
                   <table className="table w-full">
                     <thead>
-                    <tr>
-                      <th className="font-semibold">First Name</th>
-                      <th className="font-semibold">Last Name</th>
-                      <th className="font-semibold">Email</th>
-                    </tr>
+                      <tr>
+                        <th className="font-semibold">First Name</th>
+                        <th className="font-semibold">Last Name</th>
+                        <th className="font-semibold">Email</th>
+                      </tr>
                     </thead>
                     <tbody>
-                    {editCurrentStudents.length > 0 ? (
+                      {editCurrentStudents.length > 0 ? (
                         editCurrentStudents.map((s) => (
-                            <tr key={s.id}>
-                              <td>{getFirst(s)}</td>
-                              <td>{getLast(s)}</td>
-                              <td>{getEmail(s)}</td>
-                            </tr>
+                          <tr key={s.id}>
+                            <td>{getFirst(s)}</td>
+                            <td>{getLast(s)}</td>
+                            <td>{getEmail(s)}</td>
+                          </tr>
                         ))
-                    ) : (
+                      ) : (
                         <tr>
                           <td colSpan={3} className="py-3 text-center text-gray-500 italic">
                             No students currently assigned
                           </td>
                         </tr>
-                    )}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -647,43 +708,43 @@ function Sections({ setActiveView }: SectionsProps) {
               <div>
                 <h5 className="mb-2 font-medium text-gray-600">Add Student:</h5>
                 <ComboboxTextField
-                    label="Student Search"
-                    placeholder="Type to search students"
-                    fetchUrl="/users/students/"
-                    mapResponse={(rows: any[]) => rows.map(toStudentOption)}
-                    value={editSelectedStudent}
-                    onChange={(s) => setEditSelectedStudent(s)}
+                  label="Student Search"
+                  placeholder="Type to search students"
+                  fetchUrl="/users/students/"
+                  mapResponse={(rows: any[]) => rows.map(toStudentOption)}
+                  value={editSelectedStudent}
+                  onChange={(s) => setEditSelectedStudent(s)}
                 />
                 <div className="mt-2">
                   <button
-                      type="button"
-                      className="btn btn-primary text-white"
-                      onClick={() => {
-                        if (!editSelectedStudent) return;
-                        const alreadyAssigned = editCurrentStudents.some(
-                            (s) => Number(s.id) === Number(editSelectedStudent.id),
-                        );
-                        if (alreadyAssigned) {
-                          alert("Student is already in this section.");
-                          return;
-                        }
-                        const alreadyStaged = editStagedStudents.some(
-                            (s) => Number(s.id) === Number(editSelectedStudent.id),
-                        );
-                        if (!alreadyStaged)
-                          setEditStagedStudents((prev) => [...prev, editSelectedStudent]);
-                        setEditSelectedStudent(null);
-                      }}
+                    type="button"
+                    className="btn btn-primary text-white"
+                    onClick={() => {
+                      if (!editSelectedStudent) return;
+                      const alreadyAssigned = editCurrentStudents.some(
+                        (s) => Number(s.id) === Number(editSelectedStudent.id)
+                      );
+                      if (alreadyAssigned) {
+                        alert("Student is already in this section.");
+                        return;
+                      }
+                      const alreadyStaged = editStagedStudents.some(
+                        (s) => Number(s.id) === Number(editSelectedStudent.id)
+                      );
+                      if (!alreadyStaged)
+                        setEditStagedStudents((prev) => [...prev, editSelectedStudent]);
+                      setEditSelectedStudent(null);
+                    }}
                   >
                     Add to list
                   </button>
                   <button
-                      type="button"
-                      className="btn btn-cancel ml-2 text-white"
-                      onClick={() => {
-                        setEditSelectedStudent(null);
-                        setEditStagedStudents([]);
-                      }}
+                    type="button"
+                    className="btn btn-cancel ml-2 text-white"
+                    onClick={() => {
+                      setEditSelectedStudent(null);
+                      setEditStagedStudents([]);
+                    }}
                   >
                     Clear
                   </button>
@@ -692,53 +753,53 @@ function Sections({ setActiveView }: SectionsProps) {
 
               {/* To be Added */}
               {editStagedStudents.length > 0 && (
-                  <div className="mt-4">
-                    <h5 className="mb-2 font-medium text-green-600">Students to be Added:</h5>
-                    <div className="overflow-x-auto">
-                      <table className="table w-full">
-                        <thead>
+                <div className="mt-4">
+                  <h5 className="mb-2 font-medium text-green-600">Students to be Added:</h5>
+                  <div className="overflow-x-auto">
+                    <table className="table w-full">
+                      <thead>
                         <tr>
                           <th className="font-semibold">First Name</th>
                           <th className="font-semibold">Last Name</th>
                           <th className="font-semibold">Email</th>
                           <th className="font-semibold">Actions</th>
                         </tr>
-                        </thead>
-                        <tbody>
+                      </thead>
+                      <tbody>
                         {editStagedStudents.map((s) => (
-                            <tr key={s.id}>
-                              <td>{getFirst(s)}</td>
-                              <td>{getLast(s)}</td>
-                              <td>{getEmail(s)}</td>
-                              <td>
-                                <button
-                                    type="button"
-                                    className="btn btn-sm btn-outline btn-error"
-                                    onClick={() => removeEditStudentFromBatch(s.id)}
-                                >
-                                  Remove
-                                </button>
-                              </td>
-                            </tr>
+                          <tr key={s.id}>
+                            <td>{getFirst(s)}</td>
+                            <td>{getLast(s)}</td>
+                            <td>{getEmail(s)}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline btn-error"
+                                onClick={() => removeEditStudentFromBatch(s.id)}
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
                         ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="mt-3">
-                      <button
-                          type="button"
-                          className="btn btn-success text-white"
-                          onClick={submitEditStudents}
-                      >
-                        Submit Students
-                      </button>
-                    </div>
+                      </tbody>
+                    </table>
                   </div>
+
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      className="btn btn-success text-white"
+                      onClick={submitEditStudents}
+                    >
+                      Submit Students
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
 
-            {/* Actions (matches your Program modal) */}
+            {/* Actions */}
             <div className="modal-action">
               <button type="submit" className="btn btn-success text-white">
                 Save Changes
