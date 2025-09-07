@@ -1,5 +1,5 @@
 import {EyeIcon, EyeSlashIcon, EnvelopeIcon, UserIcon} from "@heroicons/react/24/outline";
-import api from "../../utils/api.ts";
+import api, {markTokenReady} from "../../utils/api.ts";
 import {AxiosError, isAxiosError} from "axios";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router";
@@ -90,6 +90,8 @@ function LoginCard() {
 
       const userRole = roles[0];
       localStorage.setItem("token", token);
+      markTokenReady();
+      await new Promise((r) => setTimeout(r, 0));
       localStorage.setItem("userRole", userRole);
       if (faculty_id) {
         localStorage.setItem("faculty_id", faculty_id);
@@ -304,6 +306,8 @@ function LoginCard() {
 
       const userRole = roles[0];
       localStorage.setItem("token", token);
+      markTokenReady();
+      await new Promise((r) => setTimeout(r, 0));
       localStorage.setItem("userRole", userRole);
       if (faculty_id) localStorage.setItem("faculty_id", faculty_id);
 

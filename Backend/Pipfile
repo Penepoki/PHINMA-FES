@@ -24,6 +24,7 @@ torch = "*"
 transformers = { extras = ["torch"], version = "*" }
 pyyaml = "*"
 boto3 = "*"
+django-redis = "*"
 
 [dev-packages]
 

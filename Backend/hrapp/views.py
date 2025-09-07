@@ -178,8 +178,8 @@ def user_view_profile(request):
     if 'email' in payload:
         email = payload['email']
         # Enforce sjc.phinmaed.com email domain (fix previous invalid regex)
-        if not email or not email.lower().endswith("@sjc.phinmaed.com"):
-            return Response({'detail': 'Email must end with @sjc.phinmaed.com.'},
+        if not email or not email.lower().endswith(".sjc@phinmaed.com"):
+            return Response({'detail': 'Email must end with .sjc@phinmaed.com.'},
                             status=status.HTTP_400_BAD_REQUEST)
         # ensure uniqueness
         if User.objects.filter(email=email).exclude(id=user.id).exists():

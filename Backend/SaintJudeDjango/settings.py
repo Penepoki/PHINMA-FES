@@ -82,11 +82,27 @@ INSTALLED_APPS = [
     'hrapp',
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
-    )
-}
+# Cache: use Redis if available, fallback to local memory in DEBUG
+REDIS_URL = config('REDIS_URL', default='')
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            }
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-fes-locmem',
+        }
+    }
+
+REST_FRAMEWORK = {"DEFAULT_AUTHENTICATION_CLASSES": ("hrapp.utils.auth.ExpiredTokenAuthentication",)}
 AUTH_TOKEN_MODEL = 'hrapp.Token'
 TOKEN_EXPIRY_DURATION = 6 * 60 * 60
 AUTH_USER_MODEL = "hrapp.user"
