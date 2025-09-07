@@ -226,7 +226,7 @@ function Home() {
             <SubjectCards
               subjects={unfinishedSubjects}
               onClick={handleSubjectClick}
-              completedSubjects={new Set()}
+
             />
           </div>
 
@@ -235,7 +235,7 @@ function Home() {
             <SubjectCards
               subjects={finishedSubjects}
               onClick={handleSubjectClick}
-              completedSubjects={new Set()}
+
             />
           </div>
         </div>

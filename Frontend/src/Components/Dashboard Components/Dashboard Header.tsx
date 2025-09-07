@@ -57,12 +57,22 @@ const DashboardHeader = () => {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No token found");
 
+        // Try to clear HR temp faculty context first (ignore if not HR)
+        try {
+            await api.post("/clear-faculty-context/");
+        } catch {
+        }
+
       await api.post("/logout/", null, {
         headers: { Authorization: `Token ${token}` },
       });
 
-      // Clear both storages
+        // Clear both storages and user-related cache
       localStorage.removeItem("token");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("faculty_id");
+        localStorage.removeItem("firstName");
+        localStorage.removeItem("lastName");
       localStorage.removeItem("fullName");
       localStorage.removeItem("visitCount");
       sessionStorage.removeItem("fullName");
