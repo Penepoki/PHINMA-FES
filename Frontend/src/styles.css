@@ -1,3 +1,19 @@
+/* Custom class for justified/left-aligned AI recommendations */
+.ai-recommendations {
+	text-align: justify;
+	white-space: pre-line;
+	font-family: 'Segoe UI', Arial, sans-serif;
+	font-size: 1rem;
+	background: rgba(255,255,255,0.07);
+	color: #f3f3f3;
+	padding: 1.25rem 1.5rem;
+	border-radius: 0.75rem;
+	line-height: 1.8;
+	margin-top: 0.5rem;
+	margin-bottom: 0.5rem;
+	box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
+	letter-spacing: 0.01em;
+}
 
 @import url("https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&display=swap");
 
@@ -6,285 +22,275 @@
 @plugin "daisyui";
 
 @plugin "daisyui/theme" {
-	name: "SJC";
-	default: true; /* set as default */
-	prefersdark: false; /* set as default dark mode (prefers-color-scheme:dark) */
-	color-scheme: light; /* color of browser-provided UI */
+    name: "SJC";
+    default: true; /* set as default */
+    prefersdark: false; /* set as default dark mode (prefers-color-scheme:dark) */
+    color-scheme: light; /* color of browser-provided UI */
+    --color-base-100: white;
+    --color-base-200: oklch(95% 0.03 240);
+    --color-base-300: oklch(92% 0.04 240);
+    --color-base-content: oklch(20% 0.05 240);
+    --color-primary: #1c402a;
+    --color-primary-content: black;
+    --color-secondary: oklch(70% 0.25 200);
+    --color-secondary-content: oklch(98% 0.01 200);
+    --color-accent: #4b5563;
+    --color-accent-content: oklch(98% 0.01 160);
+    --color-neutral: oklch(50% 0.05 240);
+    --color-neutral-content: oklch(98% 0.01 240);
+    --color-info: oklch(70% 0.2 220);
+    --color-info-content: oklch(98% 0.01 220);
+    --color-success: #1c402a;
+    --color-success-content: oklch(98% 0.01 140);
+    --color-warning: oklch(80% 0.25 80);
+    --color-warning-content: oklch(20% 0.05 80);
+    --color-error: oklch(65% 0.3 30);
+    --color-error-content: oklch(98% 0.01 30);
 
-	--color-base-100: white;
-	--color-base-200: oklch(95% 0.03 240);
-	--color-base-300: oklch(92% 0.04 240);
-	--color-base-content: oklch(20% 0.05 240);
-	--color-primary: #1c402a;
-	--color-primary-content: black;
-	--color-secondary: oklch(70% 0.25 200);
-	--color-secondary-content: oklch(98% 0.01 200);
-	--color-accent: #4B5563;
-	--color-accent-content: oklch(98% 0.01 160);
-	--color-neutral: oklch(50% 0.05 240);
-	--color-neutral-content: oklch(98% 0.01 240);
-	--color-info: oklch(70% 0.2 220);
-	--color-info-content: oklch(98% 0.01 220);
-	--color-success: #1c402a;
-	--color-success-content: oklch(98% 0.01 140);
-	--color-warning: oklch(80% 0.25 80);
-	--color-warning-content: oklch(20% 0.05 80);
-	--color-error: oklch(65% 0.3 30);
-	--color-error-content: oklch(98% 0.01 30);
+    /* border radius */
+    --radius-selector: 2rem;
+    --radius-field: 0.25rem;
+    --radius-box: 1rem;
 
-	/* border radius */
-	--radius-selector: 2rem;
-	--radius-field: 0.25rem;
-	--radius-box: 1rem;
+    /* base sizes */
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
 
-	/* base sizes */
-	--size-selector: 0.25rem;
-	--size-field: 0.25rem;
-
-	/* border size */
-	/*--border: 1px;*/
-
-	/* effects */
-	--depth: 1;
-	--noise: 0;
+    /* border size */
+    /*--border: 1px;*/
+    /* effects */
+    --depth: 1;
+    --noise: 0;
 }
 
 html {
-	font-family: "Cabin", sans-serif;
+    font-family: "Cabin", sans-serif;
 }
 
 .card {
-	@apply rounded-box shadow-lg;
-	@apply transition-all duration-300 ease-in-out;
-	@apply hover:shadow-2xl;
+    @apply rounded-box shadow-lg;
+    @apply transition-all duration-300 ease-in-out;
+    @apply hover:shadow-2xl;
 }
 
 .card-body {
-	@apply p-15 pt-13 pb-10;
+    @apply p-15 pt-13 pb-10;
 }
 
 .input {
-	@apply transition-all duration-300 ease-in-out;
-	@apply hover:scale-105 hover:shadow-lg;
+    @apply transition-all duration-300 ease-in-out;
+    @apply hover:scale-105 hover:shadow-lg;
 }
 .textarea {
-	@apply transition-all duration-300 ease-in-out;
-	@apply hover:scale-105 hover:shadow-lg;
+    @apply transition-all duration-300 ease-in-out;
+    @apply hover:scale-105 hover:shadow-lg;
 }
 .checkbox {
   @apply transition-all duration-300 ease-in-out;
   @apply hover:scale-110 hover:shadow-lg;
   @apply border-[#1c402a] bg-white text-[#1c402a];
 
-  @apply checked:bg-[#1c402a] checked:text-white checked:border-[#1c402a];
+    @apply checked:border-[#1c402a] checked:bg-[#1c402a] checked:text-white;
 }
 .btn {
-	@apply transition-all duration-300 ease-in-out;
-	@apply rounded-box hover:scale-105 hover:shadow-lg;
+    @apply transition-all duration-300 ease-in-out;
+    @apply rounded-box hover:scale-105 hover:shadow-lg;
 }
 
 @keyframes Shape1_anim {
-	from {
-		transform: translateX(0px);
-	}
-	to {
-		transform: translateX(-35px);
-	}
+    from {
+        transform: translateX(0px);
+    }
+    to {
+        transform: translateX(-35px);
+    }
 }
 
 @keyframes Shape2_anim {
-	from {
-		transform: translateX(0px);
-	}
-	to {
-		transform: translateX(85px);
-	}
+    from {
+        transform: translateX(0px);
+    }
+    to {
+        transform: translateX(85px);
+    }
 }
 
 #Shape_1 {
-	position: absolute;
-	animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite
-		alternate;
-	will-change: transform;
-	animation-delay: 0s; /* Starts immediately */
+    position: absolute;
+    animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+    will-change: transform;
+    animation-delay: 0s; /* Starts immediately */
 }
 
 #Shape_2 {
-	position: absolute;
-	animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite
-		alternate;
-	will-change: transform;
-	animation-delay: 3s; /* Starts after 2 seconds */
+    position: absolute;
+    animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+    will-change: transform;
+    animation-delay: 3s; /* Starts after 2 seconds */
 }
 
 #Shape_3 {
-	position: absolute;
-	animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite
-		alternate;
-	will-change: transform;
-	animation-delay: 6s; /* Starts after 4 seconds */
+    position: absolute;
+    animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+    will-change: transform;
+    animation-delay: 6s; /* Starts after 4 seconds */
 }
 
 #Shape_4 {
-	position: absolute;
-	animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite
-		alternate;
-	will-change: transform;
-	animation-delay: 9; /* Starts after 6 seconds */
+    position: absolute;
+    animation: Shape1_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+    will-change: transform;
+    animation-delay: 9; /* Starts after 6 seconds */
 }
 
 #Shape-1 {
-	position: absolute;
-	animation: Shape2_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite
-		alternate;
-	will-change: transform;
-	animation-delay: 0s; /* Starts immediately */
+    position: absolute;
+    animation: Shape2_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+    will-change: transform;
+    animation-delay: 0s; /* Starts immediately */
 }
 
 #Shape-2 {
-	position: absolute;
-	animation: Shape2_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite
-		alternate;
-	will-change: transform;
-	animation-delay: 4s; /* Starts after 2 seconds */
+    position: absolute;
+    animation: Shape2_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+    will-change: transform;
+    animation-delay: 4s; /* Starts after 2 seconds */
 }
 
 #Shape-3 {
-	position: absolute;
-	animation: Shape2_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite
-		alternate;
-	will-change: transform;
-	animation-delay: 8s; /* Starts after 4 seconds */
+    position: absolute;
+    animation: Shape2_anim 5.5s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+    will-change: transform;
+    animation-delay: 8s; /* Starts after 4 seconds */
 }
 
 @keyframes fadeUp {
-	from {
-		opacity: 0;
-		transform: translateY(20px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes fadeIn {
-	0% {
-		opacity: 0;
-		transform: translateY(20px);
-	}
-	100% {
-		opacity: 1;
-		transform: translateY(0);
-	}
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes fadeOut {
-	0% {
-		opacity: 1;
-		transform: translateY(0);
-	}
-	100% {
-		opacity: 0;
-		transform: translateY(-20px); /* Adjust for direction of movement */
-	}
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px); /* Adjust for direction of movement */
+    }
 }
 
 .word {
-	animation: fadeIn 0.5s ease-out forwards; /* Apply fadeIn animation */
+    animation: fadeIn 0.5s ease-out forwards; /* Apply fadeIn animation */
 }
 
 .word-exit {
-	animation: fadeOut 0.5s ease-out forwards; /* Apply fadeOut animation */
+    animation: fadeOut 0.5s ease-out forwards; /* Apply fadeOut animation */
 }
 
 .custom-container {
-	width: 100%;
-	height: 100%;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: flex-start;
-	text-align: center;
-	backdrop-filter: blur(16px); /* Tailwind's 'backdrop-blur-lg' */
-	padding: 0; /* Default padding for mobile */
-	border-radius: 0.5rem; /* Tailwind's 'rounded-lg' = 8px */
-	z-index: 10;
-	@apply shadow-2xl;
-	@apply overflow-clip;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    backdrop-filter: blur(16px); /* Tailwind's 'backdrop-blur-lg' */
+    padding: 0; /* Default padding for mobile */
+    border-radius: 0.5rem; /* Tailwind's 'rounded-lg' = 8px */
+    z-index: 10;
+    @apply shadow-2xl;
+    @apply overflow-clip;
 }
 
 .breadcrumbs {
-	color: #d1d5db; /* Equivalent to Tailwind's text-gray-300 */
-	@apply overflow-clip;
-	@apply text-lg;
+    color: #d1d5db; /* Equivalent to Tailwind's text-gray-300 */
+    @apply overflow-clip;
+    @apply text-lg;
 }
 
 .dock-label {
-	font-size: 1.1rem; /* Default font size for larger screens */
+    font-size: 1.1rem; /* Default font size for larger screens */
   @apply px-0;
 }
 .dock {
-	@apply bg-[#102418];
-	@apply text-white;
-	@apply md:text-nowrap;
+    @apply bg-[#102418];
+    @apply text-white;
+    @apply md:text-nowrap;
 }
 @media (max-width: 639px) {
-	.dock-label {
-		font-size: 0.875rem; /* Smaller font size for mobile screens */
-	}
+    .dock-label {
+        font-size: 0.875rem; /* Smaller font size for mobile screens */
+    }
 }
 
 .radial-progress:after {
-	display: none;
+    display: none;
 }
 
 .btn-cancel {
-	@apply bg-red-500 text-white;
+    @apply bg-red-500 text-white;
 }
 
 .rg-container {
-	@apply flex h-full w-full flex-col items-center justify-start rounded-lg text-white shadow-lg backdrop-blur-lg;
+    @apply flex h-full w-full flex-col items-center justify-start rounded-lg text-white shadow-lg backdrop-blur-lg;
 }
 
 .tooltip {
-	--tt-bg: #102418;
+    --tt-bg: #102418;
 }
 
 .collapse-content {
-	transition:
-		padding 0.3s ease-in-out,
-		background-color 0.3s ease-in-out;
+    transition: padding 0.3s ease-in-out,
+    background-color 0.3s ease-in-out;
 }
 
 @keyframes floatBreathe {
-	0%,
-	100% {
-		transform: translateY(3px) translateX(-5px) scale(1);
-	}
-	50% {
-		transform: translateY(-1px) translateX(3px) scale(1.01);
-	}
+    0%,
+    100% {
+        transform: translateY(3px) translateX(-5px) scale(1);
+    }
+    50% {
+        transform: translateY(-1px) translateX(3px) scale(1.01);
+    }
 }
 
 .float-breathe {
-	animation: floatBreathe 7s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+    animation: floatBreathe 7s cubic-bezier(0.42, 0, 0.58, 1) infinite;
 }
 
 .stats {
-	@apply h-1/2 w-full rounded-[0px] text-white;
+    @apply h-1/2 w-full rounded-[0px] text-white;
 }
 
 .stat-title {
-	@apply text-xl font-thin;
+    @apply text-xl font-thin;
 }
 
 .stat-value {
-	@apply text-5xl font-semibold;
+    @apply text-5xl font-semibold;
 }
 
 #ai-feedback-textarea {
-	@apply hover:scale-100;
+    @apply hover:scale-100;
 }
 .skeleton {
   @apply bg-black/5;
@@ -302,6 +308,8 @@ html {
 .ai-recommendation pre {
   margin: 0;
 }
-.ai-recommendation code, .ai-recommendation pre {
+
+.ai-recommendation code,
+.ai-recommendation pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }

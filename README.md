@@ -39,6 +39,15 @@ Example branch: samplemerged
 ---
 
 # For Collaborative tutorial
+
+## ALWAYS SYNC WITH THE REMOTE REPOSITORY:
+
+Check remote version if any updates or pushes were made by others:
+
+```bash
+git fetch origin Branch-Name
+```
+
 After making changes
 ```bash
 git add .

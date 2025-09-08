@@ -1,18 +1,17 @@
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import { useEffect, useState } from "react";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
+import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
+import api from "../../../utils/api";
+import { resolveFacultyId } from "../../../utils/facultyContext";
+import { manilaFilenameTimestamp } from "../../../utils/time";
 
 // Option type for comboboxes
 interface Option {
   id: number | string;
   name: string;
 }
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
-import api from "../../../utils/api";
-import DataTable, {
-  Column,
-} from "../../../Components/Evaluation Components/Data Table";
-import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
-import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
-import { resolveFacultyId } from "../../../utils/facultyContext";
 
 interface SchedulesProps {
   setActiveView: (view: string) => void;
@@ -44,6 +43,77 @@ function Schedules({ setActiveView }: SchedulesProps) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Export state + helpers
+  const defaultExportName = () => {
+    return `schedules_${manilaFilenameTimestamp()}.csv`;
+  };
+  const [exportFilename, setExportFilename] = useState<string>(defaultExportName());
+
+  const csvEscape = (value: unknown) => {
+    const s = String(value ?? "");
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+
+  const buildCSV = (rows: Schedule[]) => {
+    const headers = [
+      "ID",
+      "Title",
+      "Program",
+      "Section",
+      "Subject",
+      "Room",
+      "Instructor",
+      "Start",
+      "End",
+      "Semester",
+      "Year",
+      "Status",
+    ];
+    const lines = [
+      headers.join(","),
+      ...rows.map((r) =>
+        [
+          csvEscape(r.id),
+          csvEscape(r.name),
+          csvEscape(r.program_name ?? r.program ?? ""),
+          csvEscape(r.section_name ?? r.section ?? ""),
+          csvEscape(r.subject_name ?? r.subject ?? ""),
+          csvEscape(r.room_name ?? r.room ?? ""),
+          csvEscape(r.instructor_name ?? r.instructor ?? ""),
+          csvEscape(r.start_time),
+          csvEscape(r.end_time),
+          csvEscape(r.semester),
+          csvEscape(r.year),
+          csvEscape(r.is_active ? "Active" : "Inactive"),
+        ].join(",")
+      ),
+    ];
+    return lines.join("\n");
+  };
+
+  const downloadCSV = (csv: string, filename: string) => {
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = () => {
+    if (!schedules?.length) {
+      alert("There is no data to export.");
+      return;
+    }
+    const csv = buildCSV(schedules);
+    downloadCSV(csv, exportFilename || defaultExportName());
+    (document.getElementById("modal_export_schedules") as HTMLDialogElement)?.close();
+  };
 
   // Form state for all required fields
   const [form, setForm] = useState({
@@ -93,16 +163,16 @@ function Schedules({ setActiveView }: SchedulesProps) {
   // Professor options for create form
   useEffect(() => {
     if (selectedProgram) {
-      api.get(
-        `/program-professor/program-professors/?program_id=${selectedProgram.id}`,
-      ).then((res) => {
-        setProfessorOptions(
-          res.data.map((item: any) => ({
-            id: item.professor,
-            name: item.professor_details.full_name,
-          })),
-        );
-      });
+      api
+        .get(`/program-professor/program-professors/?program_id=${selectedProgram.id}`)
+        .then((res) => {
+          setProfessorOptions(
+            res.data.map((item: any) => ({
+              id: item.professor,
+              name: item.professor_details.full_name,
+            }))
+          );
+        });
     } else {
       setProfessorOptions([]);
     }
@@ -111,16 +181,16 @@ function Schedules({ setActiveView }: SchedulesProps) {
   // Professor options for edit form
   useEffect(() => {
     if (editSelectedProgram) {
-      api.get(
-        `/program-professor/program-professors/?program_id=${editSelectedProgram.id}`,
-      ).then((res) => {
-        setEditProfessorOptions(
-          res.data.map((item: any) => ({
-            id: item.professor,
-            name: item.professor_details.full_name,
-          })),
-        );
-      });
+      api
+        .get(`/program-professor/program-professors/?program_id=${editSelectedProgram.id}`)
+        .then((res) => {
+          setEditProfessorOptions(
+            res.data.map((item: any) => ({
+              id: item.professor,
+              name: item.professor_details.full_name,
+            }))
+          );
+        });
     } else {
       setEditProfessorOptions([]);
     }
@@ -149,6 +219,11 @@ function Schedules({ setActiveView }: SchedulesProps) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSchedules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, effectiveFacultyId]);
 
   const createSchedule = async () => {
     // Validate required fields
@@ -187,7 +262,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
         {
           headers: { Authorization: `Bearer ${token}` },
           params: { faculty: effectiveFacultyId ?? undefined },
-        },
+        }
       );
       // Reset form
       setForm({
@@ -254,7 +329,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
         {
           headers: { Authorization: `Bearer ${token}` },
           params: { faculty: effectiveFacultyId ?? undefined },
-        },
+        }
       );
 
       // Reset edit form and close modal
@@ -333,11 +408,11 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
   const toggleScheduleStatus = async (schedule: Schedule) => {
     try {
-      await api.patch(`/schedule/schedules/${schedule.id}/`, {
-        is_active: !schedule.is_active,
-      }, {
-        params: { faculty: effectiveFacultyId ?? undefined },
-      });
+      await api.patch(
+        `/schedule/schedules/${schedule.id}/`,
+        { is_active: !schedule.is_active },
+        { params: { faculty: effectiveFacultyId ?? undefined } }
+      );
       fetchSchedules();
     } catch (error) {
       console.error("Error updating schedule:", error);
@@ -395,14 +470,8 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
   // Define columns with proper accessors
   const scheduleColumns: Column<Schedule>[] = [
-    {
-      header: "Name",
-      accessor: (schedule: Schedule) => schedule.name,
-    },
-    {
-      header: "Instructor",
-      accessor: (schedule: Schedule) => schedule.instructor_name || "N/A",
-    },
+    { header: "Name", accessor: (schedule: Schedule) => schedule.name },
+    { header: "Instructor", accessor: (schedule: Schedule) => schedule.instructor_name || "N/A" },
     {
       header: "Status",
       accessor: (schedule: Schedule) => (
@@ -411,6 +480,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
           className="toggle"
           type="checkbox"
           checked={schedule.is_active}
+          onChange={() => { }}
         />
       ),
     },
@@ -427,21 +497,17 @@ function Schedules({ setActiveView }: SchedulesProps) {
         ]}
       />
 
-
       <h2 className="mt-4 text-3xl font-bold text-white">Schedules</h2>
-      <span className="font-thin text-[#888888] block mx-6">
-        This is where you can coordinate teaching schedules, classrooms, and evaluations to avoid conflicts and keep everything running on time.
+      <span className="mx-6 block font-thin text-[#888888]">
+        This is where you can coordinate teaching schedules, classrooms, and evaluations to avoid
+        conflicts and keep everything running on time.
       </span>
 
       <div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
         {/* New Schedule Button */}
         <button
           onClick={() =>
-            (
-              document.getElementById(
-                "create_new_schedule",
-              ) as HTMLDialogElement
-            )?.showModal()
+            (document.getElementById("create_new_schedule") as HTMLDialogElement)?.showModal()
           }
           className="w-full rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
         >
@@ -451,9 +517,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
         {/* Edit Schedule Modal */}
         <dialog id="edit_schedule_modal" className="modal">
           <div className="modal-box w-11/12 max-w-5xl">
-            <h3 className="mb-4 text-center text-2xl font-bold">
-              Edit Schedule
-            </h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Edit Schedule</h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -516,7 +580,8 @@ function Schedules({ setActiveView }: SchedulesProps) {
               <ComboboxTextField
                 label="Professor"
                 placeholder="Enter professor name"
-                fetchUrl={`/program-professor/program-professors/?program_id=${editSelectedProgram?.id || ""}`}
+                fetchUrl={`/program-professor/program-professors/?program_id=${editSelectedProgram?.id || ""
+                  }`}
                 value={editSelectedProfessor}
                 onChange={setEditSelectedProfessor}
                 mapResponse={(data) =>
@@ -529,9 +594,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Title */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Title:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Title:</label>
                 <input
                   type="text"
                   placeholder="Enter title"
@@ -549,9 +612,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Start Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Start Time:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Start Time:</label>
                 <input
                   type="time"
                   className="input input-bordered w-full"
@@ -568,9 +629,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* End Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  End Time:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">End Time:</label>
                 <input
                   type="time"
                   className="input input-bordered w-full"
@@ -587,9 +646,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Semester */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Semester:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Semester:</label>
                 <select
                   className="input input-bordered w-full"
                   value={editForm.semester}
@@ -610,9 +667,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Year */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Year:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Year:</label>
                 <input
                   type="date"
                   className="input input-bordered w-full"
@@ -629,10 +684,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Action Buttons */}
               <div className="modal-action">
-                <button
-                  type="submit"
-                  className="btn btn-success text-white"
-                >
+                <button type="submit" className="btn btn-success text-white">
                   Update
                 </button>
                 <button
@@ -653,12 +705,10 @@ function Schedules({ setActiveView }: SchedulesProps) {
         {/* Delete Schedule Modal */}
         <dialog id="delete_schedule_modal" className="modal">
           <div className="modal-box w-11/12 max-w-md">
-            <h3 className="mb-4 text-center text-2xl font-bold">
-              Delete Schedule
-            </h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Delete Schedule</h3>
             <p className="mb-6 text-center">
-              Are you sure you want to delete the schedule "{currentEditingSchedule?.name}"?
-              This action cannot be undone.
+              Are you sure you want to delete the schedule "{currentEditingSchedule?.name}"? This
+              action cannot be undone.
             </p>
             <div className="modal-action">
               <button
@@ -687,9 +737,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
         <dialog id="create_new_schedule" className="modal">
           <div className="modal-box w-11/12 max-w-5xl">
-            <h3 className="mb-4 text-center text-2xl font-bold">
-              Create New Schedule
-            </h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Create New Schedule</h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -705,17 +753,11 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   !form.semester ||
                   !form.year
                 ) {
-                  alert(
-                    "Please fill in all required fields.",
-                  );
+                  alert("Please fill in all required fields.");
                   return;
                 }
                 createSchedule();
-                (
-                  document.getElementById(
-                    "create_new_schedule",
-                  ) as HTMLDialogElement
-                )?.close();
+                (document.getElementById("create_new_schedule") as HTMLDialogElement)?.close();
               }}
               className="flex flex-col gap-6"
             >
@@ -759,7 +801,8 @@ function Schedules({ setActiveView }: SchedulesProps) {
               <ComboboxTextField
                 label="Professor"
                 placeholder="Enter professor name"
-                fetchUrl={`/program-professor/program-professors/?program_id=${selectedProgram?.id || ""}`}
+                fetchUrl={`/program-professor/program-professors/?program_id=${selectedProgram?.id || ""
+                  }`}
                 value={selectedProfessor}
                 onChange={setSelectedProfessor}
                 mapResponse={(data) =>
@@ -770,31 +813,9 @@ function Schedules({ setActiveView }: SchedulesProps) {
                 }
               />
 
-              {/* Title */}
-              <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Title:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter title"
-                  className="input input-bordered w-full"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      name: e.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-
               {/* Start Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Start Time:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Start Time:</label>
                 <input
                   type="time"
                   className="input input-bordered w-full"
@@ -811,9 +832,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* End Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  End Time:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">End Time:</label>
                 <input
                   type="time"
                   className="input input-bordered w-full"
@@ -830,9 +849,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Semester */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Semester:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Semester:</label>
                 <select
                   className="input input-bordered w-full"
                   value={form.semester}
@@ -845,23 +862,15 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   required
                 >
                   <option value="">Select semester</option>
-                  <option value="First">
-                    First Semester
-                  </option>
-                  <option value="Second">
-                    Second Semester
-                  </option>
-                  <option value="Summer">
-                    Summer Semester
-                  </option>
+                  <option value="First">First Semester</option>
+                  <option value="Second">Second Semester</option>
+                  <option value="Summer">Summer Semester</option>
                 </select>
               </div>
 
               {/* Year */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Year:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Year:</label>
                 <input
                   type="date"
                   className="input input-bordered w-full"
@@ -878,21 +887,14 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
               {/* Action Buttons */}
               <div className="modal-action">
-                <button
-                  type="submit"
-                  className="btn btn-success text-white"
-                >
+                <button type="submit" className="btn btn-success text-white">
                   Submit
                 </button>
                 <button
                   type="button"
                   className="btn btn-cancel"
                   onClick={() =>
-                    (
-                      document.getElementById(
-                        "create_new_schedule",
-                      ) as HTMLDialogElement
-                    )?.close()
+                    (document.getElementById("create_new_schedule") as HTMLDialogElement)?.close()
                   }
                 >
                   Cancel
@@ -902,61 +904,58 @@ function Schedules({ setActiveView }: SchedulesProps) {
           </div>
         </dialog>
 
+        {/* Export Schedules Button */}
         <div className="flex flex-row justify-center">
-          {/* Export Schedules Button */}
           <button
-            onClick={() =>
-              (
-                document.getElementById(
-                  "modal_export_schedules",
-                ) as HTMLDialogElement
-              )?.showModal()
-            }
+            onClick={() => {
+              setExportFilename(defaultExportName()); // refresh timestamp each open
+              (document.getElementById("modal_export_schedules") as HTMLDialogElement)?.showModal();
+            }}
             className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
           >
-            Export Schedule
+            Export Schedules
           </button>
 
           <dialog id="modal_export_schedules" className="modal">
             <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="mb-4 text-center text-2xl font-bold">
-                Export Schedule
-              </h3>
+              <h3 className="mb-4 text-center text-2xl font-bold">Export Schedules</h3>
 
               <form
-                method="dialog"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleExport();
+                }}
                 className="flex flex-col gap-6"
               >
-                {/* Name Field */}
+                {/* Filename Field */}
                 <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-left text-lg font-bold md:w-1/6">
-                    Name:
-                  </label>
+                  <label className="text-left text-lg font-bold md:w-1/4">Filename:</label>
                   <input
                     type="text"
-                    value="Schedule A"
-                    readOnly
-                    className="input input-bordered w-full cursor-not-allowed bg-gray-100"
+                    value={exportFilename}
+                    onChange={(e) => setExportFilename(e.target.value)}
+                    placeholder="schedules_export.csv"
+                    className="input input-bordered w-full"
+                    required
                   />
+                </div>
+
+                <div className="rounded-lg bg-base-200 p-3 text-sm">
+                  This will export the <strong>currently listed schedules</strong> (after search/filter)
+                  with columns: ID, Title, Program, Section, Subject, Room, Instructor, Start, End,
+                  Semester, Year, Status.
                 </div>
 
                 {/* Action Buttons */}
                 <div className="modal-action">
-                  <button
-                    type="submit"
-                    className="btn btn-success text-white"
-                  >
+                  <button type="submit" className="btn btn-success text-white">
                     Export
                   </button>
                   <button
                     type="button"
                     className="btn btn-cancel"
                     onClick={() =>
-                      (
-                        document.getElementById(
-                          "modal_export_schedules",
-                        ) as HTMLDialogElement
-                      )?.close()
+                      (document.getElementById("modal_export_schedules") as HTMLDialogElement)?.close()
                     }
                   >
                     Cancel
@@ -967,68 +966,19 @@ function Schedules({ setActiveView }: SchedulesProps) {
           </dialog>
         </div>
       </div>
-      {/* Search and New Schedule button */}
+
+      {/* Search */}
       <div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
-        <label
-          htmlFor="search"
-          className="text-lg font-bold text-white"
-        ></label>
+        <label htmlFor="search" className="text-lg font-bold text-white"></label>
         <input
           id="search"
           type="text"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)} // Trigger new search
+          onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search by schedule name"
           className="input input-bordered w-full max-w-md"
         />
       </div>
-      {/* New Schedule Modal */}
-      <dialog id="create_new_schedule" className="modal">
-        <div className="modal-box w-11/12 max-w-3xl">
-          <h3 className="mb-4 text-center text-2xl font-bold">
-            Create New Schedule
-          </h3>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              createSchedule();
-              (
-                document.getElementById(
-                  "create_new_schedule",
-                ) as HTMLDialogElement
-              )?.close();
-            }}
-            className="flex flex-col gap-6"
-          >
-            <div className="flex flex-col gap-2 md:flex-row md:items-center">
-              <label className="text-left text-lg font-bold md:w-1/6">
-                Name:
-              </label>
-            </div>
-            <div className="modal-action">
-              <button
-                type="submit"
-                className="btn btn-success text-white"
-              >
-                Submit
-              </button>
-              <button
-                type="button"
-                className="btn btn-cancel"
-                onClick={() =>
-                  (
-                    document.getElementById(
-                      "create_new_schedule",
-                    ) as HTMLDialogElement
-                  )?.close()
-                }
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      </dialog>
 
       {/* DataTable */}
       <DataTable

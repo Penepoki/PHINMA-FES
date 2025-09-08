@@ -1,4 +1,3 @@
-
 import Shape_1 from "../../assets/Dashboard Page Assets/IShape-1.svg";
 import Shape_2 from "../../assets/Dashboard Page Assets/IShape-2.svg";
 import Shape_3 from "../../assets/Dashboard Page Assets/IShape-3.svg";

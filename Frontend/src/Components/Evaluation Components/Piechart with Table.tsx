@@ -1,15 +1,12 @@
 import React, { forwardRef } from "react";
 import { Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  ChartOptions,
-} from "chart.js";
+import {Chart as ChartJS, ArcElement, Tooltip, Legend, ChartOptions} from "chart.js";
 import { ActivityData } from "./Copus Matrix";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
+
+// Force all chart text to black
+ChartJS.defaults.color = "#000";
 
 interface PieChartProps {
   studentTallies: Record<string, ActivityData>;
@@ -18,7 +15,7 @@ interface PieChartProps {
 
 const PieChartWithTable = forwardRef<any, PieChartProps>(
   ({ studentTallies, teacherTallies }, ref) => {
-    // Pie data
+      // Data
     const studentPieData = {
       labels: Object.keys(studentTallies),
       datasets: [
@@ -66,24 +63,30 @@ const PieChartWithTable = forwardRef<any, PieChartProps>(
       ],
     };
 
+      // Fixed-size chart container: both pies will be identical size
+      const CHART_SIZE = 300; // adjust if you want bigger/smaller pies
+
     const pieOptions: ChartOptions<"pie"> = {
       responsive: true,
+        maintainAspectRatio: false, // let it fill the fixed-size wrapper
       plugins: {
-        legend: { position: "bottom" },
+          legend: {
+              position: "bottom",
+              labels: {color: "#000"}, // legend labels in black
+          },
+          tooltip: {
+              backgroundColor: "#fff",
+              titleColor: "#000",
+              bodyColor: "#000",
+              borderColor: "#00000020",
+              borderWidth: 1,
+          },
       },
     };
 
-    // A row in the “Activity Summary” visual style
-    const SummaryRow = ({
-      label,
-      count,
-      pct,
-    }: {
-      label: string;
-      count: number;
-      pct: number;
-    }) => (
-      <div className="flex items-center justify-between rounded-lg bg-black/20 px-3 py-2">
+      // Summary rows
+      const SummaryRow = ({label, count, pct}: { label: string; count: number; pct: number }) => (
+          <div className="flex w-full items-center justify-between rounded-lg px-3 py-2">
         <span className="text-sm">{label}</span>
         <span className="text-sm tabular-nums">
           {count} times ({pct.toFixed(2)}%)
@@ -98,8 +101,8 @@ const PieChartWithTable = forwardRef<any, PieChartProps>(
       title: string;
       data: Record<string, ActivityData>;
     }) => (
-      <div className="w-full max-w-md">
-        <h4 className="mb-2 text-center font-semibold">{title}</h4>
+        <div className="w-full">
+            {title ? <h4 className="mb-2 text-center font-semibold">{title}</h4> : null}
         <div className="space-y-2">
           {Object.entries(data).map(([activity, v]) => (
             <SummaryRow
@@ -118,13 +121,15 @@ const PieChartWithTable = forwardRef<any, PieChartProps>(
         {/* Students */}
         <div className="flex w-full flex-col items-center gap-4 md:w-1/2">
           <h3 className="text-xl font-semibold text-white">Student Doing</h3>
-          <div className="w-full max-w-xs">
+
+            {/* Fixed-size pie */}
+            <div className="relative" style={{width: CHART_SIZE, height: CHART_SIZE}}>
             <Pie ref={ref} data={studentPieData} options={pieOptions} />
           </div>
 
-          {/* Summary-style list (replaces table) */}
-          <div className="w-full rounded-xl border border-gray-600/40 bg-black/30 p-4">
-            <div className="mb-3 rounded-md bg-[#1c402a]/80 px-3 py-2 text-center text-white">
+            {/* Summary */}
+            <div className="w-full rounded-xl border border-gray-600/40 p-4">
+                <div className="mb-3 rounded-md bg-[#1c402a] px-3 py-2 text-center text-white">
               Student Activities
             </div>
             <SummaryBlock title="" data={studentTallies} />
@@ -134,13 +139,15 @@ const PieChartWithTable = forwardRef<any, PieChartProps>(
         {/* Teachers */}
         <div className="flex w-full flex-col items-center gap-4 md:w-1/2">
           <h3 className="text-xl font-semibold text-white">Teacher Doing</h3>
-          <div className="w-full max-w-xs">
+
+            {/* Fixed-size pie */}
+            <div className="relative" style={{width: CHART_SIZE, height: CHART_SIZE}}>
             <Pie data={teacherPieData} options={pieOptions} />
           </div>
 
-          {/* Summary-style list (replaces table) */}
-          <div className="w-full rounded-xl border border-gray-600/40 bg-black/30 p-4">
-            <div className="mb-3 rounded-md bg-[#1c402a]/80 px-3 py-2 text-center text-white">
+            {/* Summary */}
+            <div className="w-full rounded-xl border border-gray-600/40 p-4">
+                <div className="mb-3 rounded-md bg-[#1c402a] px-3 py-2 text-center text-white">
               Teacher Activities
             </div>
             <SummaryBlock title="" data={teacherTallies} />
@@ -148,7 +155,7 @@ const PieChartWithTable = forwardRef<any, PieChartProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 export default PieChartWithTable;

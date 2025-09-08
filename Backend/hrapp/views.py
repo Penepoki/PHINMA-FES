@@ -11,6 +11,7 @@ from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
 from hrapp.utils.decorators import *
 from hrapp.utils.generate_insight_online import generate_ai_feedback_for_evaluation, generate_retention_recommendations
+from hrapp.utils.generate_insight_online import generate_ai_feedback_for_evaluation, generate_retention_recommendations
 from hrapp.serializers.user_serializer import *
 from hrapp.serializers.schedules_serializer import *
 from hrapp.filters.schedules_filter import *
@@ -23,6 +24,10 @@ from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 # --- S3 / MinIO presign helpers ---
 import os, re, uuid, mimetypes
 from urllib.parse import urljoin
@@ -40,6 +45,7 @@ def _s3_client():
 # from rest_framework.filter import Search
 import pandas as pd
 from datetime import datetime, timedelta, time
+from django.utils import timezone
 from hrapp.models.evaluation_models import StudentEvaluationResponse, StudentEvaluationQuestion, ScatterPlotAnalytics
 # Optional import of scoring helpers; safe import even if heavy model is present.
 try:
@@ -130,21 +136,149 @@ def signup_view(request):
     return Response(result, status=status.HTTP_201_CREATED)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def user_view_dashboard(request):
-    # Returns the basic info of the currently logged user
+    """
+    GET  -> return current user's dashboard info
+    PATCH -> allow the current user to update simple fields like profile_image
+    """
     user = request.user
+
+    if request.method == 'GET':
+        serializer = UserDashboardSerializer(user, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # PATCH
+    allowed_fields = {'profile_image', 'first_name', 'last_name'}  # add/remove as you prefer
+    payload = {k: v for k, v in request.data.items() if k in allowed_fields}
+
+    if not payload:
+        return Response({'detail': 'No allowed fields to update.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    for k, v in payload.items():
+        setattr(user, k, v)
+    user.save(update_fields=list(payload.keys()))
+
     serializer = UserDashboardSerializer(user, context={'request': request})
-    return Response(serializer.data)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def user_view_profile(request):
     user = request.user
+    if request.method == 'GET':
+        serializer = UserSerializer(user, context={'request': request})
+        return Response(serializer.data)
+    # PATCH update first_name, last_name, email with domain restriction
+    allowed_fields = {'first_name', 'last_name', 'email'}
+    payload = {k: v for k, v in request.data.items() if k in allowed_fields}
+    if not payload:
+        return Response({'detail': 'No allowed fields to update.'}, status=status.HTTP_400_BAD_REQUEST)
+    # email domain restriction
+    if 'email' in payload:
+        email = payload['email']
+        # Enforce sjc.phinmaed.com email domain (fix previous invalid regex)
+        if not email or not email.lower().endswith(".sjc@phinmaed.com"):
+            return Response({'detail': 'Email must end with .sjc@phinmaed.com.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        # ensure uniqueness
+        if User.objects.filter(email=email).exclude(id=user.id).exists():
+            return Response({'detail': 'Email already in use.'}, status=status.HTTP_400_BAD_REQUEST)
+        user.email = email
+    if 'first_name' in payload:
+        user.first_name = payload['first_name']
+    if 'last_name' in payload:
+        user.last_name = payload['last_name']
+    user.save()
     serializer = UserSerializer(user, context={'request': request})
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password_with_otp(request):
+    user = request.user
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('new_password')
+    otp = request.data.get('otp')
+
+    if not old_password or not new_password:
+        return Response({'detail': 'old_password and new_password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # verify old password
+    if not user.check_password(old_password):
+        return Response({'detail': 'Old password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verify OTP
+    if not otp:
+        return Response({'detail': 'OTP is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not verify_otp(user, otp):
+        return Response({'detail': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+    return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_password_change_otp(request):
+    user = request.user
+    send_otp_via_email(user)
+    return Response({'message': 'OTP sent to your email.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verify_password_change_otp(request):
+    user = request.user
+    otp = request.data.get('otp')
+    if not otp:
+        return Response({'detail': 'OTP is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not verify_otp(user, otp):
+        return Response({'detail': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'message': 'OTP verified.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_profile_picture(request):
+    user = request.user
+    parser_classes = (MultiPartParser,)
+    file_obj = request.FILES.get('avatar') or request.FILES.get('file') or request.FILES.get('profile_picture')
+    if not file_obj:
+        return Response({'detail': 'No file uploaded.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # basic validation
+    mime = mimetypes.guess_type(file_obj.name)[0] or ''
+    if not mime.startswith('image/'):
+        return Response({'detail': 'Only image files are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+    # limit size to ~5MB
+    if hasattr(file_obj, 'size') and file_obj.size > 5 * 1024 * 1024:
+        return Response({'detail': 'File too large. Max 5MB.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Save into ImageField storage (MEDIA_ROOT/profile_pictures)
+    from django.core.files.base import ContentFile
+    ext = os.path.splitext(file_obj.name)[1].lower()
+    filename = f"{uuid.uuid4().hex}{ext}"
+    user.profile_picture.save(filename, ContentFile(file_obj.read()), save=True)
+
+    # Also persist a copy to project root folder as requested
+    try:
+        base_dir = os.getenv('BASE_DIR') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        dest_dir = os.path.join(os.path.dirname(base_dir), 'profile_pictures_root')
+        os.makedirs(dest_dir, exist_ok=True)
+        with open(os.path.join(dest_dir, filename), 'wb') as f:
+            for chunk in file_obj.chunks() if hasattr(file_obj, 'chunks') else [file_obj.read()]:
+                f.write(chunk)
+    except Exception:
+        pass
+
+    serializer = UserSerializer(user, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 # Evaluation View
@@ -355,6 +489,220 @@ def retention_recommendations(request):
         print(f"[ERROR] retention_recommendations failed: {e}")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+# ML Sentiment Analysis API Endpoints
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def train_ml_sentiment_model(request):
+    """Train the Logistic Regression sentiment analysis model (production-safe)."""
+    try:
+        from hrapp.utils.production_ml_training import train_model_production, production_safety_check
+        
+        # Check if user has permission (only admin/HR)
+        if not (request.user.is_superuser or request.user.groups.filter(name__in=['HR', 'Dean']).exists()):
+            return Response({"error": "Insufficient permissions"}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get parameters
+        force = request.data.get('force', False)
+        async_mode = request.data.get('async', True)
+        
+        # Perform safety check
+        safety_check = production_safety_check()
+        if not safety_check.get("safe_to_train", False):
+            return Response({
+                "error": "System not ready for training",
+                "safety_check": safety_check
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Start training
+        result = train_model_production(force=force, async_mode=async_mode)
+        return Response(result, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ml_training_status(request):
+    """Get ML model training status."""
+    try:
+        from hrapp.utils.production_ml_training import get_training_status
+        result = get_training_status()
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ml_safety_check(request):
+    """Perform production safety check for ML training."""
+    try:
+        from hrapp.utils.production_ml_training import production_safety_check
+        result = production_safety_check()
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def analyze_sentiment_ml(request):
+    """Analyze sentiment of provided text using ML model."""
+    try:
+        from hrapp.utils.ml_sentiment_analysis import analyze_text_sentiment_lr
+        
+        text = request.data.get('text')
+        if not text:
+            return Response({"error": "Text is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        result = analyze_text_sentiment_lr(text)
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ml_sentiment_model_info(request):
+    """Get information about the current ML sentiment model."""
+    try:
+        from hrapp.utils.ml_sentiment_analysis import get_model_info
+        result = get_model_info()
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def enhanced_sentiment_analysis(request):
+    """Run enhanced sentiment analysis with model comparison."""
+    try:
+        from hrapp.utils.enhanced_sentiment_analysis import process_student_evaluations_enhanced
+        
+        model = request.query_params.get('model')  # Optional: 'bert', 'lr', or None for auto
+        result = process_student_evaluations_enhanced(model=model)
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def compare_sentiment_models(request):
+    """Compare different sentiment analysis models on provided texts."""
+    try:
+        from hrapp.utils.enhanced_sentiment_analysis import compare_sentiment_models
+        
+        text_samples = request.data.get('texts')  # Optional list of texts
+        result = compare_sentiment_models(text_samples)
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def trigger_smart_retraining(request):
+    """Trigger smart retraining check (admin only)."""
+    try:
+        # Check if user has permission (only admin/HR)
+        if not (request.user.is_superuser or request.user.groups.filter(name__in=['HR', 'Dean']).exists()):
+            return Response({"error": "Insufficient permissions"}, status=status.HTTP_403_FORBIDDEN)
+        
+        from hrapp.utils.smart_retraining import trigger_smart_retraining_now
+        
+        result = trigger_smart_retraining_now()
+        return Response(result, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ml_system_status(request):
+    """Get comprehensive ML system status."""
+    try:
+        from hrapp.utils.ml_sentiment_analysis import get_model_info
+        from hrapp.utils.production_ml_training import get_training_status
+        from hrapp.utils.smart_retraining import get_smart_retraining_status, get_training_data_stats
+        
+        # Gather comprehensive status
+        model_info = get_model_info()
+        training_status = get_training_status()
+        smart_status = get_smart_retraining_status()
+        data_stats = get_training_data_stats()
+        
+        status_data = {
+            'model_info': model_info,
+            'training_status': training_status,
+            'smart_retraining': smart_status,
+            'data_statistics': data_stats,
+            'system_health': {
+                'model_trained': model_info.get('is_trained', False),
+                'model_exists': model_info.get('model_exists', False),
+                'training_in_progress': training_status.get('current_training', {}).get('status') == 'training',
+                'smart_retraining_active': smart_status.get('smart_retraining_enabled', False)
+            },
+            'timestamp': timezone.now().isoformat()
+        }
+        
+        return Response(status_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ml_retraining_conditions(request):
+    """Check current retraining conditions without triggering."""
+    try:
+        from hrapp.utils.smart_retraining import check_retraining_conditions
+        
+        conditions = check_retraining_conditions()
+        return Response(conditions, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def configure_smart_retraining(request):
+    """Configure smart retraining parameters (admin only)."""
+    try:
+        # Check if user has permission (only admin/HR)
+        if not (request.user.is_superuser or request.user.groups.filter(name__in=['HR', 'Dean']).exists()):
+            return Response({"error": "Insufficient permissions"}, status=status.HTTP_403_FORBIDDEN)
+        
+        from hrapp.utils.smart_retraining import configure_smart_retraining
+        
+        min_samples = request.data.get('min_samples')
+        max_days = request.data.get('max_days')
+        cooldown_minutes = request.data.get('cooldown_minutes')
+        
+        configure_smart_retraining(
+            min_samples=min_samples,
+            max_days=max_days,
+            cooldown_minutes=cooldown_minutes
+        )
+        
+        return Response({
+            "message": "Smart retraining configuration updated",
+            "updated_parameters": {
+                "min_samples": min_samples,
+                "max_days": max_days,
+                "cooldown_minutes": cooldown_minutes
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # CRUD BELOW FOR EVALUATION (COPUS)----------------------------------------------
 # Create
 class EvaluationViewSet(viewsets.ModelViewSet):
@@ -511,8 +859,14 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         faculty_id = request.query_params.get('faculty')
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
-        evals = Evaluation.objects.filter(schedule__program__faculty_id=faculty_id, deleted_at__isnull=True)
-        eval_ids = [e.id for e in evals]
+        year = request.query_params.get('year')
+        semester = request.query_params.get('semester')
+        qs = Evaluation.objects.filter(schedule__program__faculty_id=faculty_id, deleted_at__isnull=True)
+        if year:
+            qs = qs.filter(schedule__year=year)
+        if semester:
+            qs = qs.filter(schedule__semester=semester)
+        eval_ids = list(qs.values_list('id', flat=True))
         if not eval_ids:
             return Response({'error': 'No evaluations found for this faculty'}, status=status.HTTP_404_NOT_FOUND)
         result = get_copus_bulk_tallies_data(eval_ids)
@@ -523,10 +877,16 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': "program is required"}, status=status.HTTP_400_BAD_REQUEST)
-        evals = Evaluation.objects.filter(schedule__program_id=program_id, deleted_at__isnull=True)
-        eval_ids = [e.id for e in evals]
+        year = request.query_params.get('year')
+        semester = request.query_params.get('semester')
+        qs = Evaluation.objects.filter(schedule__program_id=program_id, deleted_at__isnull=True)
+        if year:
+            qs = qs.filter(schedule__year=year)
+        if semester:
+            qs = qs.filter(schedule__semester=semester)
+        eval_ids = list(qs.values_list('id', flat=True))
         if not eval_ids:
-            return Response({'error': 'No evaluations found for this program'}, status=status.HTTP_404_BAD_REQUEST)
+            return Response({'error': 'No evaluations found for this program'}, status=status.HTTP_404_NOT_FOUND)
         result = get_copus_bulk_tallies_data(eval_ids)
         return Response(result)
 
@@ -608,10 +968,39 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         teacher_options = [choice[1] for choice in Timestamp.INSTRUCTOR_ACTIVITY_CHOICES]
 
         for e in latest_evals:
+            # Build absolute image URL with existence check and fallback
+            faculty_image = None
+            pp = getattr(e.instructor, 'profile_picture', None)
+            try:
+                if pp and getattr(pp, 'name', None):
+                    # Primary: if file exists in storage
+                    try:
+                        if pp.storage.exists(pp.name):
+                            faculty_image = request.build_absolute_uri(pp.url)
+                        else:
+                            raise FileNotFoundError
+                    except Exception:
+                        # Fallback: try project-level 'profile_pictures_root'
+                        import os
+                        from pathlib import Path
+                        from django.conf import settings
+                        from django.core.files.base import File as DjangoFile
+                        basename = os.path.basename(pp.name)
+                        fallback_dir = Path(settings.BASE_DIR).parent / 'profile_pictures_root'
+                        fallback_path = fallback_dir / basename
+                        if fallback_path.exists():
+                            with open(fallback_path, 'rb') as f:
+                                saved_name = pp.storage.save(f"profile_pictures/{basename}", DjangoFile(f))
+                            e.instructor.profile_picture.name = saved_name
+                            e.instructor.save(update_fields=['profile_picture'])
+                            faculty_image = request.build_absolute_uri(e.instructor.profile_picture.url)
+            except Exception:
+                faculty_image = None
+
             data.append({
                 "evaluation_number": e.id,
                 "faculty_name": e.instructor.get_full_name() if e.instructor else "Unknown",
-                "faculty_image": getattr(e.instructor, "profile_image", None),
+                "faculty_image": faculty_image,
                 "student_tallies": [tallies[e.id]["studentTallies"][opt]["percentage"] for opt in student_options],
                 "teacher_tallies": [tallies[e.id]["teacherTallies"][opt]["percentage"] for opt in teacher_options]
             })
@@ -763,7 +1152,16 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': 'program is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evaluations = StudentEvaluation.objects.filter(schedule__program_id=program_id, deleted_at__isnull=True)
+        if semester:
+            evaluations = evaluations.filter(schedule__semester=semester)
+        if year:
+            try:
+                evaluations = evaluations.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(evaluations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -772,7 +1170,16 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
         professor_id = request.query_params.get('professor')
         if not professor_id:
             return Response({'error': 'professor is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evaluations = StudentEvaluation.objects.filter(schedule__instructor_id=professor_id, deleted_at__isnull=True)
+        if semester:
+            evaluations = evaluations.filter(schedule__semester=semester)
+        if year:
+            try:
+                evaluations = evaluations.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(evaluations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -781,8 +1188,17 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
         faculty_id = request.query_params.get('faculty')
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evaluations = StudentEvaluation.objects.filter(schedule__program__faculty_id=faculty_id,
                                                        deleted_at__isnull=True)
+        if semester:
+            evaluations = evaluations.filter(schedule__semester=semester)
+        if year:
+            try:
+                evaluations = evaluations.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(evaluations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -913,10 +1329,17 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
                             "label": "POSITIVE" if points > 0 else "NEGATIVE" if points < 0 else "NEUTRAL"
                         }
                     elif question_type == "TEXT":
-                        # Analyze text sentiment with question context
+                        # Analyze text sentiment with question context (using enhanced system)
                         question_text = question.question if question.question else ""
                         text_input = f"Question: {question_text}\nAnswer: {answer}" if question_text else str(answer)
-                        sentiment_result = analyze_text_sentiment(text_input)
+                        
+                        # Use enhanced sentiment analysis (prefers Logistic Regression)
+                        try:
+                            from hrapp.utils.enhanced_sentiment_analysis import analyze_text_sentiment_enhanced
+                            sentiment_result = analyze_text_sentiment_enhanced(text_input)
+                        except ImportError:
+                            # Fallback to original BERT if enhanced system not available
+                            sentiment_result = analyze_text_sentiment(text_input)
                         sentiment_score = {
                             "type": "text",
                             "label": sentiment_result.get("label"),
@@ -1076,7 +1499,16 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': 'program is required'}, status=400)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evals = StudentEvaluation.objects.filter(schedule__program_id=program_id)
+        if semester:
+            evals = evals.filter(schedule__semester=semester)
+        if year:
+            try:
+                evals = evals.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         from django.db.models import Count as DJCount
         evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
         totals = dict(evals.values_list('id', 'total_q'))
@@ -1098,7 +1530,16 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         professor_id = request.query_params.get('professor')
         if not professor_id:
             return Response({'error': 'professor is required'}, status=400)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evals = StudentEvaluation.objects.filter(schedule__instructor_id=professor_id)
+        if semester:
+            evals = evals.filter(schedule__semester=semester)
+        if year:
+            try:
+                evals = evals.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         from django.db.models import Count as DJCount
         evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
         totals = dict(evals.values_list('id', 'total_q'))
@@ -1120,7 +1561,16 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         faculty_id = request.query_params.get('faculty') or _resolve_faculty_from_request_or_hr_temp(request)
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=400)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evals = StudentEvaluation.objects.filter(schedule__program__faculty_id=faculty_id)
+        if semester:
+            evals = evals.filter(schedule__semester=semester)
+        if year:
+            try:
+                evals = evals.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         from django.db.models import Count as DJCount
         evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
         totals = dict(evals.values_list('id', 'total_q'))
@@ -1299,36 +1749,63 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='by-professor')
     def by_professor(self, request):
         """RETURNS RESPONSES FOR A PROFESSOR BASED ON THEIR SCHEDULES
-        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-professor?professor=<professor_id>"""
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-professor?professor=<professor_id>&semester=First&year=2025"""
         professor_id = request.query_params.get('professor')
         if not professor_id:
             return Response({'error': 'professor is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         responses = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__instructor_id=professor_id)
+        if semester:
+            responses = responses.filter(student_evaluation__schedule__semester=semester)
+        if year:
+            try:
+                responses = responses.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(responses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='by-program')
     def by_program(self, request):
         """RETURNS RESPONSES FOR A PROGRAM
-        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-program?program=<pogram_id>"""
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-program?program=<pogram_id>&semester=First&year=2025"""
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': 'program is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         responses = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__program_id=program_id)
+        if semester:
+            responses = responses.filter(student_evaluation__schedule__semester=semester)
+        if year:
+            try:
+                responses = responses.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(responses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='by-faculty')
     def by_faculty(self, request):
         """RETURNS RESPONSES FOR A FACULTY
-        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-faculty?faculty=<faculty_id>"""
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-faculty?faculty=<faculty_id>&semester=First&year=2025"""
         faculty_id = request.query_params.get('faculty')
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         responses = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__program__faculty_id=faculty_id)
+        if semester:
+            responses = responses.filter(student_evaluation__schedule__semester=semester)
+        if year:
+            try:
+                responses = responses.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(responses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -2918,7 +3395,7 @@ class UserAdminSerializer(drf_serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = [
-            'id', 'email', 'first_name', 'last_name', 'is_active',
+            'id', 'email', 'username', 'first_name', 'last_name', 'is_active',
             'roles', 'roles_read', 'password'
         ]
         read_only_fields = []
@@ -2926,9 +3403,24 @@ class UserAdminSerializer(drf_serializers.ModelSerializer):
     def get_roles_read(self, obj):
         return list(obj.groups.values_list('name', flat=True))
 
+    def _filter_roles_by_requester(self, roles):
+        """Restrict roles a Dean can assign; HR can assign all."""
+        request = self.context.get('request')
+        if not roles:
+            return roles
+        try:
+            if request and request.user and request.user.groups.filter(name__iexact='Dean').exists() \
+                    and not request.user.groups.filter(name__iexact='HR').exists() and not request.user.is_superuser:
+                allowed = {'HR', 'Program Head', 'Dean'}
+                return [r for r in roles if r in allowed]
+        except Exception:
+            pass
+        return roles
+
     def create(self, validated_data):
         request = self.context.get('request')
         roles = validated_data.pop('roles', [])
+        roles = self._filter_roles_by_requester(roles)
         raw_password = validated_data.pop('password', None)
         user = super().create(validated_data)
         # Set password if provided
@@ -2951,8 +3443,10 @@ class UserAdminSerializer(drf_serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         roles = validated_data.pop('roles', None)
-        # Email must not be changed
+        roles = self._filter_roles_by_requester(roles) if roles is not None else None
+        # Email and username must not be changed here
         validated_data.pop('email', None)
+        validated_data.pop('username', None)
         user = super().update(instance, validated_data)
         if roles is not None:
             groups = Group.objects.filter(name__in=roles)
@@ -2991,6 +3485,29 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         if is_active in ['true', 'false']:
             qs = qs.filter(is_active=(is_active == 'true'))
         return qs.distinct()
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        user = request.user
+        data = {
+            'id': user.id,
+            'email': getattr(user, 'email', None),
+            'username': getattr(user, 'username', None),
+            'first_name': getattr(user, 'first_name', ''),
+            'last_name': getattr(user, 'last_name', ''),
+            'roles_read': list(user.groups.values_list('name', flat=True)),
+            'is_superuser': user.is_superuser,
+        }
+        return Response(data)
+
+    def update(self, request, *args, **kwargs):
+        # Make update partial to avoid requiring unchanged fields like email
+        partial = True
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
     @transaction.atomic
     def destroy(self, request, *args, **kwargs):

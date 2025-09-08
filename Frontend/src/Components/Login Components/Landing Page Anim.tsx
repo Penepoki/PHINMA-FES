@@ -55,19 +55,25 @@ export function AnimatedHeading() {
 
   return (
     <h6 className="z-50 hidden text-left leading-none lg:ml-20 lg:flex lg:flex-col lg:items-start">
-      <span className="mr-20 text-[90px] font-bold text-white xl:text-[170px]">
-        Welcome,
-      </span>
+        <span className="mr-20 text-[90px] font-bold text-white xl:text-[170px]">Welcome,</span>
       <br />
       <span
-        className={`text-[90px] font-extralight text-[#C4C4C4] transition-all duration-[9000ms] ease-in-out ${animatingOut ? "word-exit" : "word"
+          className={`text-[90px] font-extralight text-[#C4C4C4] transition-all duration-[9000ms] ease-in-out ${
+              animatingOut ? "word-exit" : "word"
           }`}
       >
         {words[index]}
       </span>
 
-      <span className="text-[18px] hidden lg:block max-h-80 overflow-y-auto font-extralight text-[#888888] leading-loose w-[60%] mt-24">
-        To a smarter, more streamlined way to evaluate teaching. Our platform combines the Student Feedback Framework (SFF) and the COPUS classroom observation model, enhanced by AI-driven sentiment analysis and NLP insights all while leveraging principles from the Lean Six Sigma approach, we focus on continuous improvement by turning evaluation data into actionable insights for both academic and business fronts. With structured feedback and transparent processes, evaluations become more meaningful, fair, and effective for faculty, students and management alike.
+        <span
+            className="mt-24 hidden max-h-80 w-[60%] overflow-y-auto text-[18px] leading-loose font-extralight text-[#888888] lg:block">
+        To a smarter, more streamlined way to evaluate teaching. Our platform combines the Student
+        Feedback Framework (SFF) and the COPUS classroom observation model, enhanced by AI-driven
+        sentiment analysis and NLP insights all while leveraging principles from the Lean Six Sigma
+        approach, we focus on continuous improvement by turning evaluation data into actionable
+        insights for both academic and business fronts. With structured feedback and transparent
+        processes, evaluations become more meaningful, fair, and effective for faculty, students and
+        management alike.
       </span>
     </h6>
   );

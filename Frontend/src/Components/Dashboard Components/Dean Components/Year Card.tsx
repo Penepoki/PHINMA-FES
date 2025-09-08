@@ -8,17 +8,9 @@ interface YearCardProps {
   isLoading?: boolean;
 }
 
-const YearCard: React.FC<YearCardProps> = ({
-  year,
-  ratio,
-  setActiveView,
-  isLoading = false,
-}) => {
+const YearCard: React.FC<YearCardProps> = ({ year, ratio, setActiveView, isLoading = false }) => {
   const [num, denom] = ratio.split("/").map(Number);
-  const percentage =
-    denom && !isNaN(num) && !isNaN(denom)
-      ? Math.round((num / denom) * 100)
-      : 0;
+  const percentage = denom && !isNaN(num) && !isNaN(denom) ? Math.round((num / denom) * 100) : 0;
 
   // Optional: small random delay to stagger the float animation
   const delay = (Math.random() * 2).toFixed(2);
@@ -28,23 +20,15 @@ const YearCard: React.FC<YearCardProps> = ({
 
   if (isLoading) {
     return (
-      <div
-        className="flex items-center justify-center"
-        aria-busy="true"
-        aria-live="polite"
-      >
+      <div className="flex items-center justify-center" aria-busy="true" aria-live="polite">
         <div
-          className={`tooltip float-breathe ${sizeClasses} bg-black/5 rounded-full shadow-2xl backdrop-blur-lg`}
+          className={`tooltip float-breathe ${sizeClasses} rounded-full bg-black/5 shadow-2xl backdrop-blur-lg`}
           data-tip="Loading…"
           style={{ animationDelay: `${delay}s` }}
         >
           {/* Circular skeleton placeholder */}
           <div className={`skeleton ${sizeClasses} rounded-full`} />
 
-          {/* Optional spinner in the middle for extra clarity */}
-          <div className="pointer-events-none absolute flex h-full w-full items-center justify-center">
-            <span className="loading loading-spinner loading-md text-white/80" />
-          </div>
         </div>
       </div>
     );

@@ -4,6 +4,7 @@ import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import {manilaFilenameTimestamp} from "../../../utils/time";
 
 interface ProgramProps {
   setActiveView: (view: string) => void;
@@ -41,18 +42,70 @@ function Programs({ setActiveView }: ProgramProps) {
   const [selectedProfessorsForEdit, setSelectedProfessorsForEdit] = useState<number[]>([]);
   const [currentProgramProfessors, setCurrentProgramProfessors] = useState<ProgramProfessor[]>([]);
 
+  // ---------- Export state + helpers ----------
+  const defaultExportName = () => {
+      return `programs_${manilaFilenameTimestamp()}.csv`;
+  };
+  const [exportFilename, setExportFilename] = useState<string>(defaultExportName());
+
+  const csvEscape = (value: unknown) => {
+    const s = String(value ?? "");
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+
+  const buildCSV = (rows: Program[]) => {
+    const headers = ["ID", "Name", "Status", "Professors"];
+    const lines = [
+      headers.join(","),
+      ...rows.map((p) => {
+        const profs = Array.isArray(p.professor_names) ? p.professor_names.join("; ") : "";
+        return [
+          csvEscape(p.id),
+          csvEscape(p.name),
+          csvEscape(p.is_active ? "Active" : "Inactive"),
+          csvEscape(profs),
+        ].join(",");
+      }),
+    ];
+    return lines.join("\n");
+  };
+
+  const downloadCSV = (csv: string, filename: string) => {
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = () => {
+    if (!programs?.length) {
+      alert("There is no data to export.");
+      return;
+    }
+    const csv = buildCSV(programs);
+    downloadCSV(csv, exportFilename || defaultExportName());
+    (document.getElementById("modal_export_programs") as HTMLDialogElement)?.close();
+  };
+  // -------------------------------------------
+
   const fetchProgramsandProgramProfessors = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
       const programResponse = await api.get("/program/programs/", {
         params: { name: searchTerm || undefined },
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setPrograms(programResponse.data);
 
       const professorResponse = await api.get("/program-professor/program-professors/", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setProgramProfessors(professorResponse.data);
     } catch (error) {
@@ -72,7 +125,7 @@ function Programs({ setActiveView }: ProgramProps) {
       await api.post(
         "/program/programs/",
         { name: newProgramName },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setNewProgramName("");
       fetchProgramsandProgramProfessors();
@@ -95,9 +148,9 @@ function Programs({ setActiveView }: ProgramProps) {
         `/program/programs/${currentEditingProgram.id}/`,
         {
           name: editProgramName,
-          professors: selectedProfessorsForEdit
+          professors: selectedProfessorsForEdit,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       resetEditForm();
       (document.getElementById("edit_program_modal") as HTMLDialogElement)?.close();
@@ -119,9 +172,9 @@ function Programs({ setActiveView }: ProgramProps) {
     setCurrentEditingProgram(program);
     setEditProgramName(program.name);
 
-    const currentProfs = programProfessors.filter(rel => rel.program === program.id);
+    const currentProfs = programProfessors.filter((rel) => rel.program === program.id);
     setCurrentProgramProfessors(currentProfs);
-    setSelectedProfessorsForEdit(currentProfs.map(rel => rel.professor));
+    setSelectedProfessorsForEdit(currentProfs.map((rel) => rel.professor));
 
     (document.getElementById("edit_program_modal") as HTMLDialogElement)?.showModal();
   };
@@ -190,10 +243,7 @@ function Programs({ setActiveView }: ProgramProps) {
   }, [searchTerm]);
 
   const programColumns: Column<Program>[] = [
-    {
-      header: "Name",
-      accessor: "name",
-    },
+    { header: "Name", accessor: "name" },
     {
       header: "Status",
       accessor: (program: Program) => (
@@ -202,6 +252,7 @@ function Programs({ setActiveView }: ProgramProps) {
           className="toggle"
           type="checkbox"
           checked={program.is_active}
+          onChange={() => { }}
         />
       ),
     },
@@ -214,7 +265,7 @@ function Programs({ setActiveView }: ProgramProps) {
   };
 
   const removeProfessorFromProgram = (professorId: number) => {
-    setSelectedProfessorsForEdit(selectedProfessorsForEdit.filter(id => id !== professorId));
+    setSelectedProfessorsForEdit(selectedProfessorsForEdit.filter((id) => id !== professorId));
   };
 
   return (
@@ -230,19 +281,16 @@ function Programs({ setActiveView }: ProgramProps) {
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Programs</h2>
-      <span className="font-thin text-[#888888] block mx-6">
-        This is where you can manage academic programs and connect them to the right faculty, subjects, and evaluations.
+      <span className="mx-6 block font-thin text-[#888888]">
+        This is where you can manage academic programs and connect them to the right faculty,
+        subjects, and evaluations.
       </span>
 
       <div className="flex w-full flex-col items-stretch justify-center gap-3 border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl sm:flex-row sm:justify-between sm:gap-5">
         {/* New Program Button */}
         <button
           onClick={() =>
-            (
-              document.getElementById(
-                "create_new_program",
-              ) as HTMLDialogElement
-            )?.showModal()
+            (document.getElementById("create_new_program") as HTMLDialogElement)?.showModal()
           }
           className="w-full rounded-lg bg-[#1c402a] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
         >
@@ -252,53 +300,36 @@ function Programs({ setActiveView }: ProgramProps) {
         {/* Create Program Modal */}
         <dialog id="create_new_program" className="modal">
           <div className="modal-box w-11/12 max-w-3xl">
-            <h3 className="mb-4 text-center text-2xl font-bold">
-              Create New Program
-            </h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Create New Program</h3>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 createProgram();
-                (
-                  document.getElementById(
-                    "create_new_program",
-                  ) as HTMLDialogElement
-                )?.close();
+                (document.getElementById("create_new_program") as HTMLDialogElement)?.close();
               }}
               className="flex flex-col gap-6"
             >
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/6">
-                  Name:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
                 <input
                   type="text"
                   value={newProgramName}
-                  onChange={(e) =>
-                    setNewProgramName(e.target.value)
-                  }
+                  onChange={(e) => setNewProgramName(e.target.value)}
                   placeholder="Enter program name"
                   className="input input-bordered w-full"
                   required
                 />
               </div>
               <div className="modal-action">
-                <button
-                  type="submit"
-                  className="btn btn-success text-white"
-                >
+                <button type="submit" className="btn btn-success text-white">
                   Submit
                 </button>
                 <button
                   type="button"
                   className="btn btn-cancel"
                   onClick={() =>
-                    (
-                      document.getElementById(
-                        "create_new_program",
-                      ) as HTMLDialogElement
-                    )?.close()
+                    (document.getElementById("create_new_program") as HTMLDialogElement)?.close()
                   }
                 >
                   Cancel
@@ -310,10 +341,8 @@ function Programs({ setActiveView }: ProgramProps) {
 
         {/* Enhanced Edit Program Modal */}
         <dialog id="edit_program_modal" className="modal">
-          <div className="modal-box w-11/12 max-w-5xl max-h-[90vh] overflow-y-auto">
-            <h3 className="mb-4 text-center text-2xl font-bold">
-              Edit Program
-            </h3>
+          <div className="modal-box max-h-[90vh] w-11/12 max-w-5xl overflow-y-auto">
+            <h3 className="mb-4 text-center text-2xl font-bold">Edit Program</h3>
 
             <form
               onSubmit={(e) => {
@@ -327,9 +356,7 @@ function Programs({ setActiveView }: ProgramProps) {
               className="flex flex-col gap-6"
             >
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">
-                  Program Name:
-                </label>
+                <label className="text-left text-lg font-bold md:w-1/4">Program Name:</label>
                 <input
                   type="text"
                   value={editProgramName}
@@ -350,12 +377,15 @@ function Programs({ setActiveView }: ProgramProps) {
                     </div>
                     <div>
                       <span className="font-medium">Status:</span>
-                      <span className={`ml-1 ${currentEditingProgram.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                        {currentEditingProgram.is_active ? 'Active' : 'Inactive'}
+                      <span
+                        className={`ml-1 ${currentEditingProgram.is_active ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {currentEditingProgram.is_active ? "Active" : "Inactive"}
                       </span>
                     </div>
                     <div className="md:col-span-2">
-                      <span className="font-medium">Original Name:</span> {currentEditingProgram.name}
+                      <span className="font-medium">Original Name:</span>{" "}
+                      {currentEditingProgram.name}
                     </div>
                   </div>
                 </div>
@@ -369,7 +399,10 @@ function Programs({ setActiveView }: ProgramProps) {
                   {currentProgramProfessors.length > 0 ? (
                     <div className="space-y-2">
                       {currentProgramProfessors.map((rel) => (
-                        <div key={rel.professor} className="flex items-center justify-between rounded bg-blue-50 p-2">
+                        <div
+                          key={rel.professor}
+                          className="flex items-center justify-between rounded bg-blue-50 p-2"
+                        >
                           <span className="text-sm">
                             {rel.professor_details?.full_name || `Professor ID: ${rel.professor}`}
                           </span>
@@ -402,7 +435,7 @@ function Programs({ setActiveView }: ProgramProps) {
                         setComboboxSelectedProfessor(null);
                       }
                     }}
-                    mapResponse={data => data.map(p => ({id: p.id, name: p.full_name}))}
+                    mapResponse={(data) => data.map((p) => ({ id: p.id, name: p.full_name }))}
                     skeletonCount={5}
                   />
                 </div>
@@ -412,12 +445,16 @@ function Programs({ setActiveView }: ProgramProps) {
                     <h5 className="mb-2 font-medium text-green-600">Professors to be Added:</h5>
                     <div className="space-y-2">
                       {selectedProfessorsForEdit
-                        .filter(profId => !currentProgramProfessors.some(rel => rel.professor === profId))
+                        .filter(
+                          (profId) =>
+                            !currentProgramProfessors.some((rel) => rel.professor === profId),
+                        )
                         .map((professorId) => (
-                          <div key={professorId} className="flex items-center justify-between rounded bg-green-50 p-2">
-                            <span className="text-sm">
-                              {`Professor ID: ${professorId}`}
-                            </span>
+                          <div
+                            key={professorId}
+                            className="flex items-center justify-between rounded bg-green-50 p-2"
+                          >
+                            <span className="text-sm">{`Professor ID: ${professorId}`}</span>
                             <button
                               type="button"
                               onClick={() => removeProfessorFromProgram(professorId)}
@@ -426,36 +463,39 @@ function Programs({ setActiveView }: ProgramProps) {
                               Remove
                             </button>
                           </div>
-                        ))
-                      }
+                        ))}
                     </div>
                   </div>
                 )}
 
-                {currentProgramProfessors.some(rel => !selectedProfessorsForEdit.includes(rel.professor)) && (
-                  <div className="mt-4">
-                    <h5 className="mb-2 font-medium text-red-600">Professors to be Removed:</h5>
-                    <div className="space-y-2">
-                      {currentProgramProfessors
-                        .filter(rel => !selectedProfessorsForEdit.includes(rel.professor))
-                        .map((rel) => (
-                          <div key={rel.professor} className="flex items-center justify-between rounded bg-red-50 p-2">
-                            <span className="text-sm">
-                              {rel.professor_details?.full_name || `Professor ID: ${rel.professor}`}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => addProfessorToProgram(rel.professor)}
-                              className="btn btn-sm btn-outline btn-success"
+                {currentProgramProfessors.some(
+                  (rel) => !selectedProfessorsForEdit.includes(rel.professor),
+                ) && (
+                    <div className="mt-4">
+                      <h5 className="mb-2 font-medium text-red-600">Professors to be Removed:</h5>
+                      <div className="space-y-2">
+                        {currentProgramProfessors
+                          .filter((rel) => !selectedProfessorsForEdit.includes(rel.professor))
+                          .map((rel) => (
+                            <div
+                              key={rel.professor}
+                              className="flex items-center justify-between rounded bg-red-50 p-2"
                             >
-                              Keep
-                            </button>
-                          </div>
-                        ))
-                      }
+                              <span className="text-sm">
+                                {rel.professor_details?.full_name || `Professor ID: ${rel.professor}`}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => addProfessorToProgram(rel.professor)}
+                                className="btn btn-sm btn-outline btn-success"
+                              >
+                                Keep
+                              </button>
+                            </div>
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
 
               <div className="modal-action">
@@ -468,7 +508,7 @@ function Programs({ setActiveView }: ProgramProps) {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-neutral"
+                  className="btn btn-cancel"
                   onClick={() => {
                     resetEditForm();
                     (document.getElementById("edit_program_modal") as HTMLDialogElement)?.close();
@@ -484,12 +524,10 @@ function Programs({ setActiveView }: ProgramProps) {
         {/* Delete Program Modal */}
         <dialog id="delete_program_modal" className="modal">
           <div className="modal-box w-11/12 max-w-md">
-            <h3 className="mb-4 text-center text-2xl font-bold">
-              Delete Program
-            </h3>
+            <h3 className="mb-4 text-center text-2xl font-bold">Delete Program</h3>
             <p className="mb-6 text-center">
-              Are you sure you want to delete the program "{currentEditingProgram?.name}"?
-              This action cannot be undone.
+              Are you sure you want to delete the program "{currentEditingProgram?.name}"? This
+              action cannot be undone.
             </p>
             <div className="modal-action">
               <button
@@ -517,58 +555,55 @@ function Programs({ setActiveView }: ProgramProps) {
         </dialog>
 
         <div className="flex flex-row justify-center">
-
           {/* Export Programs Button */}
           <button
-            onClick={() =>
-              (
-                document.getElementById(
-                  "modal_export_programs",
-                ) as HTMLDialogElement
-              )?.showModal()
-            }
+            onClick={() => {
+              setExportFilename(defaultExportName()); // fresh timestamp each open
+              (document.getElementById("modal_export_programs") as HTMLDialogElement)?.showModal();
+            }}
             className="w-full rounded-lg bg-[#1b2e3e] px-5 py-2 whitespace-nowrap text-white shadow-xl transition-transform hover:scale-105 sm:w-auto"
           >
-            Export Program
+            Export Programs
           </button>
 
+          {/* Export Modal */}
           <dialog id="modal_export_programs" className="modal">
             <div className="modal-box w-11/12 max-w-3xl">
-              <h3 className="mb-4 text-center text-2xl font-bold">
-                Export Program
-              </h3>
+              <h3 className="mb-4 text-center text-2xl font-bold">Export Programs</h3>
 
               <form
-                method="dialog"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleExport();
+                }}
                 className="flex flex-col gap-6"
               >
                 <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <label className="text-left text-lg font-bold md:w-1/6">
-                    Name:
-                  </label>
+                  <label className="text-left text-lg font-bold md:w-1/4">Filename:</label>
                   <input
                     type="text"
-                    value="Program A"
-                    readOnly
-                    className="input input-bordered w-full cursor-not-allowed bg-gray-100"
+                    value={exportFilename}
+                    onChange={(e) => setExportFilename(e.target.value)}
+                    placeholder="programs_export.csv"
+                    className="input input-bordered w-full"
+                    required
                   />
                 </div>
+
+                <div className="rounded-lg bg-base-200 p-3 text-sm">
+                  This will export the <strong>currently listed programs</strong> (after search/filter)
+                  with columns: ID, Name, Status, Professors.
+                </div>
+
                 <div className="modal-action">
-                  <button
-                    type="submit"
-                    className="btn btn-success text-white"
-                  >
+                  <button type="submit" className="btn btn-success text-white">
                     Export
                   </button>
                   <button
                     type="button"
                     className="btn btn-cancel"
                     onClick={() =>
-                      (
-                        document.getElementById(
-                          "modal_export_programs",
-                        ) as HTMLDialogElement
-                      )?.close()
+                      (document.getElementById("modal_export_programs") as HTMLDialogElement)?.close()
                     }
                   >
                     Cancel
@@ -579,11 +614,9 @@ function Programs({ setActiveView }: ProgramProps) {
           </dialog>
         </div>
       </div>
+
       <div className="flex w-full items-start justify-center border-b-2 border-b-gray-600 px-4 pb-2 shadow-xl">
-        <label
-          htmlFor="search"
-          className="text-lg font-bold text-white"
-        ></label>
+        <label htmlFor="search" className="text-lg font-bold text-white"></label>
         <input
           id="search"
           type="text"
@@ -593,6 +626,7 @@ function Programs({ setActiveView }: ProgramProps) {
           className="input input-bordered w-full max-w-md"
         />
       </div>
+
       <DataTable
         data={programs}
         columns={programColumns}

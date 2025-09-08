@@ -24,8 +24,12 @@ torch = "*"
 transformers = { extras = ["torch"], version = "*" }
 pyyaml = "*"
 boto3 = "*"
+django-redis = "*"
+scikit-learn = "*"
+numpy = "*"
+psutil = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.12"
+python_version = "3.13"

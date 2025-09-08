@@ -95,9 +95,9 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
           levels.map((lvl) =>
             api.get(
               "/studentevaluationresponse/studentevaluationresponse/year-completion-summary",
-              { params: { ...paramsBase, year_level: lvl } }
-            )
-          )
+                {params: {...paramsBase, year_level: lvl}},
+            ),
+          ),
         );
 
         if (!isMounted) return;
@@ -105,7 +105,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
         const mapped: YearDatum[] = responses.map((res, idx) => {
           const completed = res.data?.completed ?? 0;
           const total = res.data?.total ?? 0;
-          const label = (["1st", "2nd", "3rd", "4th"][idx] as YearDatum["year"]);
+            const label = ["1st", "2nd", "3rd", "4th"][idx] as YearDatum["year"];
           return { year: label, ratio: `${completed}/${total}` };
         });
 
@@ -113,9 +113,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
       } catch (e: any) {
         console.error("Failed to fetch year-level counts", e);
         setYearsError(
-          e?.response?.data?.detail ||
-          e?.message ||
-          "Failed to load year completion summary."
+            e?.response?.data?.detail || e?.message || "Failed to load year completion summary.",
         );
       } finally {
         if (isMounted) setIsLoadingYears(false);
@@ -134,7 +132,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
       await api.post(
         "/clear-faculty-context/",
         {},
-        { headers: { Authorization: `Token ${token}` } }
+          {headers: {Authorization: `Token ${token}`}},
       );
     } catch (e) {
       console.warn("Clear faculty context failed (continuing anyway):", e);
@@ -163,7 +161,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
       { year: "3rd", ratio: "0/0" },
       { year: "4th", ratio: "0/0" },
     ],
-    []
+      [],
   );
 
   const cardsToRender = isLoadingYears ? loadingPlaceholders : yearData;
@@ -177,17 +175,11 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
         <div className="mt-30 flex w-full flex-col items-center justify-center gap-2 py-2 text-center text-lg font-bold text-white">
           <span>
             Viewing as Dean
-            {collegeName
-              ? ` of ${collegeName}`
-              : facultyId
-                ? ` (Faculty ID: ${facultyId})`
-                : ""}
+              {collegeName ? ` of ${collegeName}` : facultyId ? ` (Faculty ID: ${facultyId})` : ""}
           </span>
 
           <button
-            className="rounded bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 
-               px-3 py-1 text-white hover:opacity-90 hover:scale-105 
-               transition duration-300 ease-in-out"
+              className="rounded-xl px-3 bg-[#1b2e3e] px-3 py-1 text-white transition duration-300 ease-in-out hover:scale-105 hover:opacity-90"
             onClick={handleBackToHR}
             title="Return to HR dashboard and clear faculty context"
           >
@@ -198,8 +190,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
 
       {/* Recently Evaluated */}
       <div
-        className={`flex-col justify-center items-center w-full ${isTempDean ? "mt-0" : "mt-25"
-          }`}
+          className={`w-full flex-col items-center justify-center ${isTempDean ? "mt-0" : "mt-25"}`}
       >
         <RecentlyEvaluatedFaculty
           setActiveView={setActiveView}
@@ -211,11 +202,7 @@ const Home: React.FC<HomeProps> = ({ activeView, setActiveView }) => {
         <Clock />
 
         {/* Optional: inline error for year cards */}
-        {yearsError && (
-          <div className="mt-3 text-sm text-red-300">
-            {yearsError}
-          </div>
-        )}
+          {yearsError && <div className="mt-3 text-sm text-red-300">{yearsError}</div>}
 
         {/* Desktop View (Grid) */}
         <div className="float-breathe hidden flex-row items-center justify-center gap-6 md:flex">

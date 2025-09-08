@@ -56,6 +56,7 @@ urlpatterns = [
     path('analytics/retention-regression/', retention_regression_improved, name='retention-regression'),
     path('analytics/scatterplot-analytics/', scatterplot_analytics_save_improved, name='scatterplot-analytics-save'),
     path('analytics/retention-recommendations/', retention_recommendations, name='retention-recommendations'),
+    path('analytics/retention-recommendations/', retention_recommendations, name='retention-recommendations'),
     path('program/', include(program_router.urls)),
     path('program-professor/', include(program_professor_router.urls)),
     path('schedule/', include(schedule_router.urls)),
@@ -79,6 +80,10 @@ urlpatterns = [
     path('user-dashboard/', user_view_dashboard, name='user-dashboard'),
 
     path('user-profile/', user_view_profile),
+    path('user-profile/upload-avatar/', upload_profile_picture),
+    path('user-profile/change-password/', change_password_with_otp),
+    path('user-profile/request-otp/', request_password_change_otp),
+    path('user-profile/verify-otp/', verify_password_change_otp),
 
     path('forgot-password/', forgot_password_view),
 
@@ -102,5 +107,18 @@ urlpatterns = [
     # HR/Dean user admin endpoints
     path('admin/', include(user_admin_router.urls)),
 
-    path("uploads/presign", presign_put, name="presign-put")
+    path("uploads/presign", presign_put, name="presign-put"),
+
+    # ML Sentiment Analysis endpoints
+    path('ml/train-sentiment-model/', train_ml_sentiment_model, name='train-ml-sentiment-model'),
+    path('ml/training-status/', ml_training_status, name='ml-training-status'),
+    path('ml/safety-check/', ml_safety_check, name='ml-safety-check'),
+    path('ml/analyze-sentiment/', analyze_sentiment_ml, name='analyze-sentiment-ml'),
+    path('ml/model-info/', ml_sentiment_model_info, name='ml-sentiment-model-info'),
+    path('ml/enhanced-sentiment-analysis/', enhanced_sentiment_analysis, name='enhanced-sentiment-analysis'),
+    path('ml/compare-sentiment-models/', compare_sentiment_models, name='compare-sentiment-models'),
+    path('ml/trigger-smart-retraining/', trigger_smart_retraining, name='trigger-smart-retraining'),
+    path('ml/system-status/', ml_system_status, name='ml-system-status'),
+    path('ml/retraining-conditions/', ml_retraining_conditions, name='ml-retraining-conditions'),
+    path('ml/configure-smart-retraining/', configure_smart_retraining, name='configure-smart-retraining'),
 ]
