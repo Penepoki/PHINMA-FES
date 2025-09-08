@@ -191,11 +191,15 @@ export default function Profile({setActiveView}: ProfileProps) {
               <div
                   className="ring-primary ring-offset-base-100 w-40 overflow-hidden rounded-full bg-white/5 ring ring-offset-2 md:w-72">
                   <img
-                      src={`${(profileData.avatar || '/media/defaults/avatar.png')}?v=${cacheBust}`}
+                      src={`${(profileData.avatar || '/media/profile_pictures/default.jpg')}?v=${cacheBust}`}
                       alt="User Avatar"
                       className="object-cover"
                       onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = '/media/defaults/avatar.png';
+                          const img = e.currentTarget as HTMLImageElement;
+                          if (img.dataset.fallbackApplied !== 'true') {
+                              img.dataset.fallbackApplied = 'true';
+                              img.src = '/media/profile_pictures/default.jpg';
+                          }
                       }}
                   />
             </div>

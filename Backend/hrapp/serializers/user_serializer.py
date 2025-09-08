@@ -27,7 +27,7 @@ class UserProgramProfessorSerializer(serializers.ModelSerializer):
         name = getattr(pp, 'name', None)
         if not name:
             # Return a default placeholder hosted on the site
-            return request.build_absolute_uri('/media/defaults/avatar.png')
+            return request.build_absolute_uri('/media/defaults/default.png')
         # If file exists in default storage, return its URL
         try:
             if pp.storage.exists(name):
@@ -48,7 +48,7 @@ class UserProgramProfessorSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.profile_picture.url)
         except Exception:
             pass
-        return request.build_absolute_uri('/media/defaults/avatar.png')
+        return request.build_absolute_uri('/media/defaults/default.png')
 
 
 # USER SERIALIZER THATS GETS ALL THE SELECTED FIELDS LOOK AT META CLASS BELOW THE FIELDS
@@ -111,7 +111,7 @@ class UserDashboardSerializer(serializers.ModelSerializer):
                     return request.build_absolute_uri(obj.profile_picture.url)
                 except Exception:
                     pass
-            return request.build_absolute_uri('/media/defaults/avatar.png')
+            return request.build_absolute_uri('/media/defaults/default.png')
         return None
 
     def get_full_name_professor(self, obj):
