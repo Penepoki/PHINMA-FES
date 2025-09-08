@@ -93,6 +93,13 @@ function Evaluation({ setActiveView }: EvalProps) {
         const params: Record<string, string> = {};
         if (selectedYear) params.year = selectedYear;
         if (selectedSemester) params.semester = selectedSemester;
+        // Include faculty (HR borrowed or dean's own) when available
+        try {
+          const {resolveFacultyId} = await import("../../../utils/facultyContext");
+          const fid = await resolveFacultyId();
+          if (fid) params.faculty = String(fid);
+        } catch {
+        }
         const [evalRes, schedRes] = await Promise.all([
           api.get("/evaluation/evaluations/", {params}),
           api.get("/schedule/schedules/", {params}),

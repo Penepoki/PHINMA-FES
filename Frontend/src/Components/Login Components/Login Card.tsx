@@ -254,6 +254,7 @@ function LoginCard() {
   };
 
   const handleResendOtp = async () => {
+      // Resend for Forgot Password flow
     try {
       const response = await api.post("/forgot-password/", {
         email,
@@ -275,6 +276,32 @@ function LoginCard() {
       }
     }
   };
+
+    const handleResendLoginOtp = async () => {
+        // Resend for Login OTP overlay: call login again without otp to trigger resend
+        try {
+            const response = await api.post(
+                "/login/",
+                {
+                    username: identifier,
+                    password,
+                },
+                {skipAuth: true}
+            );
+            const data = response.data;
+            if (data?.otp_required) {
+                setIsOtpSent(true);
+                if (data.dev_otp) {
+                    const digits = String(data.dev_otp).split("").slice(0, 6);
+                    setOtp([digits[0] || "", digits[1] || "", digits[2] || "", digits[3] || "", digits[4] || "", digits[5] || ""]);
+                }
+                setError("");
+                alert("OTP resent!");
+            }
+        } catch (err) {
+            setError("Failed to resend OTP. Please try again.");
+        }
+    };
 
   const verifyOtp = async () => {
     const enteredOtp = otp.join("");
@@ -377,8 +404,8 @@ function LoginCard() {
             {/* OTP Full-Card Overlay */}
             {isOtpSent && (
                 <div
-                    className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-white/95 p-6 shadow-2xl">
-                  <h3 className="mb-4 text-2xl font-bold">Enter the 6-digit OTP</h3>
+                    className="absolute inset-0 z-20 flex flex-col items-center justify-start rounded-xl bg-white/95 p-6 shadow-2xl">
+                    <h3 className="mb-2 text-2xl font-bold">Enter the 6-digit OTP</h3>
                   <p className="mb-4 text-center text-gray-600">We sent a one-time passcode to your email.</p>
                   <div className="mb-4 flex justify-center gap-2">
                     {otp.map((digit, index) => (
@@ -403,6 +430,18 @@ function LoginCard() {
                         className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
                     >
                       {isLoading ? "Verifying OTP..." : "Verify OTP"}
+                    </button>
+                      <button
+                          onClick={handleResendLoginOtp}
+                          className="btn btn-outline w-full text-sm"
+                      >
+                          Resend OTP
+                      </button>
+                      <button
+                          onClick={() => setIsOtpSent(false)}
+                          className="btn btn-ghost w-full text-sm"
+                      >
+                          Back To Login
                     </button>
                     {error && <p className="text-center text-red-500">{error}</p>}
                   </div>

@@ -111,7 +111,7 @@ JAZZMIN_SETTINGS = {
     "site_title": "Admin Dashboard",
     "site_header": "School Management Admin",
     "welcome_sign": "Welcome to the School Management System",
-    "copyright": "Your School",
+    "copyright": "Saint Jude College School",
 }
 
 MIDDLEWARE = [

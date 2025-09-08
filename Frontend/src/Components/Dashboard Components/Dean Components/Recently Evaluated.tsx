@@ -169,7 +169,17 @@ const RecentlyEvaluatedFaculty: React.FC<RecentlyEvaluatedProps> = ({
     const fetchLatest = async () => {
       try {
         setIsLoading(true);
-          const res = await api.get("/evaluation/evaluations/latest-with-tallies/?limit=3");
+        // Include faculty context if available (HR borrowed faculty or dean's own)
+        let url = "/evaluation/evaluations/latest-with-tallies/?limit=3";
+        try {
+          const {resolveFacultyId} = await import("../../../utils/facultyContext");
+          const fid = await resolveFacultyId();
+          if (fid) {
+            url += `&faculty=${fid}`;
+          }
+        } catch {
+        }
+        const res = await api.get(url);
         const formatted = res.data.map((item: any) => ({
           evaluationNumber: item.evaluation_number,
           name: item.faculty_name,
