@@ -282,3 +282,124 @@ Do not repeat previous content. Be concise but complete. End with [END] when fin
             "total_tokens_estimated": len(feedback.split())
         }
     }
+
+# ---------- RETENTION RECOMMENDATIONS (Lean Six Sigma) ----------
+from collections import defaultdict
+from statistics import mean
+from hrapp.models.evaluation_models import ScatterPlotAnalytics
+
+
+def _summarize_retention_series(entries):
+    series = defaultdict(list)  # key -> list[float]
+    chronology = defaultdict(list)  # key -> list[datetime]
+    for e in entries:
+        key = f"{getattr(e, 'year', 'Unknown')}-{getattr(e, 'semester', 'Unknown')}"
+        try:
+            rr = float(e.retention_rate or 0)
+        except Exception:
+            rr = 0.0
+        series[key].append(rr)
+        chronology[key].append(e.created_at)
+
+    per_series = {}
+    for key, vals in series.items():
+        if not vals:
+            continue
+        try:
+            avg = float(mean(vals))
+        except Exception:
+            avg = sum(vals) / max(len(vals), 1)
+        last = vals[-1]
+        _min = min(vals)
+        _max = max(vals)
+        trend = None
+        if len(vals) >= 2:
+            trend = vals[-1] - vals[0]
+        per_series[key] = {
+            "count": len(vals),
+            "avg": round(avg, 3),
+            "last": round(float(last), 3),
+            "min": round(float(_min), 3),
+            "max": round(float(_max), 3),
+            "trend": round(float(trend), 3) if trend is not None else None,
+            "first_ts": min(chronology[key]) if chronology[key] else None,
+            "last_ts": max(chronology[key]) if chronology[key] else None,
+        }
+
+    # overall
+    all_vals = [v for vals in series.values() for v in vals]
+    overall = {
+        "count": len(all_vals),
+        "avg": round(float(mean(all_vals)), 3) if all_vals else 0.0,
+        "min": round(min(all_vals), 3) if all_vals else 0.0,
+        "max": round(max(all_vals), 3) if all_vals else 0.0,
+    }
+    return per_series, overall
+
+
+def build_retention_prompt(entries):
+    per_series, overall = _summarize_retention_series(entries)
+
+    lines = []
+    lines.append("LEAN SIX SIGMA CONTEXT: You are an LSS Black Belt advising an academic unit on student retention.")
+    lines.append("Use DMAIC thinking, quantify impact, and focus on CTQs (Critical-To-Quality) like Retention Rate, Response Participation, and Early Intervention KPIs.")
+    lines.append("")
+    lines.append("RETENTION DATA SNAPSHOT (Saved ScatterPlotAnalytics):")
+    lines.append(f"Overall: count={overall['count']}, avg={overall['avg']}%, min={overall['min']}%, max={overall['max']}%")
+    for key, stats in sorted(per_series.items()):
+        lines.append(
+            f"- {key}: n={stats['count']}, last={stats['last']}%, avg={stats['avg']}%, min={stats['min']}%, max={stats['max']}%, trend={stats['trend']}% (last-first)"
+        )
+
+    lines.append("")
+    lines.append("RECOMMENDATION REQUIREMENTS:")
+    lines.append("- Provide 3–5 prioritized, actionable recommendations.")
+    lines.append("- For each, include: DMAIC phase focus, Root-cause hypothesis (5 Whys/Fishbone), Metric to track (CTQ/KPI), Expected retention lift (ballpark), and First experiment to run.")
+    lines.append("- Cite specific series (e.g., '2nd-1st') and reference their stats (last/avg/trend).")
+    lines.append("- Keep each recommendation 90–150 words; avoid generic statements; be concrete and measurable.")
+    lines.append("- Conclude with a 3-step 90-day roadmap.")
+    lines.append("")
+    lines.append("Output format: numbered list with compact paragraphs. Use plain text. Start now.")
+
+    return "\n".join(lines)
+
+
+def generate_retention_recommendations(max_new_tokens: int = 900, temperature: float = 0.45):
+    """Generate Lean Six Sigma recommendations from saved retention entries."""
+    entries = list(ScatterPlotAnalytics.objects.all().order_by('created_at'))
+    if not entries:
+        return {
+            "recommendations": "No retention entries found. Add entries per year/semester to enable AI guidance.",
+            "metadata": {"entries": 0}
+        }
+
+    prompt = build_retention_prompt(entries)
+    api_key = get_api_key()
+    text = generate_ai_feedback(prompt, api_key, max_new_tokens=max_new_tokens, temperature=temperature)
+
+    # --- Formatting Fix: Clean up and enforce numbered list formatting ---
+    import re
+    # Remove excessive blank lines
+    cleaned = re.sub(r'\n{3,}', '\n\n', text.strip())
+    # Ensure numbered list starts at 1 (if not already)
+    if not re.match(r"^\s*1[\.\)]", cleaned):
+        # Try to add numbers to recommendations if missing
+        lines = [line.strip() for line in cleaned.split('\n') if line.strip()]
+        numbered = []
+        num = 1
+        for line in lines:
+            if line and not re.match(r"^\d[\.\)]", line):
+                numbered.append(f"{num}. {line}")
+                num += 1
+            else:
+                numbered.append(line)
+        cleaned = '\n'.join(numbered)
+
+    return {
+        "recommendations": cleaned,
+        "metadata": {
+            "entries": len(entries),
+            "series_count": len({f"{e.year}-{e.semester}" for e in entries}),
+            "generated_tokens_estimate": len(text.split())
+        }
+    }

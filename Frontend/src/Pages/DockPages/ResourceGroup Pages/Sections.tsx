@@ -137,7 +137,9 @@ function Sections({ setActiveView }: SectionsProps) {
 
       if (sectionId && createStagedStudents.length > 0) {
         const ids = createStagedStudents.map(s => Number(s.id));
-        await api.post(`/section/sections/${sectionId}/add_students/`, {student_ids: ids});
+          await api.post(`/section/sections/${sectionId}/add_students/`, {student_ids: ids}, {
+              params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+          });
       }
 
       // reset…
@@ -161,6 +163,8 @@ function Sections({ setActiveView }: SectionsProps) {
     try {
       await api.patch(`/section/sections/${Section.id}/`, {
         is_active: !Section.is_active,
+      }, {
+          params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
       });
       fetchSections();
     } catch (error) {
@@ -170,7 +174,9 @@ function Sections({ setActiveView }: SectionsProps) {
 
   const deleteSection = async (SectionId: number) => {
     try {
-      await api.delete(`/section/sections/${SectionId}/`);
+        await api.delete(`/section/sections/${SectionId}/`, {
+            params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+        });
       fetchSections();
     } catch (error) {
       console.error("Error deleting Section:", error);
@@ -205,24 +211,33 @@ function Sections({ setActiveView }: SectionsProps) {
     setEditActive(section.is_active);
     setEditStagedStudents([]);
 
-    const res = await api.get(`/section/sections/${section.id}/students/`);
+      const res = await api.get(`/section/sections/${section.id}/students/`, {
+          params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+      });
     const users: any[] = Array.isArray(res.data) ? res.data : [];
-    const mapped: Option[] = users.map(toStudentOption);   // <-- use helper
+      const mapped: Option[] = users.map(toStudentOption);
     setEditCurrentStudents(mapped);
 
     (document.getElementById("edit_section_modal") as HTMLDialogElement)?.showModal();
   };
 
+
   // Submit edit of fields only
   const submitEditSection = async () => {
     if (!editSection) return;
     try {
-      await api.patch(`/section/sections/${editSection.id}/`, {
-        name: editName,                   // optional if server auto-fills; keep if you allow manual rename
-        is_active: editActive,
-        year_level: editYearLevel?.id,    // NEW
-        program: editProgram?.id,         // NEW
-      });
+        await api.patch(
+            `/section/sections/${editSection.id}/`,
+            {
+                name: editName,
+                is_active: editActive,
+                year_level: editYearLevel?.id,
+                program: editProgram?.id,
+            },
+            {
+                params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+            }
+        );
       (document.getElementById("edit_section_modal") as HTMLDialogElement)?.close();
       setEditSection(null);
       fetchSections();
@@ -231,7 +246,8 @@ function Sections({ setActiveView }: SectionsProps) {
     }
   };
 
-  // Submit staged students for edit dialog
+
+    // Submit staged students for edit dialog
   const submitEditStudents = async () => {
     if (!editSection) return;
     if (editStagedStudents.length === 0) {
@@ -249,6 +265,8 @@ function Sections({ setActiveView }: SectionsProps) {
       const ids = toAdd.map((s) => Number(s.id));
       await api.post(`/section/sections/${editSection.id}/add_students/`, {
         student_ids: ids,
+      }, {
+          params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
       });
       // Merge and clear staged
       setEditCurrentStudents((prev) => [...prev, ...toAdd]);

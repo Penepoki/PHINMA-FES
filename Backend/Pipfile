@@ -23,6 +23,9 @@ gunicorn = "*"
 torch = "*"
 transformers = { extras = ["torch"], version = "*" }
 pyyaml = "*"
+scikit-learn = "*"
+numpy = "*"
+psutil = "*"
 
 [dev-packages]
 

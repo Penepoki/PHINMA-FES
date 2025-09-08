@@ -1,0 +1,19 @@
+# ML Model Files
+*.pkl
+*.joblib
+*.model
+*.bin
+
+# Model backups
+model_backups/
+
+# Training logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Keep the README
+!README.md
+!.gitignore

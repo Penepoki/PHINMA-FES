@@ -44,12 +44,18 @@ StudentEvaluationResponse_router.register(r'studentevaluationresponse', StudentE
 #ROOM ROUTER
 room_router = DefaultRouter()
 room_router.register(r'rooms', RoomViewSet, basename='room')
+
+# USERS ADMIN ROUTER (HR/Dean)
+user_admin_router = DefaultRouter()
+user_admin_router.register(r'users', UserAdminViewSet, basename='user-admin')
+
 urlpatterns = [
     path('section/', include(section_router.urls)),
     path('subject/', include(subject_router.urls)),
     path('room/', include(room_router.urls)),
     path('analytics/retention-regression/', retention_regression_improved, name='retention-regression'),
     path('analytics/scatterplot-analytics/', scatterplot_analytics_save_improved, name='scatterplot-analytics-save'),
+    path('analytics/retention-recommendations/', retention_recommendations, name='retention-recommendations'),
     path('program/', include(program_router.urls)),
     path('program-professor/', include(program_professor_router.urls)),
     path('schedule/', include(schedule_router.urls)),
@@ -92,4 +98,17 @@ urlpatterns = [
     path('get-faculty-context/', get_faculty_context_view),
 
     path('faculty/', include(faculty_router.urls)),
+
+    # ML Sentiment Analysis endpoints
+    path('ml/train-sentiment-model/', train_ml_sentiment_model, name='train-ml-sentiment-model'),
+    path('ml/training-status/', ml_training_status, name='ml-training-status'),
+    path('ml/safety-check/', ml_safety_check, name='ml-safety-check'),
+    path('ml/analyze-sentiment/', analyze_sentiment_ml, name='analyze-sentiment-ml'),
+    path('ml/model-info/', ml_sentiment_model_info, name='ml-sentiment-model-info'),
+    path('ml/enhanced-sentiment-analysis/', enhanced_sentiment_analysis, name='enhanced-sentiment-analysis'),
+    path('ml/compare-sentiment-models/', compare_sentiment_models, name='compare-sentiment-models'),
+    path('ml/trigger-smart-retraining/', trigger_smart_retraining, name='trigger-smart-retraining'),
+    path('ml/system-status/', ml_system_status, name='ml-system-status'),
+    path('ml/retraining-conditions/', ml_retraining_conditions, name='ml-retraining-conditions'),
+    path('ml/configure-smart-retraining/', configure_smart_retraining, name='configure-smart-retraining'),
 ]
