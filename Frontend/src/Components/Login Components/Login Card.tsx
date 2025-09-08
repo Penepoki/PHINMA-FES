@@ -1,6 +1,6 @@
-import {EyeIcon, EyeSlashIcon, EnvelopeIcon, UserIcon} from "@heroicons/react/24/outline";
-import api, {markTokenReady} from "../../utils/api.ts";
-import {AxiosError, isAxiosError} from "axios";
+import { EyeIcon, EyeSlashIcon, EnvelopeIcon, UserIcon } from "@heroicons/react/24/outline";
+import api, { markTokenReady } from "../../utils/api.ts";
+import { AxiosError, isAxiosError } from "axios";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 
@@ -57,7 +57,7 @@ function LoginCard() {
           username: identifier,
           password,
         },
-          {skipAuth: true}
+        { skipAuth: true }
       );
 
       const data = response.data;
@@ -76,7 +76,7 @@ function LoginCard() {
       }
 
       // Step 2 success path (in case backend returns token directly)
-      const {token, roles, faculty_id} = data;
+      const { token, roles, faculty_id } = data;
       if (!token || !roles || roles.length === 0) {
         setError("Login failed: missing authentication data.");
         return;
@@ -236,7 +236,7 @@ function LoginCard() {
     }
   };
 
-    const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const value = e.target.value.replace(/\D/g, "").slice(0, 1);
     const newOtp = [...otp];
     newOtp[index] = value;
@@ -247,14 +247,14 @@ function LoginCard() {
     }
   };
 
-    const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+  const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
     }
   };
 
   const handleResendOtp = async () => {
-      // Resend for Forgot Password flow
+    // Resend for Forgot Password flow
     try {
       const response = await api.post("/forgot-password/", {
         email,
@@ -277,31 +277,31 @@ function LoginCard() {
     }
   };
 
-    const handleResendLoginOtp = async () => {
-        // Resend for Login OTP overlay: call login again without otp to trigger resend
-        try {
-            const response = await api.post(
-                "/login/",
-                {
-                    username: identifier,
-                    password,
-                },
-                {skipAuth: true}
-            );
-            const data = response.data;
-            if (data?.otp_required) {
-                setIsOtpSent(true);
-                if (data.dev_otp) {
-                    const digits = String(data.dev_otp).split("").slice(0, 6);
-                    setOtp([digits[0] || "", digits[1] || "", digits[2] || "", digits[3] || "", digits[4] || "", digits[5] || ""]);
-                }
-                setError("");
-                alert("OTP resent!");
-            }
-        } catch (err) {
-            setError("Failed to resend OTP. Please try again.");
+  const handleResendLoginOtp = async () => {
+    // Resend for Login OTP overlay: call login again without otp to trigger resend
+    try {
+      const response = await api.post(
+        "/login/",
+        {
+          username: identifier,
+          password,
+        },
+        { skipAuth: true }
+      );
+      const data = response.data;
+      if (data?.otp_required) {
+        setIsOtpSent(true);
+        if (data.dev_otp) {
+          const digits = String(data.dev_otp).split("").slice(0, 6);
+          setOtp([digits[0] || "", digits[1] || "", digits[2] || "", digits[3] || "", digits[4] || "", digits[5] || ""]);
         }
-    };
+        setError("");
+        alert("OTP resent!");
+      }
+    } catch (err) {
+      setError("Failed to resend OTP. Please try again.");
+    }
+  };
 
   const verifyOtp = async () => {
     const enteredOtp = otp.join("");
@@ -310,16 +310,16 @@ function LoginCard() {
     try {
       // Step 2: submit login with OTP to receive token
       const res = await api.post(
-          "/login/",
-          {
-            username: identifier,
-            password,
-            otp: enteredOtp,
-          },
-          {skipAuth: true}
+        "/login/",
+        {
+          username: identifier,
+          password,
+          otp: enteredOtp,
+        },
+        { skipAuth: true }
       );
 
-      const {token, roles, faculty_id} = res.data;
+      const { token, roles, faculty_id } = res.data;
       if (!token || !roles || roles.length === 0) {
         setError("Login failed after OTP: missing data.");
         return;
@@ -388,8 +388,8 @@ function LoginCard() {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
-      <div
-          className="card card-border relative z-50 mx-auto w-[90%] max-w-[28rem] bg-white opacity-95 shadow-2xl transition-opacity duration-300 ease-in-out hover:opacity-100 lg:mr-40">
+    <div
+      className="card card-border relative z-50 mx-auto w-[90%] max-w-[28rem] bg-white opacity-95 shadow-2xl transition-opacity duration-300 ease-in-out hover:opacity-100 lg:mr-40">
       <div className="card-body space-y-1 md:space-y-3">
         <h2 className="card-title text-center text-3xl font-bold">
           {isSignUp
@@ -403,49 +403,49 @@ function LoginCard() {
           <>
             {/* OTP Full-Card Overlay */}
             {isOtpSent && (
-                <div
-                    className="absolute inset-0 z-20 flex flex-col items-center justify-start rounded-xl bg-white/95 p-6 shadow-2xl">
-                    <h3 className="mb-2 text-2xl font-bold">Enter the 6-digit OTP</h3>
-                  <p className="mb-4 text-center text-gray-600">We sent a one-time passcode to your email.</p>
-                  <div className="mb-4 flex justify-center gap-2">
-                    {otp.map((digit, index) => (
-                        <input
-                            key={index}
-                            ref={(el) => {
-                              otpRefs.current[index] = el;
-                            }}
-                            type="text"
-                            maxLength={1}
-                            className="input w-12 text-center text-xl"
-                            value={digit}
-                            onChange={(e) => handleOtpChange(e, index)}
-                            onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                        />
-                    ))}
-                  </div>
-                  <div className="flex w-full max-w-sm flex-col gap-2">
-                    <button
-                        onClick={verifyOtp}
-                        disabled={isLoading}
-                        className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
-                    >
-                      {isLoading ? "Verifying OTP..." : "Verify OTP"}
-                    </button>
-                      <button
-                          onClick={handleResendLoginOtp}
-                          className="btn btn-outline w-full text-sm"
-                      >
-                          Resend OTP
-                      </button>
-                      <button
-                          onClick={() => setIsOtpSent(false)}
-                          className="btn btn-ghost w-full text-sm"
-                      >
-                          Back To Login
-                    </button>
-                    {error && <p className="text-center text-red-500">{error}</p>}
-                  </div>
+              <div
+                className="absolute inset-0 z-20 flex flex-col items-center justify-start rounded-xl bg-white p-6 shadow-2xl">
+                <h3 className="mb-2 text-2xl font-bold">Enter the 6-digit OTP</h3>
+                <p className="mb-4 text-center text-gray-600">We sent a one-time passcode to your email.</p>
+                <div className="mb-4 flex justify-center gap-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => {
+                        otpRefs.current[index] = el;
+                      }}
+                      type="text"
+                      maxLength={1}
+                      className="input w-12 text-center text-xl"
+                      value={digit}
+                      onChange={(e) => handleOtpChange(e, index)}
+                      onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                    />
+                  ))}
                 </div>
+                <div className="flex w-full max-w-sm flex-col gap-2">
+                  <button
+                    onClick={verifyOtp}
+                    disabled={isLoading}
+                    className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
+                  >
+                    {isLoading ? "Verifying OTP..." : "Verify OTP"}
+                  </button>
+                  <button
+                    onClick={handleResendLoginOtp}
+                    className="btn btn-outline w-full text-sm"
+                  >
+                    Resend OTP
+                  </button>
+                  <button
+                    onClick={() => setIsOtpSent(false)}
+                    className="btn btn-ghost w-full text-sm"
+                  >
+                    Back To Login
+                  </button>
+                  {error && <p className="text-center text-red-500">{error}</p>}
+                </div>
+              </div>
             )}
 
             {/* Login Fields */}
@@ -512,49 +512,49 @@ function LoginCard() {
             </div>
 
             {!isOtpSent ? (
-                <div className="card-actions justify-center">
-                  <button
-                      onClick={handleLogin}
-                      disabled={isLoading}
-                      className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
-                  >
-                    {isLoading ? "Logging In..." : "Login"}
-                  </button>
-                  {error && <p className="text-red-500">{error}</p>}
-                </div>
+              <div className="card-actions justify-center">
+                <button
+                  onClick={handleLogin}
+                  disabled={isLoading}
+                  className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
+                >
+                  {isLoading ? "Logging In..." : "Login"}
+                </button>
+                {error && <p className="text-red-500">{error}</p>}
+              </div>
             ) : (
-                <>
-                  <div className="my-4 flex justify-center gap-2">
-                    {otp.map((digit, index) => (
-                        <input
-                            key={index}
-                            ref={(el) => {
-                              otpRefs.current[index] = el;
-                            }}
-                            type="text"
-                            maxLength={1}
-                            className="input w-12 text-center text-xl"
-                            value={digit}
-                            onChange={(e) => handleOtpChange(e, index)}
-                            onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                        />
-                    ))}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <button
-                        onClick={verifyOtp}
-                        disabled={isLoading}
-                        className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
-                    >
-                      {isLoading ? "Verifying OTP..." : "Verify OTP"}
-                    </button>
-                  </div>
-                </>
+              <>
+                <div className="my-4 flex justify-center gap-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => {
+                        otpRefs.current[index] = el;
+                      }}
+                      type="text"
+                      maxLength={1}
+                      className="input w-12 text-center text-xl"
+                      value={digit}
+                      onChange={(e) => handleOtpChange(e, index)}
+                      onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                    />
+                  ))}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={verifyOtp}
+                    disabled={isLoading}
+                    className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
+                  >
+                    {isLoading ? "Verifying OTP..." : "Verify OTP"}
+                  </button>
+                </div>
+              </>
             )}
 
             <div className="text-center">
               <span>Don't have an account? </span>
-                <button onClick={() => setIsSignUp(true)} className="text-primary hover:underline">
+              <button onClick={() => setIsSignUp(true)} className="text-primary hover:underline">
                 Sign Up
               </button>
             </div>
@@ -582,7 +582,7 @@ function LoginCard() {
                     disabled={isLoading}
                     className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
                   >
-                      {isLoading ? "Sending OTP..." : "Send OTP"}
+                    {isLoading ? "Sending OTP..." : "Send OTP"}
                   </button>
                 </div>
               </>
@@ -613,7 +613,7 @@ function LoginCard() {
                     disabled={isLoading}
                     className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
                   >
-                      {isLoading ? "Verifying OTP..." : "Verify OTP"}
+                    {isLoading ? "Verifying OTP..." : "Verify OTP"}
                   </button>
                   <button
                     onClick={handleResendOtp}
@@ -701,7 +701,7 @@ function LoginCard() {
               </button>
             </div>
 
-              {error && <p className="text-center text-red-500">{error}</p>}
+            {error && <p className="text-center text-red-500">{error}</p>}
           </>
         ) : (
           <>
@@ -848,7 +848,7 @@ function LoginCard() {
 
             <div className="text-center">
               <span>Already have an account? </span>
-                <button onClick={() => setIsSignUp(false)} className="text-primary hover:underline">
+              <button onClick={() => setIsSignUp(false)} className="text-primary hover:underline">
                 Log In
               </button>
             </div>

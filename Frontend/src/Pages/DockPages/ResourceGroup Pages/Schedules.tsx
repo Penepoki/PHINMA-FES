@@ -813,24 +813,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
                 }
               />
 
-              {/* Title */}
-              <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">Title:</label>
-                <input
-                  type="text"
-                  placeholder="Enter title"
-                  className="input input-bordered w-full"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      name: e.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-
               {/* Start Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
                 <label className="text-left text-lg font-bold md:w-1/4">Start Time:</label>

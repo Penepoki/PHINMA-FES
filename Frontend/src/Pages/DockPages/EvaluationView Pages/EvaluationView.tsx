@@ -1,11 +1,11 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
-import CopusMatrix, {ActivityData} from "../../../Components/Evaluation Components/Copus Matrix";
+import CopusMatrix, { ActivityData } from "../../../Components/Evaluation Components/Copus Matrix";
 import CopusSummaryTableWithPDF from "../../../Components/Evaluation Components/CopusSummaryTableWithPDF";
 import CreateEvaluationForm from "../../../Components/Evaluation Components/CreateEvaluationForm";
 import PieChartWithTable from "../../../Components/Evaluation Components/Piechart with Table";
 import * as Interfaces from "../../../Types/Interfaces.ts";
-import api, {generateAIFeedback} from "../../../utils/api";
+import api, { generateAIFeedback } from "../../../utils/api";
 import * as Fetcher from "../../../utils/fetcher.ts";
 
 interface EvalProps {
@@ -95,14 +95,14 @@ function Evaluation({ setActiveView }: EvalProps) {
         if (selectedSemester) params.semester = selectedSemester;
         // Include faculty (HR borrowed or dean's own) when available
         try {
-          const {resolveFacultyId} = await import("../../../utils/facultyContext");
+          const { resolveFacultyId } = await import("../../../utils/facultyContext");
           const fid = await resolveFacultyId();
           if (fid) params.faculty = String(fid);
         } catch {
         }
         const [evalRes, schedRes] = await Promise.all([
-          api.get("/evaluation/evaluations/", {params}),
-          api.get("/schedule/schedules/", {params}),
+          api.get("/evaluation/evaluations/", { params }),
+          api.get("/schedule/schedules/", { params }),
         ]);
         setEvaluations(evalRes.data || []);
         setSchedules(schedRes.data || []);
@@ -205,11 +205,11 @@ function Evaluation({ setActiveView }: EvalProps) {
     schedules.filter((s) => s.instructor === prof.id);
 
   const getProfessorEvaluations = useCallback(
-      (prof: Interfaces.Professor) => {
-        const profScheduleIds = schedules.filter((s) => s.instructor === prof.id).map((s) => s.id);
-        return evaluations.filter((e) => profScheduleIds.includes(e.schedule));
-      },
-      [schedules, evaluations],
+    (prof: Interfaces.Professor) => {
+      const profScheduleIds = schedules.filter((s) => s.instructor === prof.id).map((s) => s.id);
+      return evaluations.filter((e) => profScheduleIds.includes(e.schedule));
+    },
+    [schedules, evaluations],
   );
 
   const COPUS_TYPE_CHOICES = [
@@ -251,8 +251,8 @@ function Evaluation({ setActiveView }: EvalProps) {
   // Filtering: by professor name; allow display even if no schedules in current period (to avoid empty UI)
   const filteredProfessors = professors.filter((prof) => {
     const matchName = `${prof.first_name} ${prof.last_name}`
-        .toLowerCase()
-        .includes(searchProfessor.toLowerCase());
+      .toLowerCase()
+      .includes(searchProfessor.toLowerCase());
     return matchName;
   });
 
@@ -290,7 +290,7 @@ function Evaluation({ setActiveView }: EvalProps) {
     <div className="custom-container gap-y-6">
       <BreadAndLogout
         setActiveView={setActiveView}
-        breadcrumbs={[{label: "Home", view: "home"}, {label: "Evaluation"}]}
+        breadcrumbs={[{ label: "Home", view: "home" }, { label: "Evaluation" }]}
       />
 
       <h2 className="mt-4 text-3xl font-bold text-white">Copus Evaluation Forms</h2>
@@ -343,26 +343,26 @@ function Evaluation({ setActiveView }: EvalProps) {
 
         {/* Year combobox */}
         <select
-            className="select select-bordered w-full max-w-xs"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            aria-label="Filter by Year"
+          className="select select-bordered w-full max-w-xs"
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(e.target.value)}
+          aria-label="Filter by Year"
         >
           <option value="">All Years</option>
           {Array.from(new Set(schedules.map((s) => (s.year ? String(s.year).slice(0, 4) : ""))))
-              .filter((y) => y)
-              .sort()
-              .map((y) => (
-                  <option key={y} value={y}>{y}</option>
-              ))}
+            .filter((y) => y)
+            .sort()
+            .map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
         </select>
 
         {/* Semester combobox */}
         <select
-            className="select select-bordered w-full max-w-xs"
-            value={selectedSemester}
-            onChange={(e) => setSelectedSemester(e.target.value)}
-            aria-label="Filter by Semester"
+          className="select select-bordered w-full max-w-xs"
+          value={selectedSemester}
+          onChange={(e) => setSelectedSemester(e.target.value)}
+          aria-label="Filter by Semester"
         >
           <option value="">All Semesters</option>
           <option value="First">First</option>
@@ -491,7 +491,7 @@ function Evaluation({ setActiveView }: EvalProps) {
 
                           {/* Divider ONLY when Copus Summary is visible */}
                           {hasAllCopus && (
-                              <div className="divider divider-horizontal divider-accent mx-2"/>
+                            <div className="divider divider-horizontal divider-accent mx-2" />
                           )}
 
                           {/* COPUS 1/2/3 */}
@@ -522,9 +522,9 @@ function Evaluation({ setActiveView }: EvalProps) {
                                   onClick={() => {
                                     setSelectedProfessor(prof);
                                     (
-                                        document.getElementById(
-                                            "create_new_copus",
-                                        ) as HTMLDialogElement
+                                      document.getElementById(
+                                        "create_new_copus",
+                                      ) as HTMLDialogElement
                                     )?.showModal();
                                   }}
                                 >
@@ -543,7 +543,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                               <div className="avatar mt-3">
                                 <div className="h-24 w-24 rounded-full">
                                   <img
-                                      src={(prof as any)?.profile_picture_url || "https://via.placeholder.com/150"}
+                                    src={(prof as any)?.profile_picture_url || "https://via.placeholder.com/150"}
                                     alt="Professor avatar"
                                   />
                                 </div>
@@ -749,17 +749,17 @@ function Evaluation({ setActiveView }: EvalProps) {
                     {(() => {
                       const tallies = evaluationTallies[selectedEvaluation.id];
                       const hasStudent =
-                          tallies &&
-                          tallies.studentTallies &&
-                          Object.keys(tallies.studentTallies).length > 0;
+                        tallies &&
+                        tallies.studentTallies &&
+                        Object.keys(tallies.studentTallies).length > 0;
                       const hasTeacher =
-                          tallies &&
-                          tallies.teacherTallies &&
-                          Object.keys(tallies.teacherTallies).length > 0;
+                        tallies &&
+                        tallies.teacherTallies &&
+                        Object.keys(tallies.teacherTallies).length > 0;
 
                       if (!hasStudent && !hasTeacher) {
                         return (
-                            <div className="alert w-full bg-slate-100 text-slate-700">
+                          <div className="alert w-full bg-slate-100 text-slate-700">
                             <span>
                               No COPUS tallies yet. Please fill in the matrix above to see charts
                               and tables.
@@ -785,14 +785,14 @@ function Evaluation({ setActiveView }: EvalProps) {
                 <div className="collapse-title text-lg font-semibold">
                   Assisted Summary
                   {aiFeedbackLoading && (
-                      <span className="ml-4 text-sm text-gray-500">Loading...</span>
+                    <span className="ml-4 text-sm text-gray-500">Loading...</span>
                   )}
                 </div>
                 <div className="collapse-content">
                   <div className="mb-2 flex items-center gap-3">
                     {aiFeedback === null && !aiFeedbackLoading && (
                       <button
-                        className="btn btn-primary btn-xs"
+                        className="btn text-white btn-primary"
                         onClick={handleGenerateAIFeedback}
                         disabled={aiFeedbackLoading}
                         type="button"

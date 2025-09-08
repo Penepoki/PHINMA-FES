@@ -102,7 +102,10 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
       </div>
 
       {/* BOTTOM */}
-      <div className="flex h-30 w-full flex-col rounded-br-lg rounded-bl-xl px-5 py-2 shadow-2xl backdrop-hue-rotate-300">
+      <div
+        className={`flex h-30 w-full flex-col rounded-br-lg rounded-bl-xl px-5 py-2 shadow-2xl
+    ${isCompleted ? "backdrop-hue-rotate-300" : "backdrop-hue-rotate-0 bg-red-500/20"}`}
+      >
         <div className="mt-4 flex flex-col text-start">
           <span className={`text-2xl font-bold ${textColor}`}>{name}</span>
           {subtitle ? <span className="mt-2 text-sm text-gray-400">{subtitle}</span> : null}

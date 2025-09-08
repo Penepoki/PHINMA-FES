@@ -528,13 +528,13 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
           const processed = html.replace(/<pre(.*?)>/, (m: string) =>
             m.includes("style=")
               ? m.replace(
-                  /style="/,
-                  'style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;',
-                )
+                /style="/,
+                'style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;',
+              )
               : m.replace(
-                  /^<pre/,
-                  '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"',
-                ),
+                /^<pre/,
+                '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"',
+              ),
           );
           setAiRecsHtml(processed);
         } else if (text) {
@@ -688,7 +688,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
       },
       tooltip: {
         callbacks: {
-          label: function (context: any) {
+          label: function(context: any) {
             const d = context.dataset.data[context.dataIndex];
             return `${d.from} → ${d.to}: ${d.flow}`;
           },
@@ -899,8 +899,8 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
           <button className="btn btn-primary text-white">Filter All</button>
         </div>
 
-        <div className="flex h-full flex-row gap-6">
-          <div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-6 shadow-2xl backdrop-blur-lg">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex w-full md:w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-6 shadow-2xl backdrop-blur-lg">
             <table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
               <thead>
                 <tr className="border border-gray-600">
@@ -928,7 +928,7 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
             </table>
           </div>
 
-          <div className="flex h-full w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-6 shadow-2xl backdrop-blur-lg">
+          <div className="flex w-full md:w-1/2 flex-col items-start justify-start overflow-y-auto rounded-lg bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-6 shadow-2xl backdrop-blur-lg">
             <table className="mt-2 w-full table-auto border border-gray-600 text-left text-white">
               <thead>
                 <tr className="border border-gray-600">
@@ -1151,10 +1151,10 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       <div className="stat-desc text-green-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                              ((sentimentSummary.sentiment_distribution?.POSITIVE || 0) /
-                                sentimentSummary.total_responses) *
-                                100,
-                            )
+                            ((sentimentSummary.sentiment_distribution?.POSITIVE || 0) /
+                              sentimentSummary.total_responses) *
+                            100,
+                          )
                           : 0}
                         %
                       </div>
@@ -1167,10 +1167,10 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       <div className="stat-desc text-yellow-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                              ((sentimentSummary.sentiment_distribution?.NEUTRAL || 0) /
-                                sentimentSummary.total_responses) *
-                                100,
-                            )
+                            ((sentimentSummary.sentiment_distribution?.NEUTRAL || 0) /
+                              sentimentSummary.total_responses) *
+                            100,
+                          )
                           : 0}
                         %
                       </div>
@@ -1183,10 +1183,10 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                       <div className="stat-desc text-red-200">
                         {sentimentSummary.total_responses > 0
                           ? Math.round(
-                              ((sentimentSummary.sentiment_distribution?.NEGATIVE || 0) /
-                                sentimentSummary.total_responses) *
-                                100,
-                            )
+                            ((sentimentSummary.sentiment_distribution?.NEGATIVE || 0) /
+                              sentimentSummary.total_responses) *
+                            100,
+                          )
                           : 0}
                         %
                       </div>
@@ -1225,13 +1225,12 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                               <tr key={semester} className="border-gray-600">
                                 <td className="font-medium">{semester}</td>
                                 <td
-                                  className={`font-bold ${
-                                    data.average_sentiment_score > 0
-                                      ? "text-green-400"
-                                      : data.average_sentiment_score < 0
-                                        ? "text-red-400"
-                                        : "text-yellow-400"
-                                  }`}
+                                  className={`font-bold ${data.average_sentiment_score > 0
+                                    ? "text-green-400"
+                                    : data.average_sentiment_score < 0
+                                      ? "text-red-400"
+                                      : "text-yellow-400"
+                                    }`}
                                 >
                                   {data.average_sentiment_score > 0 ? "+" : ""}
                                   {data.average_sentiment_score}
@@ -1273,13 +1272,12 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
                               <tr key={year} className="border-gray-600">
                                 <td className="font-medium">{year}</td>
                                 <td
-                                  className={`font-bold ${
-                                    data.average_sentiment_score > 0
-                                      ? "text-green-400"
-                                      : data.average_sentiment_score < 0
-                                        ? "text-red-400"
-                                        : "text-yellow-400"
-                                  }`}
+                                  className={`font-bold ${data.average_sentiment_score > 0
+                                    ? "text-green-400"
+                                    : data.average_sentiment_score < 0
+                                      ? "text-red-400"
+                                      : "text-yellow-400"
+                                    }`}
                                 >
                                   {data.average_sentiment_score > 0 ? "+" : ""}
                                   {data.average_sentiment_score}
