@@ -4,6 +4,22 @@ This directory contains the machine learning models and configuration for sentim
 
 ## 📁 Directory Structure
 
+Quick health and status
+
+Training status pipenv run python manage.py shell -c "from hrapp.utils.production_ml_training import get_training_status; import json; print(json.dumps(get_training_status(), indent=2, default=str))"
+
+Safety check (resources/DB/cache/lock) pipenv run python manage.py shell -c "from hrapp.utils.production_ml_training import production_safety_check; import json; print(json.dumps(production_safety_check(), indent=2))"
+
+Model info (trained/existence/path) pipenv run python manage.py shell -c "from hrapp.utils.ml_sentiment_analysis import get_model_info; import json; print(json.dumps(get_model_info(), indent=2))"
+
+pipenv run python manage.py shell -c "from django.core.cache import cache; cache.delete_many(['ml_sentiment_training_lock','ml_sentiment_training_status']); print('cleared')"
+
+pipenv run python manage.py shell -c "from hrapp.utils.production_ml_training import train_model_production; import json; print(json.dumps(train_model_production(force=True, async_mode=False), indent=2, default=str))"
+
+pipenv run python manage.py shell -c "from hrapp.utils.production_ml_training import get_training_status; import json; print(json.dumps(get_training_status(), indent=2, default=str))"
+
+pipenv run python manage.py shell -c "from hrapp.utils.ml_sentiment_analysis import get_model_info; import json, os; info=get_model_info(); print(json.dumps(info, indent=2)); print('exists:', os.path.exists(info['model_path']))"
+
 ```
 ml_models/
 ├── README.md                    # This file

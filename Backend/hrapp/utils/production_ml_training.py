@@ -61,13 +61,20 @@ class ProductionMLTrainer:
             
         # Check last training time (retrain weekly)
         last_training = self.get_last_training_info()
-        if last_training.get("completed_at"):
+        # Support both datetime object and ISO string storage forms
+        last_time_val = last_training.get("completed_at")
+        if not last_time_val and last_training.get("completed_at_iso"):
+            last_time_val = last_training.get("completed_at_iso")
+        last_time = None
+        if isinstance(last_time_val, datetime):
+            last_time = last_time_val
+        elif isinstance(last_time_val, str):
             try:
-                last_time = datetime.fromisoformat(last_training["completed_at"])
-                if datetime.now() - last_time > timedelta(days=7):
-                    return True
-            except (ValueError, TypeError):
-                pass
+                last_time = datetime.fromisoformat(last_time_val)
+            except Exception:
+                last_time = None
+        if last_time and (datetime.now() - last_time > timedelta(days=7)):
+            return True
                 
         # Check if there's new data (simplified check)
         # In production, you might want more sophisticated data change detection
@@ -77,9 +84,17 @@ class ProductionMLTrainer:
         """Acquire exclusive lock for training."""
         if cache.get(self.training_lock_key):
             return False
-            
-        # Set lock with timeout
-        return cache.set(self.training_lock_key, True, timeout=self.lock_timeout)
+
+        # Atomically set the lock only if it does not already exist.
+        # cache.add returns True if the key was added, False if it already existed.
+        added = False
+        try:
+            added = cache.add(self.training_lock_key, True, timeout=self.lock_timeout)
+        except Exception:
+            # Fallback for backends without add behavior guarantee
+            cache.set(self.training_lock_key, True, timeout=self.lock_timeout)
+            added = True
+        return bool(added)
     
     def release_training_lock(self):
         """Release training lock."""

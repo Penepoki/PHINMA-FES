@@ -25,9 +25,9 @@ transformers = { extras = ["torch"], version = "*" }
 pyyaml = "*"
 boto3 = "*"
 django-redis = "*"
-scikit-learn = "*"
 numpy = "*"
 psutil = "*"
+scikit-learn = "*"
 
 [dev-packages]
 
