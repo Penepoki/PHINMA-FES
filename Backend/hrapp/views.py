@@ -11,6 +11,7 @@ from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
 from hrapp.utils.decorators import *
 from hrapp.utils.generate_insight_online import generate_ai_feedback_for_evaluation, generate_retention_recommendations
+from hrapp.utils.generate_insight_online import generate_ai_feedback_for_evaluation, generate_retention_recommendations
 from hrapp.serializers.user_serializer import *
 from hrapp.serializers.schedules_serializer import *
 from hrapp.filters.schedules_filter import *
@@ -44,6 +45,7 @@ def _s3_client():
 # from rest_framework.filter import Search
 import pandas as pd
 from datetime import datetime, timedelta, time
+from django.utils import timezone
 from hrapp.models.evaluation_models import StudentEvaluationResponse, StudentEvaluationQuestion, ScatterPlotAnalytics
 # Optional import of scoring helpers; safe import even if heavy model is present.
 try:
@@ -485,6 +487,220 @@ def retention_recommendations(request):
         return Response(data, status=status.HTTP_200_OK)
     except Exception as e:
         print(f"[ERROR] retention_recommendations failed: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ML Sentiment Analysis API Endpoints
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def train_ml_sentiment_model(request):
+    """Train the Logistic Regression sentiment analysis model (production-safe)."""
+    try:
+        from hrapp.utils.production_ml_training import train_model_production, production_safety_check
+        
+        # Check if user has permission (only admin/HR)
+        if not (request.user.is_superuser or request.user.groups.filter(name__in=['HR', 'Dean']).exists()):
+            return Response({"error": "Insufficient permissions"}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get parameters
+        force = request.data.get('force', False)
+        async_mode = request.data.get('async', True)
+        
+        # Perform safety check
+        safety_check = production_safety_check()
+        if not safety_check.get("safe_to_train", False):
+            return Response({
+                "error": "System not ready for training",
+                "safety_check": safety_check
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Start training
+        result = train_model_production(force=force, async_mode=async_mode)
+        return Response(result, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ml_training_status(request):
+    """Get ML model training status."""
+    try:
+        from hrapp.utils.production_ml_training import get_training_status
+        result = get_training_status()
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ml_safety_check(request):
+    """Perform production safety check for ML training."""
+    try:
+        from hrapp.utils.production_ml_training import production_safety_check
+        result = production_safety_check()
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def analyze_sentiment_ml(request):
+    """Analyze sentiment of provided text using ML model."""
+    try:
+        from hrapp.utils.ml_sentiment_analysis import analyze_text_sentiment_lr
+        
+        text = request.data.get('text')
+        if not text:
+            return Response({"error": "Text is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        result = analyze_text_sentiment_lr(text)
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ml_sentiment_model_info(request):
+    """Get information about the current ML sentiment model."""
+    try:
+        from hrapp.utils.ml_sentiment_analysis import get_model_info
+        result = get_model_info()
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def enhanced_sentiment_analysis(request):
+    """Run enhanced sentiment analysis with model comparison."""
+    try:
+        from hrapp.utils.enhanced_sentiment_analysis import process_student_evaluations_enhanced
+        
+        model = request.query_params.get('model')  # Optional: 'bert', 'lr', or None for auto
+        result = process_student_evaluations_enhanced(model=model)
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def compare_sentiment_models(request):
+    """Compare different sentiment analysis models on provided texts."""
+    try:
+        from hrapp.utils.enhanced_sentiment_analysis import compare_sentiment_models
+        
+        text_samples = request.data.get('texts')  # Optional list of texts
+        result = compare_sentiment_models(text_samples)
+        return Response(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def trigger_smart_retraining(request):
+    """Trigger smart retraining check (admin only)."""
+    try:
+        # Check if user has permission (only admin/HR)
+        if not (request.user.is_superuser or request.user.groups.filter(name__in=['HR', 'Dean']).exists()):
+            return Response({"error": "Insufficient permissions"}, status=status.HTTP_403_FORBIDDEN)
+        
+        from hrapp.utils.smart_retraining import trigger_smart_retraining_now
+        
+        result = trigger_smart_retraining_now()
+        return Response(result, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ml_system_status(request):
+    """Get comprehensive ML system status."""
+    try:
+        from hrapp.utils.ml_sentiment_analysis import get_model_info
+        from hrapp.utils.production_ml_training import get_training_status
+        from hrapp.utils.smart_retraining import get_smart_retraining_status, get_training_data_stats
+        
+        # Gather comprehensive status
+        model_info = get_model_info()
+        training_status = get_training_status()
+        smart_status = get_smart_retraining_status()
+        data_stats = get_training_data_stats()
+        
+        status_data = {
+            'model_info': model_info,
+            'training_status': training_status,
+            'smart_retraining': smart_status,
+            'data_statistics': data_stats,
+            'system_health': {
+                'model_trained': model_info.get('is_trained', False),
+                'model_exists': model_info.get('model_exists', False),
+                'training_in_progress': training_status.get('current_training', {}).get('status') == 'training',
+                'smart_retraining_active': smart_status.get('smart_retraining_enabled', False)
+            },
+            'timestamp': timezone.now().isoformat()
+        }
+        
+        return Response(status_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ml_retraining_conditions(request):
+    """Check current retraining conditions without triggering."""
+    try:
+        from hrapp.utils.smart_retraining import check_retraining_conditions
+        
+        conditions = check_retraining_conditions()
+        return Response(conditions, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def configure_smart_retraining(request):
+    """Configure smart retraining parameters (admin only)."""
+    try:
+        # Check if user has permission (only admin/HR)
+        if not (request.user.is_superuser or request.user.groups.filter(name__in=['HR', 'Dean']).exists()):
+            return Response({"error": "Insufficient permissions"}, status=status.HTTP_403_FORBIDDEN)
+        
+        from hrapp.utils.smart_retraining import configure_smart_retraining
+        
+        min_samples = request.data.get('min_samples')
+        max_days = request.data.get('max_days')
+        cooldown_minutes = request.data.get('cooldown_minutes')
+        
+        configure_smart_retraining(
+            min_samples=min_samples,
+            max_days=max_days,
+            cooldown_minutes=cooldown_minutes
+        )
+        
+        return Response({
+            "message": "Smart retraining configuration updated",
+            "updated_parameters": {
+                "min_samples": min_samples,
+                "max_days": max_days,
+                "cooldown_minutes": cooldown_minutes
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # CRUD BELOW FOR EVALUATION (COPUS)----------------------------------------------
@@ -1086,10 +1302,17 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
                             "label": "POSITIVE" if points > 0 else "NEGATIVE" if points < 0 else "NEUTRAL"
                         }
                     elif question_type == "TEXT":
-                        # Analyze text sentiment with question context
+                        # Analyze text sentiment with question context (using enhanced system)
                         question_text = question.question if question.question else ""
                         text_input = f"Question: {question_text}\nAnswer: {answer}" if question_text else str(answer)
-                        sentiment_result = analyze_text_sentiment(text_input)
+                        
+                        # Use enhanced sentiment analysis (prefers Logistic Regression)
+                        try:
+                            from hrapp.utils.enhanced_sentiment_analysis import analyze_text_sentiment_enhanced
+                            sentiment_result = analyze_text_sentiment_enhanced(text_input)
+                        except ImportError:
+                            # Fallback to original BERT if enhanced system not available
+                            sentiment_result = analyze_text_sentiment(text_input)
                         sentiment_score = {
                             "type": "text",
                             "label": sentiment_result.get("label"),

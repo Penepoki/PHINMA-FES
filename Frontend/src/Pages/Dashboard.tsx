@@ -1,30 +1,30 @@
 import { JSX, useState } from "react";
 import Background from "../assets/Landing Page Assets/Background4.png";
+import DashboardAnimation from "../Components/Dashboard Components/Dashboard Anim";
 import NavbarHR from "../Components/Dashboard Components/Navbar HR";
 import NavbarStudent from "../Components/Dashboard Components/Navbar Student";
-import DashboardAnimation from "../Components/Dashboard Components/Dashboard Anim";
 
 // Import your view components (create them as needed)
 import HomeViewDean from "./DockPages/HomeView Pages/HomeView Dean";
 import HomeViewHR from "./DockPages/HomeView Pages/HomeView HR";
 import HomeViewStudent from "./DockPages/HomeView Pages/HomeView Student";
 
-import Profile from "./DockPages/ProfileView";
 import Evaluation from "./DockPages/EvaluationView Pages/EvaluationView";
+import Profile from "./DockPages/ProfileView";
 import ResourceGroup from "./DockPages/ResourceGroup Pages/ResourceGroupView";
 
 import CreateStudentEvaluation from "./DockPages/EvaluationView Pages/CreateStudentEvaluation";
-import StudentEvaluation from "./DockPages/EvaluationView Pages/StudentEvaluationView.tsx";
 import EvaluationSummary from "./DockPages/EvaluationView Pages/EvaluationSummaryView";
+import StudentEvaluation from "./DockPages/EvaluationView Pages/StudentEvaluationView.tsx";
 
+import HomeViewProfessor from "./DockPages/HomeView Pages/HomeView Professor.tsx";
+import LeanSixSigma from "./DockPages/Lean Six Sigma";
+import Professors from "./DockPages/ResourceGroup Pages/Professors";
 import Programs from "./DockPages/ResourceGroup Pages/Programs";
 import Rooms from "./DockPages/ResourceGroup Pages/Rooms";
 import Schedules from "./DockPages/ResourceGroup Pages/Schedules";
-import Subject from "./DockPages/ResourceGroup Pages/Subjects";
 import Sections from "./DockPages/ResourceGroup Pages/Sections";
-import Professors from "./DockPages/ResourceGroup Pages/Professors";
-import LeanSixSigma from "./DockPages/Lean Six Sigma";
-import HomeViewProfessor from "./DockPages/HomeView Pages/HomeView Professor.tsx";
+import Subject from "./DockPages/ResourceGroup Pages/Subjects";
 
 function Dashboard({ role }: { role: string }) {
   // Default view is "home"

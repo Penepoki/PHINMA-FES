@@ -33,14 +33,14 @@ const toStudentOption = (u: any): StudentOption => {
   };
 };
 
-import React, { useState, useEffect } from "react";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
-import api from "../../../utils/api";
+import { useEffect, useState } from "react";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField";
-import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import api from "../../../utils/api";
 import { resolveFacultyId } from "../../../utils/facultyContext.ts";
-import {manilaFilenameTimestamp} from "../../../utils/time";
+import { manilaFilenameTimestamp } from "../../../utils/time";
 
 interface SectionsProps {
   setActiveView: (view: string) => void;
@@ -266,7 +266,7 @@ function Sections({ setActiveView }: SectionsProps) {
     (document.getElementById("edit_section_modal") as HTMLDialogElement)?.showModal();
   };
 
-  // Submit edit fields
+  // Submit edit of fields only
   const submitEditSection = async () => {
     if (!editSection) return;
     try {
@@ -280,6 +280,18 @@ function Sections({ setActiveView }: SectionsProps) {
         },
         { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined }
       );
+        await api.patch(
+            `/section/sections/${editSection.id}/`,
+            {
+                name: editName,
+                is_active: editActive,
+                year_level: editYearLevel?.id,
+                program: editProgram?.id,
+            },
+            {
+                params: effectiveFacultyId != null ? {faculty: effectiveFacultyId} : undefined,
+            }
+        );
       (document.getElementById("edit_section_modal") as HTMLDialogElement)?.close();
       setEditSection(null);
       fetchSections();
@@ -287,6 +299,7 @@ function Sections({ setActiveView }: SectionsProps) {
       console.error("Error updating Section:", error);
     }
   };
+
 
   // Submit staged students
   const submitEditStudents = async () => {
