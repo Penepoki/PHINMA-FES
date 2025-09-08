@@ -1152,7 +1152,16 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': 'program is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evaluations = StudentEvaluation.objects.filter(schedule__program_id=program_id, deleted_at__isnull=True)
+        if semester:
+            evaluations = evaluations.filter(schedule__semester=semester)
+        if year:
+            try:
+                evaluations = evaluations.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(evaluations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -1161,7 +1170,16 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
         professor_id = request.query_params.get('professor')
         if not professor_id:
             return Response({'error': 'professor is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evaluations = StudentEvaluation.objects.filter(schedule__instructor_id=professor_id, deleted_at__isnull=True)
+        if semester:
+            evaluations = evaluations.filter(schedule__semester=semester)
+        if year:
+            try:
+                evaluations = evaluations.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(evaluations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -1170,8 +1188,17 @@ class StudentEvaluationViewSet(viewsets.ModelViewSet):
         faculty_id = request.query_params.get('faculty')
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evaluations = StudentEvaluation.objects.filter(schedule__program__faculty_id=faculty_id,
                                                        deleted_at__isnull=True)
+        if semester:
+            evaluations = evaluations.filter(schedule__semester=semester)
+        if year:
+            try:
+                evaluations = evaluations.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(evaluations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

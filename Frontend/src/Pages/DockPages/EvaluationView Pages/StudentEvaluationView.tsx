@@ -143,10 +143,11 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
           headers: {Authorization: `Bearer ${token}`},
         });
         const rows = Array.isArray(res.data) ? res.data : [];
-        // Extract 4-digit year from schedule.year (Date string) when present
+        // Extract 4-digit year from schedule.year (Date string) when present; fallback to schedule_details.year
         const years = new Set<string>();
         for (const ev of rows) {
-          const yraw = ev?.schedule?.year;
+          const sched = ev?.schedule_details || ev?.schedule || {};
+          const yraw = sched?.year;
           if (typeof yraw === "string" && yraw.length >= 4) {
             const y = yraw.slice(0, 4);
             if (/^\d{4}$/.test(y)) years.add(y);

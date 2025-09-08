@@ -111,7 +111,7 @@ class UserDashboardSerializer(serializers.ModelSerializer):
                     return request.build_absolute_uri(obj.profile_picture.url)
                 except Exception:
                     pass
-            return request.build_absolute_uri('/media/defaults/default.png')
+            return request.build_absolute_uri('/media/profile_pictures/default.jpg')
         return None
 
     def get_full_name_professor(self, obj):

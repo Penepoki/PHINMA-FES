@@ -147,6 +147,7 @@ class EvaluationSerializer(serializers.ModelSerializer):
 ### BELOW IS THE SFF SERIALIZERS(EVALUATION , QUESTIONS, AND ANSWERS) ###
 class StudentEvaluationSerializer(serializers.ModelSerializer):
     schedule = serializers.PrimaryKeyRelatedField(queryset=Schedule.objects.all())
+    schedule_details = ScheduleSerializer(source='schedule', read_only=True)
     import_questions = serializers.PrimaryKeyRelatedField(
         queryset=StudentEvaluationQuestion.objects.all(), many=True, required=False
     )
@@ -158,11 +159,11 @@ class StudentEvaluationSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentEvaluation
         fields = [
-            'id', 'title', 'description', 'schedule',
+            'id', 'title', 'description', 'schedule', 'schedule_details',
             'import_questions', 'all_questions',
             'instructor_name', 'subject_name', 'is_completed',
         ]
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'all_questions']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'all_questions', 'schedule_details']
 
     def get_all_questions(self, obj):
         imported_qs = obj.import_questions.all()
