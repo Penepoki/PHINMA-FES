@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState} from "react";
 import { useNavigate } from "react-router";
 import api from "../../utils/api.ts";
 
@@ -32,8 +32,8 @@ const honorificFor = (primaryRole?: string) => {
 };
 
 const pickPrimaryRole = (
-  roles: string[],
-  { isTempFaculty, isSuperuser }: { isTempFaculty: boolean; isSuperuser: boolean }
+    roles: string[],
+    {isTempFaculty, isSuperuser}: { isTempFaculty: boolean; isSuperuser: boolean }
 ) => {
   let pool = roles.map(normalizeRole);
 
@@ -50,7 +50,7 @@ const DashboardHeader = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutMessage, setLogoutMessage] = useState("");
   const [primaryRole, setPrimaryRole] = useState<string | undefined>(
-    sessionStorage.getItem("userRole") || undefined
+      sessionStorage.getItem("userRole") || undefined
   );
   const navigate = useNavigate();
 
@@ -65,7 +65,7 @@ const DashboardHeader = () => {
       try {
         const me = await api.get("/admin/users/me/");
         const rolesRead: string[] = Array.isArray(me.data?.roles_read) ? me.data.roles_read : [];
-        const primary = pickPrimaryRole(rolesRead, { isTempFaculty, isSuperuser });
+        const primary = pickPrimaryRole(rolesRead, {isTempFaculty, isSuperuser});
         if (primary) {
           setPrimaryRole(primary);
           sessionStorage.setItem("userRole", primary);
@@ -76,7 +76,6 @@ const DashboardHeader = () => {
     })();
 
     (async () => {
-      if (cachedName) return;
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
@@ -96,6 +95,44 @@ const DashboardHeader = () => {
         if (error?.response?.status === 401) navigate("/login");
       }
     })();
+
+    // React to profile updates dispatched from ProfileView
+    const onProfileUpdated = (e: any) => {
+      const name = e?.detail?.fullName;
+      if (typeof name === 'string' && name.trim()) {
+        setDisplayName(name);
+        sessionStorage.setItem('fullName', name);
+      }
+    };
+    window.addEventListener('user:profileUpdated', onProfileUpdated as any);
+
+    // React to token changes (e.g., login as different account)
+    const onStorage = (ev: StorageEvent) => {
+      if (ev.key === 'token') {
+        sessionStorage.removeItem('fullName');
+        sessionStorage.removeItem('userRole');
+        // refetch fresh name
+        (async () => {
+          try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            const response = await api.get('/user-dashboard/', {
+              headers: {Authorization: `Token ${token}`},
+            });
+            const name = response.data.full_name || `${response.data.first_name ?? ''} ${response.data.last_name ?? ''}`.trim() || 'User';
+            setDisplayName(name);
+            sessionStorage.setItem('fullName', name);
+          } catch {
+          }
+        })();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('user:profileUpdated', onProfileUpdated as any);
+      window.removeEventListener('storage', onStorage);
+    };
   }, [navigate, isTempFaculty, isSuperuser]);
 
   const honorific = useMemo(() => honorificFor(primaryRole), [primaryRole]);
@@ -109,11 +146,22 @@ const DashboardHeader = () => {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No token found");
 
+        // Try to clear HR temp faculty context first (ignore if not HR)
+        try {
+            await api.post("/clear-faculty-context/");
+        } catch {
+        }
+
       await api.post("/logout/", null, {
         headers: { Authorization: `Token ${token}` },
       });
 
+        // Clear both storages and user-related cache
       localStorage.removeItem("token");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("faculty_id");
+        localStorage.removeItem("firstName");
+        localStorage.removeItem("lastName");
       localStorage.removeItem("fullName");
       localStorage.removeItem("visitCount");
       localStorage.removeItem("isTempFaculty");
@@ -143,7 +191,7 @@ const DashboardHeader = () => {
         </div>
 
         <button
-          className="text-md flex items-center gap-2 text-gray-300 transition-transform duration-200 hover:scale-105 hover:underline"
+            className="text-md flex items-center gap-2 text-gray-300 transition-transform duration-200 hover:scale-105 hover:underline"
           onClick={() =>
             (document.getElementById("logout_modal") as HTMLDialogElement)?.showModal()
           }
@@ -175,9 +223,9 @@ const DashboardHeader = () => {
 
           {logoutMessage && (
             <div
-              className={`mt-4 rounded-lg px-4 py-2 text-sm ${logoutMessage.includes("successful")
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
+                className={`mt-4 rounded-lg px-4 py-2 text-sm ${logoutMessage.includes("successful")
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
                 }`}
             >
               {logoutMessage}

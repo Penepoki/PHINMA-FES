@@ -33,13 +33,14 @@ const toStudentOption = (u: any): StudentOption => {
   };
 };
 
-import React, { useState, useEffect } from "react";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
-import api from "../../../utils/api";
+import { useEffect, useState } from "react";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField";
-import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import api from "../../../utils/api";
 import { resolveFacultyId } from "../../../utils/facultyContext.ts";
+import { manilaFilenameTimestamp } from "../../../utils/time";
 
 interface SectionsProps {
   setActiveView: (view: string) => void;
@@ -77,11 +78,7 @@ function Sections({ setActiveView }: SectionsProps) {
 
   // ------- EXPORT state + helpers -------
   const defaultExportName = () => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const d = new Date();
-    return `sections_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(
-      d.getHours()
-    )}-${pad(d.getMinutes())}.csv`;
+    return `sections_${manilaFilenameTimestamp()}.csv`;
   };
   const [exportFilename, setExportFilename] = useState<string>(defaultExportName());
 
@@ -269,7 +266,7 @@ function Sections({ setActiveView }: SectionsProps) {
     (document.getElementById("edit_section_modal") as HTMLDialogElement)?.showModal();
   };
 
-  // Submit edit fields
+  // Submit edit of fields only
   const submitEditSection = async () => {
     if (!editSection) return;
     try {
@@ -283,6 +280,18 @@ function Sections({ setActiveView }: SectionsProps) {
         },
         { params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined }
       );
+      await api.patch(
+        `/section/sections/${editSection.id}/`,
+        {
+          name: editName,
+          is_active: editActive,
+          year_level: editYearLevel?.id,
+          program: editProgram?.id,
+        },
+        {
+          params: effectiveFacultyId != null ? { faculty: effectiveFacultyId } : undefined,
+        }
+      );
       (document.getElementById("edit_section_modal") as HTMLDialogElement)?.close();
       setEditSection(null);
       fetchSections();
@@ -290,6 +299,7 @@ function Sections({ setActiveView }: SectionsProps) {
       console.error("Error updating Section:", error);
     }
   };
+
 
   // Submit staged students
   const submitEditStudents = async () => {
@@ -412,16 +422,24 @@ function Sections({ setActiveView }: SectionsProps) {
               }}
               className="flex flex-col gap-6"
             >
-              {/* Section Name */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">Name:</label>
+                <label className="text-left text-lg font-bold md:w-1/4">Section Number:</label>
                 <input
-                  type="text"
+                  type="text" // keep text so we can control length
                   value={newSectionName}
-                  onChange={(e) => setNewSectionName(e.target.value)}
-                  placeholder="Enter Section name"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // allow only digits and max 2 chars
+                    if (/^\d{0,2}$/.test(value)) {
+                      setNewSectionName(value);
+                    }
+                  }}
+                  placeholder="Enter Section number"
                   className="input input-bordered w-full"
                   required
+                  maxLength={2} // prevents typing more than 2 characters
+                  inputMode="numeric" // mobile keyboards show numbers
+                  pattern="\d*" // ensures numeric only for form validation
                 />
               </div>
 

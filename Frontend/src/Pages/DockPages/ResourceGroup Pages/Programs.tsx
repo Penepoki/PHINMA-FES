@@ -4,6 +4,7 @@ import api from "../../../utils/api";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import {manilaFilenameTimestamp} from "../../../utils/time";
 
 interface ProgramProps {
   setActiveView: (view: string) => void;
@@ -43,11 +44,7 @@ function Programs({ setActiveView }: ProgramProps) {
 
   // ---------- Export state + helpers ----------
   const defaultExportName = () => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const d = new Date();
-    return `programs_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(
-      d.getHours()
-    )}-${pad(d.getMinutes())}.csv`;
+      return `programs_${manilaFilenameTimestamp()}.csv`;
   };
   const [exportFilename, setExportFilename] = useState<string>(defaultExportName());
 

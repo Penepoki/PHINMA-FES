@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../../utils/api";
 import { motion } from "framer-motion";
+import {MANILA_TZ, formatManilaTime, getManilaHMMinutes} from "../../utils/time";
 
 type ToggleBoxProps = {
   label: string;
@@ -248,7 +249,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({evaluationId, onTalliesUpdate}
 
       // Check if current time is within schedule time
       const now = new Date();
-      const currentTime = now.getHours() * 60 + now.getMinutes(); // Convert to minutes
+        const currentTime = getManilaHMMinutes(now); // minutes since midnight in Asia/Manila
 
       // Parse schedule times (assuming format like "14:30:00")
       const startParts = scheduleData.data.start_time.split(":");
@@ -643,10 +644,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({evaluationId, onTalliesUpdate}
   useEffect(() => {
     if (!isTimerStarted) {
       setCurrentTime(
-        new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+          formatManilaTime(new Date(), {hour: "2-digit", minute: "2-digit", hour12: true})
       );
       return;
     }
@@ -654,10 +652,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({evaluationId, onTalliesUpdate}
     const timer = setInterval(() => {
       const now = new Date();
       setCurrentTime(
-        now.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+          formatManilaTime(now, {hour: "2-digit", minute: "2-digit", hour12: true})
       );
 
       if (startTime) {
@@ -785,10 +780,7 @@ const CopusMatrix: React.FC<CopusMatrixProps> = ({evaluationId, onTalliesUpdate}
           <span>|</span>
           <span>
             Time Started:{" "}
-            {startTime?.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+              {startTime ? formatManilaTime(startTime, {hour: "2-digit", minute: "2-digit", hour12: true}) : undefined}
           </span>
           <span>|</span>
           <span>Time Elapsed: {elapsedTime} Minutes</span>

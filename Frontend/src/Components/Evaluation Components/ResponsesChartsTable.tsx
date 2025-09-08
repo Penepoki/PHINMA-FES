@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import { Pie, Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -19,6 +19,8 @@ interface ResponsesChartsTableProps {
   evaluationId: number;
   filterType: FilterType;
   filterId: number;
+    semester?: string;
+    year?: string;
 }
 
 /** ============================
@@ -35,18 +37,18 @@ function hexToRgba(hex: string, alpha = 1): string {
 }
 
 const CHART_PALETTE = [
-  "#36A2EB",
-  "#FF6384",
-  "#FFCE56",
-  "#4BC0C0",
-  "#9966FF",
-  "#FF9F40",
-  "#1c402a",
-  "#bf5700",
-  "#2f6f4f",
-  "#b8d8ba",
-  "#e57373",
-  "#64b5f6",
+    "#36A2EB",
+    "#FF6384",
+    "#FFCE56",
+    "#4BC0C0",
+    "#9966FF",
+    "#FF9F40",
+    "#1c402a",
+    "#bf5700",
+    "#2f6f4f",
+    "#b8d8ba",
+    "#e57373",
+    "#64b5f6",
 ];
 function getPalette(n: number): string[] {
   if (n <= CHART_PALETTE.length) return CHART_PALETTE.slice(0, n);
@@ -59,50 +61,60 @@ const baseLightOptions = {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      labels: { color: "#111827", usePointStyle: true, padding: 16 }, // gray-900
+        labels: {color: "#111827", usePointStyle: true, padding: 16}, // gray-900
     },
     tooltip: {
-      backgroundColor: "rgba(255,255,255,0.95)",
-      titleColor: "#111827",
-      bodyColor: "#111827",
-      borderColor: "rgba(0,0,0,0.12)",
+        backgroundColor: "rgba(255,255,255,0.95)",
+        titleColor: "#111827",
+        bodyColor: "#111827",
+        borderColor: "rgba(0,0,0,0.12)",
       borderWidth: 1,
     },
   },
   scales: {
-    x: { ticks: { color: "#111827" }, grid: { color: "rgba(0,0,0,0.06)" } },
-    y: { ticks: { color: "#111827" }, grid: { color: "rgba(0,0,0,0.06)" } },
+      x: {ticks: {color: "#111827"}, grid: {color: "rgba(0,0,0,0.06)"}},
+      y: {ticks: {color: "#111827"}, grid: {color: "rgba(0,0,0,0.06)"}},
   },
 } as const;
 
 /** Utils */
 function groupBy<T, K extends keyof any>(array: T[], getKey: (item: T) => K) {
-  return array.reduce(
-    (result, item) => {
-      const key = getKey(item);
-      (result[key] = result[key] || []).push(item);
-      return result;
-    },
-    {} as Record<K, T[]>,
-  );
+    return array.reduce(
+        (result, item) => {
+            const key = getKey(item);
+            (result[key] = result[key] || []).push(item);
+            return result;
+        },
+        {} as Record<K, T[]>,
+    );
 }
 
 const endpointMap = {
-  section: (evaluationId: number, filterId: number) =>
-    `/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-section?student_evaluation=${evaluationId}&section=${filterId}`,
-  professor: (_evaluationId: number, filterId: number) =>
-    `/studentevaluationresponse/studentevaluationresponse/by-professor?professor=${filterId}`,
-  program: (_evaluationId: number, filterId: number) =>
-    `/studentevaluationresponse/studentevaluationresponse/by-program?program=${filterId}`,
-  faculty: (_evaluationId: number, filterId: number) =>
-    `/studentevaluationresponse/studentevaluationresponse/by-faculty?faculty=${filterId}`,
+    section: (evaluationId: number, filterId: number, semester?: string, year?: string) =>
+        `/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-section?student_evaluation=${evaluationId}&section=${filterId}` +
+        (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+        (year ? `&year=${encodeURIComponent(year)}` : ""),
+    professor: (_evaluationId: number, filterId: number, semester?: string, year?: string) =>
+        `/studentevaluationresponse/studentevaluationresponse/by-professor?professor=${filterId}` +
+        (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+        (year ? `&year=${encodeURIComponent(year)}` : ""),
+    program: (_evaluationId: number, filterId: number, semester?: string, year?: string) =>
+        `/studentevaluationresponse/studentevaluationresponse/by-program?program=${filterId}` +
+        (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+        (year ? `&year=${encodeURIComponent(year)}` : ""),
+    faculty: (_evaluationId: number, filterId: number, semester?: string, year?: string) =>
+        `/studentevaluationresponse/studentevaluationresponse/by-faculty?faculty=${filterId}` +
+        (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+        (year ? `&year=${encodeURIComponent(year)}` : ""),
 };
 
 const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
-  evaluationId,
-  filterType,
-  filterId,
-}) => {
+                                                                       evaluationId,
+                                                                       filterType,
+                                                                       filterId,
+                                                                       semester,
+                                                                       year,
+                                                                   }) => {
   const [responses, setResponses] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,10 +122,10 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
   const [uniqueStudentCount, setUniqueStudentCount] = useState<number | null>(null);
   const [uniqueCountLoading, setUniqueCountLoading] = useState(false);
 
-  // ---- Modal control
-  const modalRef = useRef<HTMLDialogElement | null>(null);
-  const openModal = () => modalRef.current?.showModal();
-  const closeModal = () => modalRef.current?.close();
+    // ---- Modal control
+    const modalRef = useRef<HTMLDialogElement | null>(null);
+    const openModal = () => modalRef.current?.showModal();
+    const closeModal = () => modalRef.current?.close();
 
   useEffect(() => {
     let isMounted = true;
@@ -123,10 +135,10 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
       try {
         if (filterType === "section") {
           const [resResponses, resQuestions] = await Promise.all([
-            api.get(endpointMap[filterType](evaluationId, filterId)),
-            api.get(
-              `/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${evaluationId}`,
-            ),
+              api.get(endpointMap[filterType](evaluationId, filterId, semester, year)),
+              api.get(
+                  `/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${evaluationId}`,
+              ),
           ]);
           if (!isMounted) return;
           setResponses(resResponses.data);
@@ -134,11 +146,17 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
         } else {
           let evalsRes;
           if (filterType === "program") {
-            evalsRes = await api.get(`/studentevaluation/studentevaluation/by-program?program=${filterId}`);
+              evalsRes = await api.get(`/studentevaluation/studentevaluation/by-program?program=${filterId}` +
+                  (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+                  (year ? `&year=${encodeURIComponent(year)}` : ""));
           } else if (filterType === "professor") {
-            evalsRes = await api.get(`/studentevaluation/studentevaluation/by-professor?professor=${filterId}`);
+              evalsRes = await api.get(`/studentevaluation/studentevaluation/by-professor?professor=${filterId}` +
+                  (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+                  (year ? `&year=${encodeURIComponent(year)}` : ""));
           } else if (filterType === "faculty") {
-            evalsRes = await api.get(`/studentevaluation/studentevaluation/by-faculty?faculty=${filterId}`);
+              evalsRes = await api.get(`/studentevaluation/studentevaluation/by-faculty?faculty=${filterId}` +
+                  (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+                  (year ? `&year=${encodeURIComponent(year)}` : ""));
           }
           let evaluationIds: number[] = [];
           if (Array.isArray(evalsRes?.data)) {
@@ -148,11 +166,11 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
           }
           const allQuestions = await Promise.all(
             evaluationIds.map((eid) =>
-              api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${eid}`),
+                api.get(`/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${eid}`),
             ),
           );
           const questions = allQuestions.flatMap((res) => res.data);
-          const resResponses = await api.get(endpointMap[filterType](evaluationId, filterId));
+            const resResponses = await api.get(endpointMap[filterType](evaluationId, filterId, semester, year));
           if (!isMounted) return;
           setResponses(resResponses.data);
           setQuestions(questions);
@@ -166,9 +184,9 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
     }
     if (!evaluationId || !filterId) return;
     fetchBulk();
-    return () => {
-      isMounted = false;
-    };
+      return () => {
+          isMounted = false;
+      };
   }, [evaluationId, filterType, filterId]);
 
   useEffect(() => {
@@ -186,6 +204,10 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
           endpoint = `/studentevaluationresponse/studentevaluationresponse/completed-count-by-faculty?faculty=${filterId}`;
         }
         if (endpoint) {
+            if (filterType !== "section") {
+                endpoint += (semester ? `&semester=${encodeURIComponent(semester)}` : "");
+                endpoint += (year ? `&year=${encodeURIComponent(year)}` : "");
+            }
           const res = await api.get(endpoint);
           setUniqueStudentCount(res.data.completed_count);
         }
@@ -201,15 +223,15 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
 
   const enrichedResponses = responses.map((resp) => {
     const q = questions.find((q: any) => q.id === resp.student_eval_question);
-    return { ...resp, question_type: q?.type, question_text: q?.question, choices: q?.options || [] };
+      return {...resp, question_type: q?.type, question_text: q?.question, choices: q?.options || []};
   });
 
   const groupedByQuestion = groupBy(enrichedResponses, (r) => r.student_eval_question);
   const ratingQuestions = Object.values(groupedByQuestion).filter(
-    (arr) => arr[0]?.question_type?.toUpperCase() === "RATING",
+      (arr) => arr[0]?.question_type?.toUpperCase() === "RATING",
   );
   const mcqQuestions = Object.values(groupedByQuestion).filter(
-    (arr) => arr[0]?.question_type?.toUpperCase() === "MCQ",
+      (arr) => arr[0]?.question_type?.toUpperCase() === "MCQ",
   );
 
   const tableTitle = {
@@ -220,340 +242,354 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
   }[filterType];
 
   return (
-    <div className="w-full text-white shadow-xl">
+      <div className="w-full text-white shadow-xl">
       <table className="table text-lg">
-        <thead className="top-0 z-1 bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
+          <thead className="top-0 z-1 bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
           <tr>
-            <th className="flex items-center justify-between">
-              <span>{tableTitle}</span>
-              <button
-                onClick={openModal}
-                className="btn text-white btn-primary btn-md normal-case"
-                style={{ backgroundColor: hexToRgba(PRIMARY_HEX, 0.9), borderColor: "transparent" }}
-              >
-                View charts
-              </button>
-            </th>
+              <th className="flex items-center justify-between">
+                  <span>{tableTitle}</span>
+                  <button
+                      onClick={openModal}
+                      className="btn text-white btn-primary btn-md normal-case"
+                      style={{backgroundColor: hexToRgba(PRIMARY_HEX, 0.9), borderColor: "transparent"}}
+                  >
+                      View charts
+                  </button>
+              </th>
           </tr>
         </thead>
         <tbody className="bg-black/20">
           <tr>
-            <td className="py-4">
-              {uniqueCountLoading ? (
-                <div className="flex items-center space-x-2 text-gray-300">
-                  <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white" />
-                  <span>Preparing charts…</span>
+              <td className="py-4">
+                  {uniqueCountLoading ? (
+                      <div className="flex items-center space-x-2 text-gray-300">
+                          <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white"/>
+                          <span>Preparing charts…</span>
+                      </div>
+                  ) : uniqueStudentCount !== null ? (
+                      <div className="text-sm text-gray-300">
+                          Unique respondents: <span className="font-semibold text-white">{uniqueStudentCount}</span>
                 </div>
-              ) : uniqueStudentCount !== null ? (
-                <div className="text-sm text-gray-300">
-                  Unique respondents: <span className="font-semibold text-white">{uniqueStudentCount}</span>
-                </div>
-              ) : (
-                <div className="text-sm text-gray-400">No response summary available.</div>
-              )}
-            </td>
+                  ) : (
+                      <div className="text-sm text-gray-400">No response summary available.</div>
+                  )}
+              </td>
           </tr>
         </tbody>
       </table>
 
-      {/* ===== White Modal (Schedules-style) ===== */}
-      <dialog ref={modalRef} className="modal">
-        <div className="modal-box w-11/12 max-w-5xl bg-white text-gray-900">
-          <h3 className="mb-4 text-center text-2xl font-bold">{tableTitle}</h3>
+          {/* ===== White Modal (Schedules-style) ===== */}
+          <dialog ref={modalRef} className="modal">
+              <div className="modal-box w-11/12 max-w-5xl bg-white text-gray-900">
+                  <h3 className="mb-4 text-center text-2xl font-bold">{tableTitle}</h3>
 
-          <div className="max-h-[70vh] overflow-y-auto">
-            {/* Summary card: gradient + white text + brand dots */}
-            <div className="mb-6 rounded-lg border border-white/20 bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] p-4 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="rounded-full bg-white/20 p-2">
-                    <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 0z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">
-                      {filterType === "section" && "Students Who Responded"}
-                      {filterType === "program" && "Students Who Responded (Program-wide)"}
-                      {filterType === "professor" && "Students Who Responded (Professor-wide)"}
-                      {filterType === "faculty" && "Students Who Responded (Faculty-wide)"}
-                    </h3>
-                    <p className="text-sm text-white/80">
-                      {filterType === "section" && "Unique students who answered questions in this section"}
-                      {filterType === "program" &&
-                        "Unique students who answered questions across all evaluations in this program"}
-                      {filterType === "professor" &&
-                        "Unique students who answered questions across all evaluations by this professor"}
-                      {filterType === "faculty" &&
-                        "Unique students who answered questions across all evaluations in this faculty"}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  {uniqueCountLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-white" />
-                      <span className="text-white/90">Loading...</span>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-white/30 bg-white/10 px-4 py-2 backdrop-blur-sm">
-                      <div className="text-3xl font-bold text-white">
-                        {uniqueStudentCount !== null ? uniqueStudentCount : "—"}
-                      </div>
-                      <div className="text-xs tracking-wide uppercase text-white/80">
-                        {uniqueStudentCount === 1 ? "Student" : "Students"}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+                  <div className="max-h-[70vh] overflow-y-auto">
+                      {/* Summary card: gradient + white text + brand dots */}
+                      <div
+                          className="mb-6 rounded-lg border border-white/20 bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] p-4 text-white">
+                          <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                  <div className="rounded-full bg-white/20 p-2">
+                                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor"
+                                           viewBox="0 0 24 24">
+                                          <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 0z"
+                                          />
+                                      </svg>
+                                  </div>
+                                  <div>
+                                      <h3 className="text-lg font-semibold text-white">
+                                          {filterType === "section" && "Students Who Responded"}
+                                          {filterType === "program" && "Students Who Responded (Program-wide)"}
+                                          {filterType === "professor" && "Students Who Responded (Professor-wide)"}
+                                          {filterType === "faculty" && "Students Who Responded (Faculty-wide)"}
+                                      </h3>
+                                      <p className="text-sm text-white/80">
+                                          {filterType === "section" && "Unique students who answered questions in this section"}
+                                          {filterType === "program" &&
+                                              "Unique students who answered questions across all evaluations in this program"}
+                                          {filterType === "professor" &&
+                                              "Unique students who answered questions across all evaluations by this professor"}
+                                          {filterType === "faculty" &&
+                                              "Unique students who answered questions across all evaluations in this faculty"}
+                                      </p>
+                                  </div>
+                              </div>
+                              <div className="text-right">
+                                  {uniqueCountLoading ? (
+                                      <div className="flex items-center space-x-2">
+                                          <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-white"/>
+                                          <span className="text-white/90">Loading...</span>
+                                      </div>
+                                  ) : (
+                                      <div
+                                          className="rounded-lg border border-white/30 bg-white/10 px-4 py-2 backdrop-blur-sm">
+                                          <div className="text-3xl font-bold text-white">
+                                              {uniqueStudentCount !== null ? uniqueStudentCount : "—"}
+                                          </div>
+                                          <div className="text-xs tracking-wide uppercase text-white/80">
+                                              {uniqueStudentCount === 1 ? "Student" : "Students"}
+                                          </div>
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
 
-              {uniqueStudentCount !== null && uniqueStudentCount > 0 && (
-                <div className="mt-3 border-t border-white/20 pt-3">
-                  <div className="flex items-center space-x-4 text-sm text-white/90">
-                    <div className="flex items-center space-x-1">
-                      <div
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: hexToRgba(PRIMARY_HEX, 0.9) }}
-                      />
-                      <span>Active Responses</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <div
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: hexToRgba(PRIMARY_HEX, 0.55) }}
-                      />
-                      <span>
+                          {uniqueStudentCount !== null && uniqueStudentCount > 0 && (
+                              <div className="mt-3 border-t border-white/20 pt-3">
+                                  <div className="flex items-center space-x-4 text-sm text-white/90">
+                                      <div className="flex items-center space-x-1">
+                                          <div
+                                              className="h-2 w-2 rounded-full"
+                                              style={{backgroundColor: hexToRgba(PRIMARY_HEX, 0.9)}}
+                                          />
+                                          <span>Active Responses</span>
+                                      </div>
+                                      <div className="flex items-center space-x-1">
+                                          <div
+                                              className="h-2 w-2 rounded-full"
+                                              style={{backgroundColor: hexToRgba(PRIMARY_HEX, 0.55)}}
+                                          />
+                                          <span>
                         {filterType === "section" && "Section Level"}
-                        {filterType === "program" && "Program Level"}
-                        {filterType === "professor" && "Professor Level"}
-                        {filterType === "faculty" && "Faculty Level"}
+                                              {filterType === "program" && "Program Level"}
+                                              {filterType === "professor" && "Professor Level"}
+                                              {filterType === "faculty" && "Faculty Level"}
                       </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {uniqueStudentCount === 0 && !uniqueCountLoading && (
-                <div className="mt-3 border-t border-white/20 pt-3">
-                  <div className="flex items-center space-x-2 text-sm text-yellow-200">
-                    <svg className="h-4 w-4 text-yellow-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                      />
-                    </svg>
-                    <span>No student responses found for this {filterType}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Charts */}
-            {loading && <div className="text-gray-700">Loading charts...</div>}
-            {error && <div className="text-red-600">{error}</div>}
-
-            {/* Rating charts (Bar) */}
-            {ratingQuestions.length > 0 && (
-              <div className="mb-6">
-                <h6 className="mb-2 font-bold text-gray-900">Rating Scale Results</h6>
-                <div className="-mx-2 flex flex-wrap">
-                  {ratingQuestions.map((responses, idx) => {
-                    const answerCounts: Record<string, number> = {};
-                    responses.forEach((r) => {
-                      answerCounts[r.answer] = (answerCounts[r.answer] || 0) + 1;
-                    });
-                    const labels = Object.keys(answerCounts);
-                    const values = Object.values(answerCounts);
-                    const palette = getPalette(labels.length);
-                    const backgroundColors = palette.map((c) => hexToRgba(c, 0.75));
-                    const borderColors = palette;
-
-                    const barData = {
-                      labels,
-                      datasets: [
-                        {
-                          label: "Number of Responses",
-                          data: values,
-                          backgroundColor: backgroundColors,
-                          borderColor: borderColors,
-                          borderWidth: 2,
-                          borderRadius: 6,
-                          borderSkipped: false,
-                          hoverBackgroundColor: palette.map((c) => hexToRgba(c, 0.95)),
-                          hoverBorderColor: borderColors,
-                        },
-                      ],
-                    };
-
-                    const barOptions: ChartOptions<"bar"> = {
-                      ...baseLightOptions,
-                      indexAxis: "y",
-                      plugins: {
-                        ...baseLightOptions.plugins,
-                        legend: { display: false },
-                        tooltip: {
-                          ...baseLightOptions.plugins.tooltip,
-                          callbacks: {
-                            label: function(context: any) {
-                              const label = context.label || "";
-                              const value = context.parsed.x || 0;
-                              const total = (context.dataset.data as number[]).reduce(
-                                (a: number, b: number) => a + b,
-                                0,
-                              );
-                              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
-                              return `${label}: ${value} responses (${percentage}%)`;
-                            },
-                          },
-                        },
-                      },
-                    };
-
-                    return (
-                      <div key={idx} className="mb-6 flex w-full flex-col items-center px-2 md:w-1/2">
-                        <div className="mb-2 text-center font-medium text-gray-900">
-                          Q{responses[0].student_eval_question}: {responses[0].question_text || "Rating Question"}
-                        </div>
-
-                        {/* Rating scale legend */}
-                        <div className="mb-3 w-full max-w-sm rounded-lg border border-gray-200 bg-white p-2">
-                          <div className="mb-1 text-xs font-semibold text-gray-700">Rating Scale:</div>
-                          <div className="space-y-1 text-xs text-gray-600">
-                            {labels.map((rating, ratingIdx) => (
-                              <div key={ratingIdx} className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <div
-                                    className="mr-2 h-3 w-3 flex-shrink-0 rounded"
-                                    style={{ backgroundColor: palette[ratingIdx % palette.length] }}
-                                  />
-                                  <span className="truncate">{rating}</span>
-                                </div>
-                                <span className="ml-2 font-medium text-gray-900">{answerCounts[rating]}</span>
+                                      </div>
+                                  </div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
+                          )}
 
-                        <div className="flex h-64 w-full max-w-sm items-center justify-center">
-                          <Bar data={barData} options={barOptions} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* MCQ charts (Pie) */}
-            {mcqQuestions.length > 0 && (
-              <div>
-                <h6 className="mb-2 font-bold text-gray-900">MCQ Results</h6>
-                <div className="-mx-2 flex flex-wrap">
-                  {mcqQuestions.map((responses, idx) => {
-                    const choices: string[] = responses[0]?.choices || [];
-                    const answerCounts: Record<string, number> = {};
-                    choices.forEach((choice) => (answerCounts[choice] = 0));
-                    responses.forEach((r) => {
-                      answerCounts[r.answer] = (answerCounts[r.answer] || 0) + 1;
-                    });
-
-                    const palette = getPalette(choices.length);
-                    const pieData = {
-                      labels: choices,
-                      datasets: [
-                        {
-                          data: choices.map((c) => answerCounts[c] || 0),
-                          backgroundColor: palette.map((c) => hexToRgba(c, 0.9)),
-                          borderColor: palette,
-                          borderWidth: 2,
-                          hoverBackgroundColor: palette.map((c) => hexToRgba(c, 1)),
-                        },
-                      ],
-                    };
-
-                    const pieOptions: ChartOptions<"pie"> = {
-                      ...baseLightOptions,
-                      plugins: {
-                        ...baseLightOptions.plugins,
-                        legend: { ...(baseLightOptions.plugins as any).legend, position: "bottom" },
-                        tooltip: {
-                          ...baseLightOptions.plugins.tooltip,
-                          callbacks: {
-                            label: function(context: any) {
-                              const label = context.label || "";
-                              const value = context.parsed || 0;
-                              const total = (context.dataset.data as number[]).reduce(
-                                (a: number, b: number) => a + b,
-                                0,
-                              );
-                              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
-                              return `${label}: ${value} responses (${percentage}%)`;
-                            },
-                          },
-                        },
-                      },
-                      // pies don’t use scales
-                      scales: undefined,
-                    };
-
-                    return (
-                      <div key={idx} className="mb-6 flex w-full flex-col items-center px-2 md:w-1/2">
-                        <div className="mb-2 text-center font-medium text-gray-900">
-                          Q{responses[0].student_eval_question}: {responses[0].question_text || "MCQ Question"}
-                        </div>
-
-                        {/* Choices legend (mirrors slice colors) */}
-                        <div className="mb-3 w-full max-w-xs rounded-lg border border-gray-200 bg-white p-2">
-                          <div className="mb-1 text-xs font-semibold text-gray-700">Available Choices:</div>
-                          <div className="space-y-1 text-xs text-gray-600">
-                            {choices.map((choice, choiceIdx) => (
-                              <div key={choiceIdx} className="flex items-center">
-                                <div
-                                  className="mr-2 h-3 w-3 flex-shrink-0 rounded-full"
-                                  style={{ backgroundColor: palette[choiceIdx % palette.length] }}
-                                />
-                                <span className="truncate">{choice}</span>
+                          {uniqueStudentCount === 0 && !uniqueCountLoading && (
+                              <div className="mt-3 border-t border-white/20 pt-3">
+                                  <div className="flex items-center space-x-2 text-sm text-yellow-200">
+                                      <svg className="h-4 w-4 text-yellow-200" fill="none" stroke="currentColor"
+                                           viewBox="0 0 24 24">
+                                          <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                                          />
+                                      </svg>
+                                      <span>No student responses found for this {filterType}</span>
+                                  </div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex h-64 w-full max-w-xs items-center justify-center">
-                          <Pie data={pieData} options={pieOptions} />
-                        </div>
+                          )}
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Charts */}
+                      {loading && <div className="text-gray-700">Loading charts...</div>}
+                      {error && <div className="text-red-600">{error}</div>}
+
+                      {/* Rating charts (Bar) */}
+                      {ratingQuestions.length > 0 && (
+                          <div className="mb-6">
+                              <h6 className="mb-2 font-bold text-gray-900">Rating Scale Results</h6>
+                              <div className="-mx-2 flex flex-wrap">
+                                  {ratingQuestions.map((responses, idx) => {
+                                      const answerCounts: Record<string, number> = {};
+                                      responses.forEach((r) => {
+                                          answerCounts[r.answer] = (answerCounts[r.answer] || 0) + 1;
+                                      });
+                                      const labels = Object.keys(answerCounts);
+                                      const values = Object.values(answerCounts);
+                                      const palette = getPalette(labels.length);
+                                      const backgroundColors = palette.map((c) => hexToRgba(c, 0.75));
+                                      const borderColors = palette;
+
+                                      const barData = {
+                                          labels,
+                                          datasets: [
+                                              {
+                                                  label: "Number of Responses",
+                                                  data: values,
+                                                  backgroundColor: backgroundColors,
+                                                  borderColor: borderColors,
+                                                  borderWidth: 2,
+                                                  borderRadius: 6,
+                                                  borderSkipped: false,
+                                                  hoverBackgroundColor: palette.map((c) => hexToRgba(c, 0.95)),
+                                                  hoverBorderColor: borderColors,
+                                              },
+                                          ],
+                                      };
+
+                                      const barOptions: ChartOptions<"bar"> = {
+                                          ...baseLightOptions,
+                                          indexAxis: "y",
+                                          plugins: {
+                                              ...baseLightOptions.plugins,
+                                              legend: {display: false},
+                                              tooltip: {
+                                                  ...baseLightOptions.plugins.tooltip,
+                                                  callbacks: {
+                                                      label: function (context: any) {
+                                                          const label = context.label || "";
+                                                          const value = context.parsed.x || 0;
+                                                          const total = (context.dataset.data as number[]).reduce(
+                                                              (a: number, b: number) => a + b,
+                                                              0,
+                                                          );
+                                                          const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+                                                          return `${label}: ${value} responses (${percentage}%)`;
+                                                      },
+                                                  },
+                                              },
+                                          },
+                                      };
+
+                                      return (
+                                          <div key={idx}
+                                               className="mb-6 flex w-full flex-col items-center px-2 md:w-1/2">
+                                              <div className="mb-2 text-center font-medium text-gray-900">
+                                                  Q{responses[0].student_eval_question}: {responses[0].question_text || "Rating Question"}
+                                              </div>
+
+                                              {/* Rating scale legend */}
+                                              <div
+                                                  className="mb-3 w-full max-w-sm rounded-lg border border-gray-200 bg-white p-2">
+                                                  <div className="mb-1 text-xs font-semibold text-gray-700">Rating
+                                                      Scale:
+                                                  </div>
+                                                  <div className="space-y-1 text-xs text-gray-600">
+                                                      {labels.map((rating, ratingIdx) => (
+                                                          <div key={ratingIdx}
+                                                               className="flex items-center justify-between">
+                                                              <div className="flex items-center">
+                                                                  <div
+                                                                      className="mr-2 h-3 w-3 flex-shrink-0 rounded"
+                                                                      style={{backgroundColor: palette[ratingIdx % palette.length]}}
+                                                                  />
+                                                                  <span className="truncate">{rating}</span>
+                                                              </div>
+                                                              <span
+                                                                  className="ml-2 font-medium text-gray-900">{answerCounts[rating]}</span>
+                                                          </div>
+                                                      ))}
+                                                  </div>
+                                              </div>
+
+                                              <div className="flex h-64 w-full max-w-sm items-center justify-center">
+                                                  <Bar data={barData} options={barOptions}/>
+                                              </div>
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      )}
+
+                      {/* MCQ charts (Pie) */}
+                      {mcqQuestions.length > 0 && (
+                          <div>
+                              <h6 className="mb-2 font-bold text-gray-900">MCQ Results</h6>
+                              <div className="-mx-2 flex flex-wrap">
+                                  {mcqQuestions.map((responses, idx) => {
+                                      const choices: string[] = responses[0]?.choices || [];
+                                      const answerCounts: Record<string, number> = {};
+                                      choices.forEach((choice) => (answerCounts[choice] = 0));
+                                      responses.forEach((r) => {
+                                          answerCounts[r.answer] = (answerCounts[r.answer] || 0) + 1;
+                                      });
+
+                                      const palette = getPalette(choices.length);
+                                      const pieData = {
+                                          labels: choices,
+                                          datasets: [
+                                              {
+                                                  data: choices.map((c) => answerCounts[c] || 0),
+                                                  backgroundColor: palette.map((c) => hexToRgba(c, 0.9)),
+                                                  borderColor: palette,
+                                                  borderWidth: 2,
+                                                  hoverBackgroundColor: palette.map((c) => hexToRgba(c, 1)),
+                                              },
+                                          ],
+                                      };
+
+                                      const pieOptions: ChartOptions<"pie"> = {
+                                          ...baseLightOptions,
+                                          plugins: {
+                                              ...baseLightOptions.plugins,
+                                              legend: {...(baseLightOptions.plugins as any).legend, position: "bottom"},
+                                              tooltip: {
+                                                  ...baseLightOptions.plugins.tooltip,
+                                                  callbacks: {
+                                                      label: function (context: any) {
+                                                          const label = context.label || "";
+                                                          const value = context.parsed || 0;
+                                                          const total = (context.dataset.data as number[]).reduce(
+                                                              (a: number, b: number) => a + b,
+                                                              0,
+                                                          );
+                                                          const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+                                                          return `${label}: ${value} responses (${percentage}%)`;
+                                                      },
+                                                  },
+                                              },
+                                          },
+                                          // pies don’t use scales
+                                          scales: undefined,
+                                      };
+
+                                      return (
+                                          <div key={idx}
+                                               className="mb-6 flex w-full flex-col items-center px-2 md:w-1/2">
+                                              <div className="mb-2 text-center font-medium text-gray-900">
+                                                  Q{responses[0].student_eval_question}: {responses[0].question_text || "MCQ Question"}
+                                              </div>
+
+                                              {/* Choices legend (mirrors slice colors) */}
+                                              <div
+                                                  className="mb-3 w-full max-w-xs rounded-lg border border-gray-200 bg-white p-2">
+                                                  <div className="mb-1 text-xs font-semibold text-gray-700">Available
+                                                      Choices:
+                                                  </div>
+                                                  <div className="space-y-1 text-xs text-gray-600">
+                                                      {choices.map((choice, choiceIdx) => (
+                                                          <div key={choiceIdx} className="flex items-center">
+                                                              <div
+                                                                  className="mr-2 h-3 w-3 flex-shrink-0 rounded-full"
+                                                                  style={{backgroundColor: palette[choiceIdx % palette.length]}}
+                                                              />
+                                                              <span className="truncate">{choice}</span>
+                                                          </div>
+                                                      ))}
+                                                  </div>
+                                              </div>
+
+                                              <div className="flex h-64 w-full max-w-xs items-center justify-center">
+                                                  <Pie data={pieData} options={pieOptions}/>
+                                              </div>
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      )}
+
+                      {ratingQuestions.length === 0 && mcqQuestions.length === 0 && !loading && (
+                          <div className="text-gray-700">No rating or MCQ responses found for this {filterType}.</div>
+                      )}
+                  </div>
+
+                  {/* Footer — schedules-like .modal-action */}
+                  <div className="modal-action">
+                      <button onClick={closeModal} className="btn btn-cancel">
+                          Close
+                      </button>
+                  </div>
               </div>
-            )}
 
-            {ratingQuestions.length === 0 && mcqQuestions.length === 0 && !loading && (
-              <div className="text-gray-700">No rating or MCQ responses found for this {filterType}.</div>
-            )}
-          </div>
-
-          {/* Footer — schedules-like .modal-action */}
-          <div className="modal-action">
-            <button onClick={closeModal} className="btn btn-cancel">
-              Close
-            </button>
-          </div>
-        </div>
-
-        {/* Click outside to close */}
-        <form method="dialog" className="modal-backdrop">
-          <button aria-label="Close" />
-        </form>
-      </dialog>
+              {/* Click outside to close */}
+              <form method="dialog" className="modal-backdrop">
+                  <button aria-label="Close"/>
+              </form>
+          </dialog>
     </div>
   );
 };

@@ -1,16 +1,17 @@
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
 import { useEffect, useState } from "react";
+import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
+import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
+import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
+import api from "../../../utils/api";
+import { resolveFacultyId } from "../../../utils/facultyContext";
+import { manilaFilenameTimestamp } from "../../../utils/time";
 
 // Option type for comboboxes
 interface Option {
   id: number | string;
   name: string;
 }
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/16/solid";
-import api from "../../../utils/api";
-import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
-import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
-import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
-import { resolveFacultyId } from "../../../utils/facultyContext";
 
 interface SchedulesProps {
   setActiveView: (view: string) => void;
@@ -45,11 +46,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
   // Export state + helpers
   const defaultExportName = () => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const d = new Date();
-    return `schedules_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(
-      d.getHours()
-    )}-${pad(d.getMinutes())}.csv`;
+    return `schedules_${manilaFilenameTimestamp()}.csv`;
   };
   const [exportFilename, setExportFilename] = useState<string>(defaultExportName());
 
@@ -815,24 +812,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   }))
                 }
               />
-
-              {/* Title */}
-              <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">Title:</label>
-                <input
-                  type="text"
-                  placeholder="Enter title"
-                  className="input input-bordered w-full"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      name: e.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
 
               {/* Start Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">

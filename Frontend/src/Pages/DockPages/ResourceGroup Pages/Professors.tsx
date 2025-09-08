@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
-import api from "../../../utils/api";
+import { useEffect, useMemo, useState } from "react";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 import DataTable, { Column } from "../../../Components/Evaluation Components/Data Table";
+import api from "../../../utils/api";
 import { resolveFacultyId } from "../../../utils/facultyContext";
+import { manilaFilenameTimestamp } from "../../../utils/time";
 
 interface ProfessorsProps {
   setActiveView: (view: string) => void;
@@ -41,11 +42,7 @@ function Professors({ setActiveView }: ProfessorsProps) {
 
   // Export state
   const defaultExportName = () => {
-    const two = (n: number) => String(n).padStart(2, "0");
-    const d = new Date();
-    return `professors_${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}_${two(
-      d.getHours()
-    )}-${two(d.getMinutes())}`;
+      return `professors_${manilaFilenameTimestamp()}`;
   };
   const [exportFilename, setExportFilename] = useState<string>(defaultExportName());
   const [exportFormat, setExportFormat] = useState<"CSV" | "JSON">("CSV");

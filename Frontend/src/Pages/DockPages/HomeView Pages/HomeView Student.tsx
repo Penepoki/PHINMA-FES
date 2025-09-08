@@ -245,21 +245,21 @@ function Home() {
           <div>
             <SectionHeader title="Unfinished Subjects" />
             <SubjectCards
-              subjects={unfinishedCardItems}
-              onClick={(name) => {
-                // SubjectCards expects void-returning handler
-                void handleSubjectClick(name);
-              }}
+                subjects={unfinishedCardItems}
+                onClick={(name) => {
+                  // SubjectCards expects void-returning handler
+                  void handleSubjectClick(name);
+                }}
             />
           </div>
 
           <div>
             <SectionHeader title="Finished Subjects" />
             <SubjectCards
-              subjects={finishedCardItems}
-              onClick={(name) => {
-                void handleSubjectClick(name);
-              }}
+                subjects={finishedCardItems}
+                onClick={(name) => {
+                  void handleSubjectClick(name);
+                }}
             />
           </div>
         </div>

@@ -1,23 +1,22 @@
-import React, { useEffect, useState } from "react";
-import type { JSX } from "react";
 import {
-  ChevronUpIcon,
-  ChevronDownIcon,
-  HomeIcon,
-  UserIcon,
-  ClipboardDocumentListIcon,
-  FolderIcon,
-  ChartBarIcon,
+  AcademicCapIcon,
   BookOpenIcon,
   BuildingLibraryIcon,
   BuildingOffice2Icon,
-  RectangleStackIcon,
   CalendarDaysIcon,
+  ChartBarIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ClipboardDocumentListIcon,
+  FolderIcon,
+  HomeIcon,
   PlusCircleIcon,
-  AcademicCapIcon,
-  // ChartPieIcon, // <- evalSummary icon (kept commented out)
+  RectangleStackIcon,
+  UserGroupIcon,
+  UserIcon,
 } from "@heroicons/react/24/solid";
-import {UserGroupIcon} from "@heroicons/react/24/solid";
+import type { JSX } from "react";
+import React, { useEffect, useState } from "react";
 
 interface NavbarProps {
   activeView: string;

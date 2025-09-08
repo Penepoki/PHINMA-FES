@@ -63,10 +63,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+# EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or 'no-reply@phinma-fes.com'
 EMAIL_HOST_USER = 'maor.espineda.sjc@phinmaed.com'
 EMAIL_HOST_PASSWORD = 'oxpw mjtm guwp hsqg'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
 # Application definition
 INSTALLED_APPS = [
     'corsheaders',
@@ -82,11 +84,27 @@ INSTALLED_APPS = [
     'hrapp',
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
-    )
-}
+# Cache: use Redis if available, fallback to local memory in DEBUG
+REDIS_URL = config('REDIS_URL', default='')
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            }
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-fes-locmem',
+        }
+    }
+
+REST_FRAMEWORK = {"DEFAULT_AUTHENTICATION_CLASSES": ("hrapp.utils.auth.ExpiredTokenAuthentication",)}
 AUTH_TOKEN_MODEL = 'hrapp.Token'
 TOKEN_EXPIRY_DURATION = 6 * 60 * 60
 AUTH_USER_MODEL = "hrapp.user"
@@ -95,11 +113,11 @@ JAZZMIN_SETTINGS = {
     "site_title": "Admin Dashboard",
     "site_header": "School Management Admin",
     "welcome_sign": "Welcome to the School Management System",
-    "copyright": "Your School",
+    "copyright": "Saint Jude College School",
 }
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",   # must be first
+    "corsheaders.middleware.CorsMiddleware",  # must be first
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -173,12 +191,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-
 # Media files
 MEDIA_URL = '/media/'
 
-MEDIA_ROOT =  "/var/www/fes/media"
+MEDIA_ROOT = "/var/www/fes/media"
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
