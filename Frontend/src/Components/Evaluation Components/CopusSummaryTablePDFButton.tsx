@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import {formatManilaDate} from "../../utils/time";
 
 interface PDFButtonProps {
   evaluations: any[];
@@ -384,7 +385,7 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
         doc.setFontSize(9);
         doc.setTextColor(150, 150, 150);
           doc.text(`Page ${i} of ${pageCount}`, 196, 290, {align: "right"} as any);
-        doc.text(new Date().toLocaleDateString(), 14, 290);
+        doc.text(formatManilaDate(new Date()), 14, 290);
       }
 
       doc.save("copus-summary.pdf");

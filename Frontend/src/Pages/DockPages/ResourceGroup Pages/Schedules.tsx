@@ -11,6 +11,7 @@ import DataTable, { Column } from "../../../Components/Evaluation Components/Dat
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField.tsx";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 import { resolveFacultyId } from "../../../utils/facultyContext";
+import {manilaFilenameTimestamp} from "../../../utils/time";
 
 interface SchedulesProps {
   setActiveView: (view: string) => void;
@@ -45,11 +46,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
 
   // Export state + helpers
   const defaultExportName = () => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const d = new Date();
-    return `schedules_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(
-      d.getHours()
-    )}-${pad(d.getMinutes())}.csv`;
+    return `schedules_${manilaFilenameTimestamp()}.csv`;
   };
   const [exportFilename, setExportFilename] = useState<string>(defaultExportName());
 

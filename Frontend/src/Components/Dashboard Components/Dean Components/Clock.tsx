@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import {MANILA_TZ} from "../../../utils/time";
 
 const Clock = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -19,6 +20,7 @@ const Clock = () => {
         hour: "2-digit",
         minute: "2-digit",
         hour12: true,
+        timeZone: MANILA_TZ,
     });
 
     return (

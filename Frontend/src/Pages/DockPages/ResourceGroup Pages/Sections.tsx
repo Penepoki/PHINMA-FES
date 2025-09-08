@@ -40,6 +40,7 @@ import DataTable, { Column } from "../../../Components/Evaluation Components/Dat
 import ComboboxTextField from "../../../Components/Resource Components/ComboboxTextField";
 import BreadAndLogout from "../../../Components/Bread and Logout.tsx";
 import { resolveFacultyId } from "../../../utils/facultyContext.ts";
+import {manilaFilenameTimestamp} from "../../../utils/time";
 
 interface SectionsProps {
   setActiveView: (view: string) => void;
@@ -77,11 +78,7 @@ function Sections({ setActiveView }: SectionsProps) {
 
   // ------- EXPORT state + helpers -------
   const defaultExportName = () => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const d = new Date();
-    return `sections_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(
-      d.getHours()
-    )}-${pad(d.getMinutes())}.csv`;
+    return `sections_${manilaFilenameTimestamp()}.csv`;
   };
   const [exportFilename, setExportFilename] = useState<string>(defaultExportName());
 
