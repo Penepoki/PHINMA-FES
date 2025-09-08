@@ -19,22 +19,22 @@ interface Props {
 // Helper function to map frontend types to backend types
 export const mapTypeToBackend = (frontendType: string): string => {
   const typeMap: Record<string, string> = {
-    'mcq': 'MCQ',
-    'rating': 'RATING',
-    'comment': 'TEXT'
+      mcq: "MCQ",
+      rating: "RATING",
+      comment: "TEXT",
   };
-  return typeMap[frontendType] || 'TEXT';
+    return typeMap[frontendType] || "TEXT";
 };
 
 // Helper function to map backend types to frontend types
 export const mapTypeToFrontend = (backendType: string): "mcq" | "rating" | "comment" => {
   const normalized = backendType?.toUpperCase();
   const typeMap: Record<string, "mcq" | "rating" | "comment"> = {
-    'MCQ': 'mcq',
-    'RATING': 'rating',
-    'TEXT': 'comment'
+      MCQ: "mcq",
+      RATING: "rating",
+      TEXT: "comment",
   };
-  return typeMap[normalized] || 'comment';
+    return typeMap[normalized] || "comment";
 };
 
 function CreateStudentQuestion({
@@ -76,7 +76,7 @@ function CreateStudentQuestion({
     }
 
     if (questionType === "mcq") {
-      const validChoices = choices.filter(c => c.trim());
+        const validChoices = choices.filter((c) => c.trim());
       if (validChoices.length < 2) {
         newErrors.choices = "At least 2 choices are required for multiple choice questions";
       }
@@ -93,9 +93,9 @@ function CreateStudentQuestion({
       question: questionText.trim(),
       type: questionType,
       ...(questionType === "mcq" && {
-        choices: choices.filter((c) => c.trim())
+          choices: choices.filter((c) => c.trim()),
       }),
-      ...(questionToEdit?.id && { id: questionToEdit.id })
+        ...(questionToEdit?.id && {id: questionToEdit.id}),
     };
 
     if (questionToEdit && onUpdate && editIndex !== null && editIndex !== undefined) {
@@ -132,7 +132,7 @@ function CreateStudentQuestion({
   // Populate fields when editing
   useEffect(() => {
     if (questionToEdit) {
-      setQuestionText(questionToEdit.question ?? '');
+        setQuestionText(questionToEdit.question ?? "");
       setQuestionType(questionToEdit.type);
       setChoices(questionToEdit.choices || ["", ""]);
     } else {
@@ -142,8 +142,8 @@ function CreateStudentQuestion({
 
   return (
     <dialog ref={dialogRef} id="create_question_modal" className="modal">
-      <div className="modal-box max-w-2xl ">
-        <h3 className="font-bold text-lg mb-4">
+        <div className="modal-box max-w-2xl">
+            <h3 className="mb-4 text-lg font-bold">
           {questionToEdit ? "Edit Question" : "Add a Question"}
         </h3>
 
@@ -152,7 +152,7 @@ function CreateStudentQuestion({
             <span className="label-text">Question *</span>
           </label>
           <textarea
-            className={`textarea textarea-bordered w-full ${errors.question ? 'textarea-error' : ''}`}
+              className={`textarea textarea-bordered w-full ${errors.question ? "textarea-error" : ""}`}
             placeholder="Enter your question here..."
             value={questionText}
             onChange={(e) => setQuestionText(e.target.value)}
@@ -165,7 +165,7 @@ function CreateStudentQuestion({
           )}
         </div>
 
-        <div className="form-control w-full mt-4">
+            <div className="form-control mt-4 w-full">
           <label className="label">
             <span className="label-text">Question Type *</span>
           </label>
@@ -212,18 +212,14 @@ function CreateStudentQuestion({
                 <span className="label-text-alt text-error">{errors.choices}</span>
               </label>
             )}
-            <button
-              type="button"
-              className="btn btn-sm btn-outline mt-2"
-              onClick={addChoice}
-            >
+              <button type="button" className="btn btn-sm btn-outline mt-2" onClick={addChoice}>
               + Add Choice
             </button>
           </div>
         )}
 
         {questionType === "rating" && (
-          <div className="mt-4 p-4 bg-base-200 rounded-lg">
+            <div className="bg-base-200 mt-4 rounded-lg p-4">
             <p className="text-sm text-gray-600">
               This will create a 1-5 rating scale question where:
               <br />• 1 = Poor/Strongly Disagree
@@ -233,7 +229,7 @@ function CreateStudentQuestion({
         )}
 
         {questionType === "comment" && (
-          <div className="mt-4 p-4 bg-base-200 rounded-lg">
+            <div className="bg-base-200 mt-4 rounded-lg p-4">
             <p className="text-sm text-gray-600">
               This will create a text area where students can provide written feedback.
             </p>

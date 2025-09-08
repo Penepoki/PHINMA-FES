@@ -1,7 +1,7 @@
 import React, { forwardRef } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-
+import {formatManilaDate} from "../../utils/time";
 
 interface PDFButtonProps {
   evaluations: any[];
@@ -14,38 +14,56 @@ interface PDFButtonProps {
 }
 
 const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
-  ({ evaluations, evaluationTallies, studentOptions, teacherOptions, chartImages, onCollectChartImages, professorName }, ref) => {
-    
+    (
+        {
+            evaluations,
+            evaluationTallies,
+            studentOptions,
+            teacherOptions,
+            chartImages,
+            onCollectChartImages,
+            professorName,
+        },
+        ref,
+    ) => {
     // Helper function to draw circular progress indicator
-    const drawCircularProgress = (doc: jsPDF, x: number, y: number, radius: number, percentage: number, color: string, label: string) => {
+        const drawCircularProgress = (
+            doc: jsPDF,
+            x: number,
+            y: number,
+            radius: number,
+            percentage: number,
+            color: string,
+            label: string,
+        ) => {
       const centerX = x + radius;
       const centerY = y + radius;
-      
+
       // Draw background circle
       doc.setDrawColor(220, 220, 220);
       doc.setLineWidth(10);
-      doc.circle(centerX, centerY, radius, 'S');
-      
+            doc.circle(centerX, centerY, radius, "S");
+
       // Draw progress arc
       if (percentage > 0) {
         // Convert percentage to radians (starting from top, going clockwise)
         const startAngle = -Math.PI / 2; // Start from top
         const endAngle = startAngle + (percentage / 100) * 2 * Math.PI;
-        
+
         // Set color based on percentage
-        if (color === 'green') doc.setDrawColor(34, 197, 94);
-        else if (color === 'red') doc.setDrawColor(239, 68, 68);
+          if (color === "green") doc.setDrawColor(34, 197, 94);
+          else if (color === "red") doc.setDrawColor(239, 68, 68);
         else doc.setDrawColor(34, 197, 94); // default green
-        
+
         doc.setLineWidth(10);
-        
+
         // Draw arc manually using small line segments
         const segments = Math.max(10, Math.floor(percentage * 2)); // More segments for smoother arc
         for (let i = 0; i <= segments; i++) {
           const angle = startAngle + (i / segments) * (endAngle - startAngle);
           const x1 = centerX + Math.cos(angle) * radius;
           const y1 = centerY + Math.sin(angle) * radius;
-          
+
           if (i > 0) {
             const prevAngle = startAngle + ((i - 1) / segments) * (endAngle - startAngle);
             const x0 = centerX + Math.cos(prevAngle) * radius;
@@ -54,7 +72,7 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
           }
         }
       }
-      
+
       // Add percentage text in center
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(16);
@@ -62,7 +80,7 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
       const text = `${percentage.toFixed(2)}%`;
       const textWidth = doc.getTextWidth(text);
       doc.text(text, centerX - textWidth / 2, centerY + 2);
-      
+
       // Add label below
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
@@ -79,7 +97,7 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
       doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(0, 0, 0);
-      const title = `${professorName || 'Professor'} - COPUS Summary`;
+        const title = `${professorName || "Professor"} - COPUS Summary`;
       const titleWidth = doc.getTextWidth(title);
       doc.text(title, (210 - titleWidth) / 2, y); // Center the title
       y += 20;
@@ -88,20 +106,24 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
       doc.setLineWidth(0.5);
       doc.line(14, y - 10, 196, y - 10);
 
-
-
       // Active Learning Summary Section
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("Active Learning Summary", 14, y);
       y += 15;
 
-      const copusEvals = evaluations.filter((e) => ["copus_1", "copus_2", "copus_3"].includes(e.evaluation_type));
+        const copusEvals = evaluations.filter((e) =>
+            ["copus_1", "copus_2", "copus_3"].includes(e.evaluation_type),
+        );
       const avgActiveLearning = (() => {
-        let sum = 0, count = 0;
+          let sum = 0,
+              count = 0;
         copusEvals.forEach((ev) => {
           const perc = evaluationTallies[ev.id]?.activeLearningPercentage;
-          if (typeof perc === "number") { sum += perc; count++; }
+            if (typeof perc === "number") {
+                sum += perc;
+                count++;
+            }
         });
         return count > 0 ? sum / count : 0;
       })();
@@ -109,11 +131,11 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
       // Draw main gauge chart area
       const gaugeX = 20;
       const gaugeY = y;
-      
+
       // Draw gauge background
       doc.setFillColor(248, 248, 248);
-      doc.roundedRect(14, y, 180, 80, 5, 5, 'F');
-      
+        doc.roundedRect(14, y, 180, 80, 5, 5, "F");
+
       // Draw gauge chart (vector)
       const gCenterX = 1 + 45;
       const gCenterY = y + 40; // center of gauge circle
@@ -125,7 +147,7 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
       doc.setDrawColor(230, 232, 235);
       doc.setLineWidth(gLine);
       for (let i = 0; i < gSteps; i++) {
-        const t1 = Math.PI - (i / gSteps) * Math.PI;      // from PI to 0
+          const t1 = Math.PI - (i / gSteps) * Math.PI; // from PI to 0
         const t2 = Math.PI - ((i + 1) / gSteps) * Math.PI;
         const x1 = gCenterX + Math.cos(t1) * gRadius;
         const y1 = gCenterY - Math.sin(t1) * gRadius;
@@ -176,15 +198,20 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
       const labelTxt = `Active Learning % (Avg): `;
       doc.text(labelTxt, textX, y + 15);
       {
-        const avgColTxt: [number, number, number] = gFrac < 0.4 ? [239, 68, 68] : (gFrac < 0.7 ? [245, 158, 11] : [34, 197, 94]);
+          const avgColTxt: [number, number, number] =
+              gFrac < 0.4 ? [239, 68, 68] : gFrac < 0.7 ? [245, 158, 11] : [34, 197, 94];
         doc.setTextColor(avgColTxt[0], avgColTxt[1], avgColTxt[2]);
       }
       doc.text(`${avgActiveLearning.toFixed(2)}%`, textX + doc.getTextWidth(labelTxt) + 4, y + 15);
-      
+
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text("- Computed as the percent of timestamps with active teacher or student", textX, y + 28);
+        doc.text(
+            "- Computed as the percent of timestamps with active teacher or student",
+            textX,
+            y + 28,
+        );
       doc.text("  activities.", textX, y + 38);
       doc.text("- Active learning includes group work, discussions, questions,", textX, y + 48);
       doc.text("  presentations, and related interactions.", textX, y + 58);
@@ -199,21 +226,22 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
 
       // Draw gauge background
       doc.setFillColor(248, 248, 248);
-      doc.roundedRect(14, y, 150, 70, 5, 5, 'F');
+        doc.roundedRect(14, y, 150, 70, 5, 5, "F");
 
       // Draw per-COPUS gauges (vector)
       const miniRadius = 16;
       const miniLine = 1;
       const gaugeSpacing = 8;
       const gCount = copusEvals.length || 3;
-      const gTotalWidth = (2 * miniRadius) * gCount + gaugeSpacing * (gCount - 1);
+        const gTotalWidth = 2 * miniRadius * gCount + gaugeSpacing * (gCount - 1);
       const gStartX = Math.max(14, (210 - gTotalWidth) / 2);
       const gBaseY = y + 30; // baseline for gauge centers (tighter)
 
       copusEvals.forEach((copuseval, idx) => {
         const perc = evaluationTallies[copuseval.id]?.activeLearningPercentage ?? 0;
         let col: [number, number, number] = [34, 197, 94]; // green
-        if (perc < 40) col = [239, 68, 68]; // red
+          if (perc < 40)
+              col = [239, 68, 68]; // red
         else if (perc < 70) col = [245, 158, 11]; // yellow
 
         const cx = gStartX + idx * (2 * miniRadius + gaugeSpacing);
@@ -249,7 +277,7 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
 
         // center text
         doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
+          doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
         const t = `${perc.toFixed(2)}%`;
         const tw = doc.getTextWidth(t);
@@ -276,7 +304,8 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
       const studentData = studentOptions.map((activity) => [
         activity,
         (() => {
-          let sum = 0, count = 0;
+            let sum = 0,
+                count = 0;
           copusEvals.forEach((ev) => {
             const tallies = evaluationTallies[ev.id]?.studentTallies;
             if (tallies && typeof tallies[activity]?.count === "number") {
@@ -285,22 +314,22 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
             }
           });
           return count > 0 ? (sum / count).toFixed(2) : "0.00";
-        })()
+        })(),
       ]);
 
       autoTable(doc, {
         startY: y,
         head: [["Activity", "Student Avg"]],
         body: studentData,
-        theme: 'grid',
+          theme: "grid",
         margin: { left: 20, right: 20 },
-        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold' },
+          headStyles: {fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: "bold"},
         styles: { fontSize: 9, cellPadding: 3, lineColor: [230, 230, 230] },
         alternateRowStyles: { fillColor: [248, 250, 252] },
         columnStyles: {
           0: { cellWidth: 110 },
-          1: { cellWidth: 35, halign: 'right' }
-        }
+            1: {cellWidth: 35, halign: "right"},
+        },
       });
 
       y = (doc as any).lastAutoTable.finalY + 15;
@@ -320,7 +349,8 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
       const teacherData = teacherOptions.map((activity) => [
         activity,
         (() => {
-          let sum = 0, count = 0;
+            let sum = 0,
+                count = 0;
           copusEvals.forEach((ev) => {
             const tallies = evaluationTallies[ev.id]?.teacherTallies;
             if (tallies && typeof tallies[activity]?.count === "number") {
@@ -329,47 +359,44 @@ const PDFButton = forwardRef<HTMLButtonElement, PDFButtonProps>(
             }
           });
           return count > 0 ? (sum / count).toFixed(2) : "0.00";
-        })()
+        })(),
       ]);
 
       autoTable(doc, {
         startY: y,
         head: [["Activity", "Teacher Avg"]],
         body: teacherData,
-        theme: 'grid',
+          theme: "grid",
         margin: { left: 20, right: 20 },
-        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold' },
+          headStyles: {fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: "bold"},
         styles: { fontSize: 9, cellPadding: 3, lineColor: [230, 230, 230] },
         alternateRowStyles: { fillColor: [248, 250, 252] },
         columnStyles: {
           0: { cellWidth: 110 },
-          1: { cellWidth: 35, halign: 'right' }
-        }
+            1: {cellWidth: 35, halign: "right"},
+        },
       });
 
       // Footer with page numbers and date
-      const pageCount = (doc as any).getNumberOfPages?.() || (doc as any).internal.getNumberOfPages();
+        const pageCount =
+            (doc as any).getNumberOfPages?.() || (doc as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         (doc as any).setPage(i);
         doc.setFontSize(9);
         doc.setTextColor(150, 150, 150);
-        doc.text(`Page ${i} of ${pageCount}`, 196, 290, { align: 'right' } as any);
-        doc.text(new Date().toLocaleDateString(), 14, 290);
+          doc.text(`Page ${i} of ${pageCount}`, 196, 290, {align: "right"} as any);
+        doc.text(formatManilaDate(new Date()), 14, 290);
       }
 
       doc.save("copus-summary.pdf");
     };
 
     return (
-      <button
-        className="btn btn-primary mb-4 float-right"
-        onClick={handleExportPDF}
-        ref={ref}
-      >
+        <button className="btn btn-primary float-right mb-4" onClick={handleExportPDF} ref={ref}>
         Save as PDF
       </button>
     );
-  }
+    },
 );
 
 export default PDFButton;

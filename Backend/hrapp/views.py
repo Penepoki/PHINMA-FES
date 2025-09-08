@@ -11,6 +11,7 @@ from hrapp.utils.user_utils import *
 from hrapp.utils.auth import *
 from hrapp.utils.decorators import *
 from hrapp.utils.generate_insight_online import generate_ai_feedback_for_evaluation, generate_retention_recommendations
+from hrapp.utils.generate_insight_online import generate_ai_feedback_for_evaluation, generate_retention_recommendations
 from hrapp.serializers.user_serializer import *
 from hrapp.serializers.schedules_serializer import *
 from hrapp.filters.schedules_filter import *
@@ -22,6 +23,25 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
 from django.shortcuts import get_object_or_404
+from django.core.cache import cache
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+# --- S3 / MinIO presign helpers ---
+import os, re, uuid, mimetypes
+from urllib.parse import urljoin
+import boto3
+
+
+def _s3_client():
+    return boto3.client(
+        "s3",
+        region_name=os.getenv("AWS_REGION", "us-east-1"),
+        endpoint_url=os.getenv("S3_ENDPOINT"),
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    )
 # from rest_framework.filter import Search
 import pandas as pd
 from datetime import datetime, timedelta, time
@@ -116,21 +136,149 @@ def signup_view(request):
     return Response(result, status=status.HTTP_201_CREATED)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def user_view_dashboard(request):
-    # Returns the basic info of the currently logged user
+    """
+    GET  -> return current user's dashboard info
+    PATCH -> allow the current user to update simple fields like profile_image
+    """
     user = request.user
+
+    if request.method == 'GET':
+        serializer = UserDashboardSerializer(user, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # PATCH
+    allowed_fields = {'profile_image', 'first_name', 'last_name'}  # add/remove as you prefer
+    payload = {k: v for k, v in request.data.items() if k in allowed_fields}
+
+    if not payload:
+        return Response({'detail': 'No allowed fields to update.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    for k, v in payload.items():
+        setattr(user, k, v)
+    user.save(update_fields=list(payload.keys()))
+
     serializer = UserDashboardSerializer(user, context={'request': request})
-    return Response(serializer.data)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def user_view_profile(request):
     user = request.user
+    if request.method == 'GET':
+        serializer = UserSerializer(user, context={'request': request})
+        return Response(serializer.data)
+    # PATCH update first_name, last_name, email with domain restriction
+    allowed_fields = {'first_name', 'last_name', 'email'}
+    payload = {k: v for k, v in request.data.items() if k in allowed_fields}
+    if not payload:
+        return Response({'detail': 'No allowed fields to update.'}, status=status.HTTP_400_BAD_REQUEST)
+    # email domain restriction
+    if 'email' in payload:
+        email = payload['email']
+        # Enforce sjc.phinmaed.com email domain (fix previous invalid regex)
+        if not email or not email.lower().endswith(".sjc@phinmaed.com"):
+            return Response({'detail': 'Email must end with .sjc@phinmaed.com.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        # ensure uniqueness
+        if User.objects.filter(email=email).exclude(id=user.id).exists():
+            return Response({'detail': 'Email already in use.'}, status=status.HTTP_400_BAD_REQUEST)
+        user.email = email
+    if 'first_name' in payload:
+        user.first_name = payload['first_name']
+    if 'last_name' in payload:
+        user.last_name = payload['last_name']
+    user.save()
     serializer = UserSerializer(user, context={'request': request})
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password_with_otp(request):
+    user = request.user
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('new_password')
+    otp = request.data.get('otp')
+
+    if not old_password or not new_password:
+        return Response({'detail': 'old_password and new_password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # verify old password
+    if not user.check_password(old_password):
+        return Response({'detail': 'Old password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verify OTP
+    if not otp:
+        return Response({'detail': 'OTP is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not verify_otp(user, otp):
+        return Response({'detail': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+    return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_password_change_otp(request):
+    user = request.user
+    send_otp_via_email(user)
+    return Response({'message': 'OTP sent to your email.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verify_password_change_otp(request):
+    user = request.user
+    otp = request.data.get('otp')
+    if not otp:
+        return Response({'detail': 'OTP is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not verify_otp(user, otp):
+        return Response({'detail': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'message': 'OTP verified.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_profile_picture(request):
+    user = request.user
+    parser_classes = (MultiPartParser,)
+    file_obj = request.FILES.get('avatar') or request.FILES.get('file') or request.FILES.get('profile_picture')
+    if not file_obj:
+        return Response({'detail': 'No file uploaded.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # basic validation
+    mime = mimetypes.guess_type(file_obj.name)[0] or ''
+    if not mime.startswith('image/'):
+        return Response({'detail': 'Only image files are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+    # limit size to ~5MB
+    if hasattr(file_obj, 'size') and file_obj.size > 5 * 1024 * 1024:
+        return Response({'detail': 'File too large. Max 5MB.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Save into ImageField storage (MEDIA_ROOT/profile_pictures)
+    from django.core.files.base import ContentFile
+    ext = os.path.splitext(file_obj.name)[1].lower()
+    filename = f"{uuid.uuid4().hex}{ext}"
+    user.profile_picture.save(filename, ContentFile(file_obj.read()), save=True)
+
+    # Also persist a copy to project root folder as requested
+    try:
+        base_dir = os.getenv('BASE_DIR') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        dest_dir = os.path.join(os.path.dirname(base_dir), 'profile_pictures_root')
+        os.makedirs(dest_dir, exist_ok=True)
+        with open(os.path.join(dest_dir, filename), 'wb') as f:
+            for chunk in file_obj.chunks() if hasattr(file_obj, 'chunks') else [file_obj.read()]:
+                f.write(chunk)
+    except Exception:
+        pass
+
+    serializer = UserSerializer(user, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 # Evaluation View
@@ -711,8 +859,14 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         faculty_id = request.query_params.get('faculty')
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
-        evals = Evaluation.objects.filter(schedule__program__faculty_id=faculty_id, deleted_at__isnull=True)
-        eval_ids = [e.id for e in evals]
+        year = request.query_params.get('year')
+        semester = request.query_params.get('semester')
+        qs = Evaluation.objects.filter(schedule__program__faculty_id=faculty_id, deleted_at__isnull=True)
+        if year:
+            qs = qs.filter(schedule__year=year)
+        if semester:
+            qs = qs.filter(schedule__semester=semester)
+        eval_ids = list(qs.values_list('id', flat=True))
         if not eval_ids:
             return Response({'error': 'No evaluations found for this faculty'}, status=status.HTTP_404_NOT_FOUND)
         result = get_copus_bulk_tallies_data(eval_ids)
@@ -723,10 +877,16 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': "program is required"}, status=status.HTTP_400_BAD_REQUEST)
-        evals = Evaluation.objects.filter(schedule__program_id=program_id, deleted_at__isnull=True)
-        eval_ids = [e.id for e in evals]
+        year = request.query_params.get('year')
+        semester = request.query_params.get('semester')
+        qs = Evaluation.objects.filter(schedule__program_id=program_id, deleted_at__isnull=True)
+        if year:
+            qs = qs.filter(schedule__year=year)
+        if semester:
+            qs = qs.filter(schedule__semester=semester)
+        eval_ids = list(qs.values_list('id', flat=True))
         if not eval_ids:
-            return Response({'error': 'No evaluations found for this program'}, status=status.HTTP_404_BAD_REQUEST)
+            return Response({'error': 'No evaluations found for this program'}, status=status.HTTP_404_NOT_FOUND)
         result = get_copus_bulk_tallies_data(eval_ids)
         return Response(result)
 
@@ -808,10 +968,39 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         teacher_options = [choice[1] for choice in Timestamp.INSTRUCTOR_ACTIVITY_CHOICES]
 
         for e in latest_evals:
+            # Build absolute image URL with existence check and fallback
+            faculty_image = None
+            pp = getattr(e.instructor, 'profile_picture', None)
+            try:
+                if pp and getattr(pp, 'name', None):
+                    # Primary: if file exists in storage
+                    try:
+                        if pp.storage.exists(pp.name):
+                            faculty_image = request.build_absolute_uri(pp.url)
+                        else:
+                            raise FileNotFoundError
+                    except Exception:
+                        # Fallback: try project-level 'profile_pictures_root'
+                        import os
+                        from pathlib import Path
+                        from django.conf import settings
+                        from django.core.files.base import File as DjangoFile
+                        basename = os.path.basename(pp.name)
+                        fallback_dir = Path(settings.BASE_DIR).parent / 'profile_pictures_root'
+                        fallback_path = fallback_dir / basename
+                        if fallback_path.exists():
+                            with open(fallback_path, 'rb') as f:
+                                saved_name = pp.storage.save(f"profile_pictures/{basename}", DjangoFile(f))
+                            e.instructor.profile_picture.name = saved_name
+                            e.instructor.save(update_fields=['profile_picture'])
+                            faculty_image = request.build_absolute_uri(e.instructor.profile_picture.url)
+            except Exception:
+                faculty_image = None
+
             data.append({
                 "evaluation_number": e.id,
                 "faculty_name": e.instructor.get_full_name() if e.instructor else "Unknown",
-                "faculty_image": getattr(e.instructor, "profile_image", None),
+                "faculty_image": faculty_image,
                 "student_tallies": [tallies[e.id]["studentTallies"][opt]["percentage"] for opt in student_options],
                 "teacher_tallies": [tallies[e.id]["teacherTallies"][opt]["percentage"] for opt in teacher_options]
             })
@@ -1208,6 +1397,38 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         unique_count = unique_pairs.count()
         return Response({'unique_response_count': unique_count}, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'], url_path='unique-count-by-year')
+    def unique_count_by_year(self, request):
+        """RETURNS UNIQUE COUNT PER STUDENT FILTERED BY YEAR LEVEL AND OPTIONAL FACULTY/PROGRAM/PROFESSOR
+        usage: /studentevaluationresponse/studentevaluationresponse/unique-count-by-year?year_level=1&faculty=<fid>&program=<pid>&professor=<uid>
+        Counts distinct pairs of (user_id, canonical_id) among users with role 'Student' who have completed responses within the scoped schedules.
+        """
+        year_level = request.query_params.get('year_level')
+        if not year_level:
+            return Response({'error': 'year_level is required (values: 1,2,3,4)'}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs = StudentEvaluationResponse.objects.filter(
+            student_evaluation__schedule__section__year_level=str(year_level)
+        )
+
+        # Optional filters
+        faculty_id = request.query_params.get('faculty')
+        program_id = request.query_params.get('program')
+        professor_id = request.query_params.get('professor')
+        if faculty_id:
+            qs = qs.filter(student_evaluation__schedule__program__faculty_id=faculty_id)
+        if program_id:
+            qs = qs.filter(student_evaluation__schedule__program_id=program_id)
+        if professor_id:
+            qs = qs.filter(student_evaluation__schedule__instructor_id=professor_id)
+
+        # Only consider respondents who are Students
+        qs = qs.filter(user__groups__name__iexact='Student')
+
+        unique_pairs = qs.values('user_id', 'student_eval_question__canonical_id').distinct()
+        unique_count = unique_pairs.count()
+        return Response({'unique_response_count': unique_count}, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['get'], url_path='unique-count-by-faculty')
     def unique_count_by_faculty(self, request):
         """RETURNS UNIQUE COUNT PER STUDENT ACROSS ALL EVALUATIONS IN A FACULTY
@@ -1224,6 +1445,201 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         ).distinct()
         unique_count = unique_pairs.count()
         return Response({'unique_response_count': unique_count}, status=status.HTTP_200_OK)
+
+    # Completed versions of counts
+    @action(detail=False, methods=['get'], url_path='completed-count-by-evaluation')
+    def completed_count_by_evaluation(self, request):
+        eval_id = request.query_params.get('student_evaluation')
+        if not eval_id:
+            return Response({'error': 'student_evaluation is required'}, status=400)
+        try:
+            eval_obj = StudentEvaluation.objects.get(id=eval_id)
+        except StudentEvaluation.DoesNotExist:
+            return Response({'error': 'StudentEvaluation not found'}, status=404)
+        from django.db.models import Count as DJCount
+        total_q = eval_obj.import_questions.count()
+        if total_q == 0:
+            return Response({'completed_count': 0}, status=200)
+        answered = StudentEvaluationResponse.objects.filter(student_evaluation_id=eval_id,
+                                                            user__groups__name__iexact='Student') \
+            .values('user_id') \
+            .annotate(ans_count=DJCount('student_eval_question_id', distinct=True))
+        completed = sum(1 for r in answered if r['ans_count'] >= total_q)
+        return Response({'completed_count': completed}, status=200)
+
+    @action(detail=False, methods=['get'], url_path='completed-count-by-program')
+    def completed_count_by_program(self, request):
+        program_id = request.query_params.get('program')
+        if not program_id:
+            return Response({'error': 'program is required'}, status=400)
+        evals = StudentEvaluation.objects.filter(schedule__program_id=program_id)
+        from django.db.models import Count as DJCount
+        evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
+        totals = dict(evals.values_list('id', 'total_q'))
+        if not totals:
+            return Response({'completed_count': 0}, status=200)
+        answered = StudentEvaluationResponse.objects.filter(student_evaluation_id__in=totals.keys(),
+                                                            user__groups__name__iexact='Student') \
+            .values('user_id', 'student_evaluation_id') \
+            .annotate(ans_count=DJCount('student_eval_question_id', distinct=True))
+        completed_users = set()
+        for r in answered:
+            tq = totals.get(r['student_evaluation_id']) or 0
+            if tq and r['ans_count'] >= tq:
+                completed_users.add(r['user_id'])
+        return Response({'completed_count': len(completed_users)}, status=200)
+
+    @action(detail=False, methods=['get'], url_path='completed-count-by-professor')
+    def completed_count_by_professor(self, request):
+        professor_id = request.query_params.get('professor')
+        if not professor_id:
+            return Response({'error': 'professor is required'}, status=400)
+        evals = StudentEvaluation.objects.filter(schedule__instructor_id=professor_id)
+        from django.db.models import Count as DJCount
+        evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
+        totals = dict(evals.values_list('id', 'total_q'))
+        if not totals:
+            return Response({'completed_count': 0}, status=200)
+        answered = StudentEvaluationResponse.objects.filter(student_evaluation_id__in=totals.keys(),
+                                                            user__groups__name__iexact='Student') \
+            .values('user_id', 'student_evaluation_id') \
+            .annotate(ans_count=DJCount('student_eval_question_id', distinct=True))
+        completed_users = set()
+        for r in answered:
+            tq = totals.get(r['student_evaluation_id']) or 0
+            if tq and r['ans_count'] >= tq:
+                completed_users.add(r['user_id'])
+        return Response({'completed_count': len(completed_users)}, status=200)
+
+    @action(detail=False, methods=['get'], url_path='completed-count-by-faculty')
+    def completed_count_by_faculty(self, request):
+        faculty_id = request.query_params.get('faculty') or _resolve_faculty_from_request_or_hr_temp(request)
+        if not faculty_id:
+            return Response({'error': 'faculty is required'}, status=400)
+        evals = StudentEvaluation.objects.filter(schedule__program__faculty_id=faculty_id)
+        from django.db.models import Count as DJCount
+        evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
+        totals = dict(evals.values_list('id', 'total_q'))
+        if not totals:
+            return Response({'completed_count': 0}, status=200)
+        answered = StudentEvaluationResponse.objects.filter(student_evaluation_id__in=totals.keys(),
+                                                            user__groups__name__iexact='Student') \
+            .values('user_id', 'student_evaluation_id') \
+            .annotate(ans_count=DJCount('student_eval_question_id', distinct=True))
+        completed_users = set()
+        for r in answered:
+            tq = totals.get(r['student_evaluation_id']) or 0
+            if tq and r['ans_count'] >= tq:
+                completed_users.add(r['user_id'])
+        return Response({'completed_count': len(completed_users)}, status=200)
+
+    @action(detail=False, methods=['get'], url_path='year-completion-summary')
+    def year_completion_summary(self, request):
+        """Return completed/total students for a given year_level within optional faculty/program/professor scope.
+        usage: /studentevaluationresponse/studentevaluationresponse/year-completion-summary?year_level=1&faculty=<fid>&program=<pid>&professor=<uid>
+        completed: unique students who fully answered at least one evaluation in the scope
+        total: distinct students assigned to sections with the same year_level in the scope
+        """
+        year_level = request.query_params.get('year_level')
+        if not year_level:
+            return Response({'error': 'year_level is required (1-4)'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Resolve filters
+        faculty_id = request.query_params.get('faculty') or _resolve_faculty_from_request_or_hr_temp(request)
+        program_id = request.query_params.get('program')
+        professor_id = request.query_params.get('professor')
+
+        # Total students: M2M Section.students filtered by Section.year_level and faculty/program
+        sections = Section.objects.filter(year_level=str(year_level))
+        if faculty_id:
+            sections = sections.filter(program__faculty_id=faculty_id)
+        if program_id:
+            sections = sections.filter(program_id=program_id)
+        if professor_id:
+            # limit to sections that have at least one schedule taught by professor
+            sections = sections.filter(schedule__instructor_id=professor_id)
+        total_students = User.objects.filter(sections__in=sections).distinct().count()
+
+        # Completed students: answered all questions for at least one evaluation in scope
+        evals = StudentEvaluation.objects.filter(
+            schedule__section__year_level=str(year_level)
+        )
+        if faculty_id:
+            evals = evals.filter(schedule__program__faculty_id=faculty_id)
+        if program_id:
+            evals = evals.filter(schedule__program_id=program_id)
+        if professor_id:
+            evals = evals.filter(schedule__instructor_id=professor_id)
+
+        # annotate total questions per eval
+        from django.db.models import Count as DJCount
+        evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
+        eval_total_map = dict(evals.values_list('id', 'total_q'))
+        if not eval_total_map:
+            return Response({'completed': 0, 'total': total_students}, status=status.HTTP_200_OK)
+
+        # For responses, compute per (user, evaluation) answered distinct question count
+        resp_qs = StudentEvaluationResponse.objects.filter(student_evaluation_id__in=list(eval_total_map.keys()))
+        # Only consider student role
+        resp_qs = resp_qs.filter(user__groups__name__iexact='Student')
+        answered_per_eval_user = resp_qs.values('user_id', 'student_evaluation_id') \
+            .annotate(ans_count=DJCount('student_eval_question_id', distinct=True))
+
+        # Determine user_ids who completed at least one evaluation
+        completed_user_ids = set()
+        for row in answered_per_eval_user:
+            total_q = eval_total_map.get(row['student_evaluation_id']) or 0
+            if total_q and row['ans_count'] >= total_q:
+                completed_user_ids.add(row['user_id'])
+        completed_count = len(completed_user_ids)
+
+        return Response({'completed': completed_count, 'total': total_students}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='year-completion-summary-bulk')
+    def year_completion_summary_bulk(self, request):
+        """Return completed/total for all 4 year levels in one call. Optional faculty/program/professor apply to all."""
+        results = {}
+        for lvl in ['1', '2', '3', '4']:
+            faculty_id = request.query_params.get('faculty') or _resolve_faculty_from_request_or_hr_temp(request)
+            program_id = request.query_params.get('program')
+            professor_id = request.query_params.get('professor')
+
+            sections = Section.objects.filter(year_level=lvl)
+            if faculty_id:
+                sections = sections.filter(program__faculty_id=faculty_id)
+            if program_id:
+                sections = sections.filter(program_id=program_id)
+            if professor_id:
+                sections = sections.filter(schedule__instructor_id=professor_id)
+            total_students = User.objects.filter(sections__in=sections).distinct().count()
+
+            evals = StudentEvaluation.objects.filter(schedule__section__year_level=lvl)
+            if faculty_id:
+                evals = evals.filter(schedule__program__faculty_id=faculty_id)
+            if program_id:
+                evals = evals.filter(schedule__program_id=program_id)
+            if professor_id:
+                evals = evals.filter(schedule__instructor_id=professor_id)
+
+            from django.db.models import Count as DJCount
+            evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
+            eval_total_map = dict(evals.values_list('id', 'total_q'))
+            if not eval_total_map:
+                results[lvl] = {'completed': 0, 'total': total_students}
+                continue
+
+            resp_qs = StudentEvaluationResponse.objects.filter(student_evaluation_id__in=list(eval_total_map.keys()))
+            resp_qs = resp_qs.filter(user__groups__name__iexact='Student')
+            answered = resp_qs.values('user_id', 'student_evaluation_id').annotate(
+                ans_count=DJCount('student_eval_question_id', distinct=True))
+            completed_user_ids = set()
+            for row in answered:
+                tq = eval_total_map.get(row['student_evaluation_id']) or 0
+                if tq and row['ans_count'] >= tq:
+                    completed_user_ids.add(row['user_id'])
+            results[lvl] = {'completed': len(completed_user_ids), 'total': total_students}
+
+        return Response(results, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='by-evaluation-and-user')
     def by_evaluation_and_user(self, request):
@@ -2059,6 +2475,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         section = request.query_params.get("section")
         subject = request.query_params.get("subject")
         professor = request.query_params.get("professor")
+        year = request.query_params.get("year")
 
         if semester:
             qs = qs.filter(semester=semester)
@@ -2070,6 +2487,11 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             qs = qs.filter(subject=subject)
         if professor:
             qs = qs.filter(instructor=professor)
+        if year:
+            try:
+                qs = qs.filter(year__year=int(year))
+            except (ValueError, TypeError):
+                pass
 
         page = self.paginate_queryset(qs)
         if page is not None:
@@ -2111,10 +2533,35 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def get_professors(request):
     user = request.user
-    professors = User.objects.filter(groups__name='professor')
-    if not user.is_superuser and hasattr(user, 'faculty'):
-        professors = professors.filter(faculties_as_professor=user.faculty)
-    serializer = UserProgramProfessorSerializer(professors, many=True)
+    qs = User.objects.filter(groups__name__iexact='professor', is_active=True)
+
+    # Optional search support for comboboxes
+    search = request.query_params.get('search')
+    if search:
+        qs = qs.filter(
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(email__icontains=search)
+        )
+
+    # Scope by faculty for non-superusers where appropriate
+    if user.is_superuser:
+        pass
+    elif user.groups.filter(name='HR').exists():
+        # Honor temporary HR faculty context if present; otherwise do not restrict
+        temp_faculty_id = cache.get(f"hr_temp_faculty_{user.id}")
+        if temp_faculty_id:
+            qs = qs.filter(Q(faculties_as_professor__id=temp_faculty_id) | Q(faculties_as_professor__isnull=True))
+        elif getattr(user, 'faculty', None):
+            qs = qs.filter(Q(faculties_as_professor=user.faculty) | Q(faculties_as_professor__isnull=True))
+    elif getattr(user, 'faculty', None):
+        qs = qs.filter(Q(faculties_as_professor=user.faculty) | Q(faculties_as_professor__isnull=True))
+    else:
+        # Users without faculty context (and not HR/superuser) should not see all; return none
+        qs = qs.none()
+
+    qs = qs.distinct().order_by('first_name', 'last_name')[:100]
+    serializer = UserProgramProfessorSerializer(qs, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -2816,6 +3263,44 @@ def _resolve_faculty_from_request_or_hr_temp(request):
     return None
 
 
+# --- Presign PUT for direct browser uploads ---
+BUCKET = os.getenv("S3_BUCKET")
+CDN_BASE = os.getenv("CDN_PUBLIC_BASE", "")
+_SAFE_PATH = re.compile(r"^[a-zA-Z0-9/_\-.]+$")
+_ALLOWED_CT = {"image/png", "image/jpeg", "image/webp", "image/avif"}
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def presign_put(request):
+    """
+    Body: { "path": "deans/<ID>/photo.png", "contentType": "image/png" }
+    Returns: { uploadUrl, fileUrl }
+    """
+    path = request.data.get("path") or ""
+    ctype = request.data.get("contentType") or ""
+
+    if not _SAFE_PATH.match(path):
+        return Response({"detail": "Invalid path"}, status=400)
+    if ctype not in _ALLOWED_CT:
+        return Response({"detail": "Unsupported content type."}, status=400)
+
+    base, ext = os.path.splitext(path)
+    if not ext:
+        ext = mimetypes.guess_extension(ctype) or ".bin"
+    key = f"{base}-{uuid.uuid4().hex}{ext}"
+
+    client = _s3_client()
+    upload_url = client.generate_presigned_url(
+        "put_object",
+        Params={"Bucket": BUCKET, "Key": key, "ContentType": ctype},
+        ExpiresIn=300,
+    )
+    file_url = urljoin(CDN_BASE.rstrip("/") + "/", key) if CDN_BASE else f"https://s3.phinma-fes.com/{BUCKET}/{key}"
+
+    return Response({"uploadUrl": upload_url, "fileUrl": file_url})
+
+
 # --- HR USERS MANAGEMENT (list/create/update/soft-delete, role management) ---
 from rest_framework import serializers as drf_serializers
 from django.contrib.auth.models import Group
@@ -2824,30 +3309,63 @@ from django.contrib.auth.models import Group
 class UserAdminSerializer(drf_serializers.ModelSerializer):
     roles = drf_serializers.ListField(child=drf_serializers.CharField(), write_only=True, required=False)
     roles_read = drf_serializers.SerializerMethodField(read_only=True)
+    password = drf_serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = get_user_model()
         fields = [
-            'id', 'email', 'first_name', 'last_name', 'is_active',
-            'roles', 'roles_read'
+            'id', 'email', 'username', 'first_name', 'last_name', 'is_active',
+            'roles', 'roles_read', 'password'
         ]
-        read_only_fields = ['email']
+        read_only_fields = []
 
     def get_roles_read(self, obj):
         return list(obj.groups.values_list('name', flat=True))
 
+    def _filter_roles_by_requester(self, roles):
+        """Restrict roles a Dean can assign; HR can assign all."""
+        request = self.context.get('request')
+        if not roles:
+            return roles
+        try:
+            if request and request.user and request.user.groups.filter(name__iexact='Dean').exists() \
+                    and not request.user.groups.filter(name__iexact='HR').exists() and not request.user.is_superuser:
+                allowed = {'HR', 'Program Head', 'Dean'}
+                return [r for r in roles if r in allowed]
+        except Exception:
+            pass
+        return roles
+
     def create(self, validated_data):
+        request = self.context.get('request')
         roles = validated_data.pop('roles', [])
+        roles = self._filter_roles_by_requester(roles)
+        raw_password = validated_data.pop('password', None)
         user = super().create(validated_data)
+        # Set password if provided
+        if raw_password:
+            user.set_password(raw_password)
+            user.save(update_fields=['password'])
+        # Assign provided roles if any
         if roles:
             groups = Group.objects.filter(name__in=roles)
             user.groups.set(groups)
+        # If creator is HR, ensure the created user has 'professor' role
+        try:
+            if request and request.user and request.user.groups.filter(name__iexact='HR').exists():
+                prof_group, _ = Group.objects.get_or_create(name='professor')
+                user.groups.add(prof_group)
+        except Exception:
+            # Fail-safe: do not block user creation if group not found
+            pass
         return user
 
     def update(self, instance, validated_data):
         roles = validated_data.pop('roles', None)
-        # Email must not be changed
+        roles = self._filter_roles_by_requester(roles) if roles is not None else None
+        # Email and username must not be changed here
         validated_data.pop('email', None)
+        validated_data.pop('username', None)
         user = super().update(instance, validated_data)
         if roles is not None:
             groups = Group.objects.filter(name__in=roles)
@@ -2886,6 +3404,29 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         if is_active in ['true', 'false']:
             qs = qs.filter(is_active=(is_active == 'true'))
         return qs.distinct()
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        user = request.user
+        data = {
+            'id': user.id,
+            'email': getattr(user, 'email', None),
+            'username': getattr(user, 'username', None),
+            'first_name': getattr(user, 'first_name', ''),
+            'last_name': getattr(user, 'last_name', ''),
+            'roles_read': list(user.groups.values_list('name', flat=True)),
+            'is_superuser': user.is_superuser,
+        }
+        return Response(data)
+
+    def update(self, request, *args, **kwargs):
+        # Make update partial to avoid requiring unchanged fields like email
+        partial = True
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
     @transaction.atomic
     def destroy(self, request, *args, **kwargs):

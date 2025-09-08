@@ -23,6 +23,12 @@ def user_signup(data):
     if User.objects.filter(email=email).exists():
         return {"email already exists"}
 
+    # Domain restriction for signup
+    allowed_pattern = r"(@sjc@phinmaed\.com$|\.sjc@phinmaed\.com$)"
+    import re
+    if not re.search(allowed_pattern, email or ""):
+        return {"error": "Email must use the .sjc@phinmaed.com domain."}
+
     if User.objects.filter(username=username).exists():
         return {'message': 'Username already exists!'}
 

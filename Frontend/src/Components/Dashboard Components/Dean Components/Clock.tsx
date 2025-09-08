@@ -1,32 +1,33 @@
 import { useEffect, useState } from "react";
+import {MANILA_TZ} from "../../../utils/time";
 
 const Clock = () => {
-	const [currentTime, setCurrentTime] = useState(new Date());
+    const [currentTime, setCurrentTime] = useState(new Date());
 
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setCurrentTime(new Date());
-		}, 1000); // updates every second
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000); // updates every second
 
-		return () => clearInterval(interval); // cleanup on unmount
-	}, []);
+        return () => clearInterval(interval); // cleanup on unmount
+    }, []);
 
-	const formattedTime = currentTime.toLocaleString("en-US", {
-		weekday: "short",
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-		hour: "2-digit",
-		minute: "2-digit",
-		hour12: true,
-	});
+    const formattedTime = currentTime.toLocaleString("en-US", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: MANILA_TZ,
+    });
 
-	return (
-		<div className="mb-3 text-lg text-gray-300 sm:text-xl md:mt-3 md:mb-8">
-			Current SFF Status:{" "}
-			<div className="text-sm text-white">{formattedTime}</div>
-		</div>
-	);
+    return (
+        <div className="mb-3 text-lg text-gray-300 sm:text-xl md:mt-3 md:mb-8">
+            Current SFF Status: <div className="text-sm text-white">{formattedTime}</div>
+        </div>
+    );
 };
 
 export default Clock;

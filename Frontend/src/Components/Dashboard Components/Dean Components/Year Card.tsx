@@ -1,56 +1,72 @@
 import React from "react";
 
 interface YearCardProps {
-	year: string;
-	ratio: string; // e.g. "16/32"
-	setActiveView?: (view: string) => void;
+  year: string;
+  ratio: string; // e.g. "16/32"
+  setActiveView?: (view: string) => void;
+  /** When true, shows a skeleton placeholder instead of the progress UI */
+  isLoading?: boolean;
 }
 
-const YearCard: React.FC<YearCardProps> = ({ year, ratio, setActiveView }) => {
-	const [num, denom] = ratio.split("/").map(Number);
-	const percentage =
-		denom && !isNaN(num) && !isNaN(denom)
-			? Math.round((num / denom) * 100)
-			: 0;
+const YearCard: React.FC<YearCardProps> = ({ year, ratio, setActiveView, isLoading = false }) => {
+  const [num, denom] = ratio.split("/").map(Number);
+  const percentage = denom && !isNaN(num) && !isNaN(denom) ? Math.round((num / denom) * 100) : 0;
 
-	// Randomize animation duration between 3s to 5s
-	// const duration = (Math.random() * 2 + 3).toFixed(2); // e.g., 3.47s
+  // Optional: small random delay to stagger the float animation
+  const delay = (Math.random() * 2).toFixed(2);
 
-	// Optional: Random delay for more variation
-	const delay = (Math.random() * 2).toFixed(2); // e.g., 0.83s
+  // Shared size so the card doesn't reflow when loading finishes
+  const sizeClasses = "h-45 w-45 md:h-[14vw] md:w-[14vw]";
 
-	return (
-		<div
-			onClick={() => setActiveView?.("studentEval")}
-			className="tooltip float-breathe flex cursor-pointer items-center justify-center rounded-full shadow-2xl backdrop-blur-lg backdrop-hue-rotate-700 hover:scale-105"
-			data-tip="Click to view student evaluation page"
-			style={{
-				// animationDuration: `${duration}s`,
-				animationDelay: `${delay}s`,
-			}}
-		>
-			<div
-				className="radial-progress h-45 w-45 text-white shadow-2xl md:h-[14vw] md:w-[14vw]"
-				style={
-					{
-						"--value": percentage,
-					} as React.CSSProperties
-				}
-				aria-valuenow={percentage}
-				role="progressbar"
-			>
-				<div className="flex flex-col items-center justify-center text-center">
-					<span className="text-xl font-bold sm:text-2xl">
-						{year} Year
-					</span>
-					<span className="text-xl font-bold sm:text-2xl">
-						{percentage}%
-					</span>
-					<span className="text-sm text-gray-300">{ratio}</span>
-				</div>
-			</div>
-		</div>
-	);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center" aria-busy="true" aria-live="polite">
+        <div
+          className={`tooltip float-breathe ${sizeClasses} rounded-full bg-black/5 shadow-2xl backdrop-blur-lg`}
+          data-tip="Loading…"
+          style={{ animationDelay: `${delay}s` }}
+        >
+          {/* Circular skeleton placeholder */}
+          <div className={`skeleton ${sizeClasses} rounded-full`} />
+
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => setActiveView?.("studentEval")}
+      className="tooltip float-breathe flex cursor-pointer items-center justify-center rounded-full shadow-2xl backdrop-blur-lg backdrop-hue-rotate-700 hover:scale-105"
+      data-tip="Click to view student evaluation page"
+      style={{ animationDelay: `${delay}s` }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") setActiveView?.("studentEval");
+      }}
+    >
+      <div
+        className={`radial-progress ${sizeClasses} text-white shadow-2xl`}
+        style={
+          {
+            // DaisyUI radial-progress expects this CSS var
+            "--value": percentage,
+          } as React.CSSProperties
+        }
+        aria-valuenow={percentage}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        role="progressbar"
+      >
+        <div className="flex flex-col items-center justify-center text-center">
+          <span className="text-xl font-bold sm:text-2xl">{year} Year</span>
+          <span className="text-xl font-bold sm:text-2xl">{percentage}%</span>
+          <span className="text-sm text-gray-300">{ratio}</span>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default YearCard;

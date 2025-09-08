@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from "react";
-import api from "../../../utils/api";
+import React, { useEffect, useRef, useState } from "react";
+import BreadAndLogout from "../../../Components/Bread and Logout";
 import DataTable from "../../../Components/Evaluation Components/Data Table";
 import ProgramCards from "../../../Components/Evaluation Components/ProgramCards";
-import SffDataDisplay from "../../../Components/Evaluation Components/SffDataDisplay";
 import ResponsesChartsTable from "../../../Components/Evaluation Components/ResponsesChartsTable";
-import BreadAndLogout from "../../../Components/Bread and Logout";
+import SffDataDisplay from "../../../Components/Evaluation Components/SffDataDisplay";
+import api from "../../../utils/api";
 import { resolveFacultyId } from "../../../utils/facultyContext";
 
 /* ---------------------------
@@ -19,17 +19,15 @@ const SkeletonBox = ({
   width?: number | string;
   height?: number | string;
   className?: string;
-}) => (
-  <div className={`skeleton ${className}`} style={{ width, height }} />
-);
+}) => <div className={`skeleton ${className}`} style={{width, height}}/>;
 
 // 6 green rectangles for Program List
 const ProgramListSkeleton = () => (
   <div className="w-full rounded-xl bg-black/20 p-6">
-    <div className="text-white text-xl mb-4">Program List:</div>
+      <div className="mb-4 text-xl text-white">Program List:</div>
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="rounded-2xl skeleton h-28" />
+          <div key={i} className="skeleton h-28 rounded-2xl"/>
       ))}
     </div>
   </div>
@@ -37,13 +35,13 @@ const ProgramListSkeleton = () => (
 
 // Faculty Response Charts skeleton: title + 2 chart panels
 const FacultyChartsSkeleton = () => (
-  <div className="flex-col w-full justify-center items-center">
-    <div className="flex items-center justify-center h-12 rounded-t-xl bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
+    <div className="w-full flex-col items-center justify-center">
+        <div
+            className="flex h-12 py-8 px-4 items-center bg-gradient-to-r from-[#1c402a] to-[#1b2e3e] text-xl font-bold text-white">
       Faculty Response Charts
     </div>
-    <div className="bg-black/20 rounded-b-xl p-6">
-      <div className="skeleton h-40 w-full mb-4" />
-      <div className="skeleton h-40 w-full" />
+        <div className="rounded-b-xl bg-black/20 p-3">
+            <div className="skeleton h-8 w-full"/>
     </div>
   </div>
 );
@@ -182,7 +180,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             full_name: item.professor_details?.full_name || `Professor ID: ${item.professor}`,
             first_name: item.professor_details?.first_name,
             last_name: item.professor_details?.last_name,
-          }))
+          })),
         );
       } catch {
         setProfessors([]);
@@ -267,7 +265,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         if (!token) return;
         const res = await api.get(
           `/studentevaluation/studentevaluation/all-by-schedule/${selectedSchedule.id}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
+            {headers: {Authorization: `Bearer ${token}`}},
         );
         setSffData(res.data || null);
       } catch {
@@ -320,13 +318,13 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
           try {
             const res = await api.get(
               `/studentevaluation/studentevaluation/${sffData.id}/responses/?user=${student.id}`,
-              { headers: { Authorization: `Bearer ${token}` } }
+                {headers: {Authorization: `Bearer ${token}`}},
             );
             responsesMap[String(student.id)] = res.data || [];
           } catch {
             responsesMap[String(student.id)] = [];
           }
-        })
+        }),
       );
       setStudentResponses(responsesMap);
     };
@@ -338,7 +336,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   ----------------------------*/
   useEffect(() => {
     const fetchStudentDialogResponses = async () => {
-      const evaluationId = Array.isArray(sffData) && sffData.length > 0 ? sffData[0].id : (sffData as any)?.id;
+        const evaluationId =
+            Array.isArray(sffData) && sffData.length > 0 ? sffData[0].id : (sffData as any)?.id;
       if (!viewingStudent || !evaluationId) return;
       setStudentLoading(true);
       try {
@@ -346,7 +345,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
         if (!token) return;
         const res = await api.get(
           `/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-user?student_evaluation=${evaluationId}&user=${viewingStudent.id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+            {headers: {Authorization: `Bearer ${token}`}},
         );
         setStudentDialogResponses(res.data || []);
       } catch {
@@ -361,9 +360,15 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   /* ---------------------------
      Columns
   ----------------------------*/
-  const professorColumns: Column<Professor>[] = [{ header: "Name", accessor: (prof) => prof.full_name }];
-  const scheduleColumns: Column<Schedule>[] = [{ header: "Schedule Name", accessor: (s) => s.name }];
-  const sectionColumns: Column<Section>[] = [{ header: "Section Name", accessor: (sec) => sec.name }];
+    const professorColumns: Column<Professor>[] = [
+        {header: "Name", accessor: (prof) => prof.full_name},
+    ];
+    const scheduleColumns: Column<Schedule>[] = [
+        {header: "Schedule Name", accessor: (s) => s.name},
+    ];
+    const sectionColumns: Column<Section>[] = [
+        {header: "Section Name", accessor: (sec) => sec.name},
+    ];
   const studentColumns: Column<any>[] = [
     { header: "Student Name", accessor: (stu) => `${stu.first_name} ${stu.last_name}` },
     { header: "Email", accessor: (stu) => stu.email },
@@ -373,7 +378,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
      UI
   ----------------------------*/
   return (
-    <div className="custom-container h-screen overflow-y-auto gap-y-6">
+      <div className="custom-container h-screen gap-y-6 overflow-y-auto">
       <BreadAndLogout
         setActiveView={setActiveView}
         breadcrumbs={[
@@ -385,8 +390,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
 
       <h2 className="mt-4 text-3xl font-bold text-white">Student Evaluations</h2>
       <span className="mx-6 mb-2 block font-thin text-[#888888]">
-        This is where you can track student evaluation submissions, see participation rates, and analyze recurring
-        themes in real time.
+        This is where you can track student evaluation submissions, see participation rates, and
+        analyze recurring themes in real time.
       </span>
 
       {/* Step 1: Program Tiles + (optional) Faculty summary */}
@@ -404,48 +409,51 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
               />
             ) : null)}
 
-          {/* Programs: either skeletons or actual cards */}
-          {programsLoading ? (
-            <ProgramListSkeleton />
-          ) : (
-            <ProgramCards
-              programs={programs}
-              onClick={(program) => {
-                setSelectedProgram(program);
-              }}
-            />
-          )}
+            {/* Filters for year/semester */}
+            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+                {/* Semester filter */}
+                <div className="flex items-center gap-2">
+                    <label className="text-white">Semester:</label>
+                    <select
+                        className="input input-bordered w-40"
+                        value={filterSemester}
+                        onChange={(e) => setFilterSemester(e.target.value)}
+                    >
+                        <option value="">All</option>
+                        <option value="First">First</option>
+                        <option value="Second">Second</option>
+                        <option value="Summer">Summer</option>
+                    </select>
+                </div>
+
+                {/* Year filter */}
+                <div className="flex items-center gap-2">
+                    <label className="text-white">Year:</label>
+                    <input
+                        type="number"
+                        min={2000}
+                        max={2100}
+                        className="input input-bordered w-40"
+                        value={filterYear}
+                        onChange={(e) => setFilterYear(e.target.value)}
+                        placeholder="YYYY"
+                    />
+                </div>
+            </div>
+            {/* Programs: either skeletons or actual cards */}
+            {programsLoading ? (
+                <ProgramListSkeleton/>
+            ) : (
+                <ProgramCards
+                    programs={programs}
+                    onClick={(program) => {
+                        setSelectedProgram(program);
+                    }}
+                />
+            )}
         </>
       )}
 
-      {/* Filters for year/semester */}
-      <div className="flex gap-4 items-center mb-4">
-        <div>
-          <label className="text-white mr-2">Semester:</label>
-          <select
-              className="input input-bordered"
-              value={filterSemester}
-              onChange={(e) => setFilterSemester(e.target.value)}
-          >
-            <option value="">All</option>
-            <option value="First">First</option>
-            <option value="Second">Second</option>
-            <option value="Summer">Summer</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-white mr-2">Year:</label>
-          <input
-              type="number"
-              min={2000}
-              max={2100}
-              className="input input-bordered w-28"
-              value={filterYear}
-              onChange={(e) => setFilterYear(e.target.value)}
-              placeholder="YYYY"
-          />
-        </div>
-      </div>
 
       {/* Step 2: Professors Table */}
       {selectedProgram && !selectedProfessor && (
@@ -455,10 +463,15 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             filterType="program"
             filterId={selectedProgram.id}
           />
-          <button className="btn btn-primary mb-4 text-white" onClick={() => setSelectedProgram(null)}>
+            <button
+                className="btn btn-primary mb-4 text-white"
+                onClick={() => setSelectedProgram(null)}
+            >
             Back to Programs
           </button>
-          <h3 className="mb-4 text-2xl font-semibold text-white">Professors for {selectedProgram.name}</h3>
+            <h3 className="mb-4 text-2xl font-semibold text-white">
+                Professors for {selectedProgram.name}
+            </h3>
 
           <DataTable
             data={professors}
@@ -485,7 +498,10 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             filterType="professor"
             filterId={selectedProfessor.id}
           />
-          <button className="btn btn-primary mb-4 text-white" onClick={() => setSelectedProfessor(null)}>
+            <button
+                className="btn btn-primary mb-4 text-white"
+                onClick={() => setSelectedProfessor(null)}
+            >
             Back to Professors
           </button>
           <h3 className="mb-4 text-2xl font-semibold text-white">
@@ -498,7 +514,10 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             getRowKey={(s) => s.id}
             loading={schedulesLoading}
             actions={(s) => (
-              <button className="btn btn-md btn-primary text-white" onClick={() => setSelectedSchedule(s)}>
+                <button
+                    className="btn btn-md btn-primary text-white"
+                    onClick={() => setSelectedSchedule(s)}
+                >
                 View Sections
               </button>
             )}
@@ -509,10 +528,15 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       {/* Step 4: Sections Table */}
       {selectedProgram && selectedProfessor && selectedSchedule && !selectedSection && (
         <>
-          <button className="btn btn-primary text-white mb-4" onClick={() => setSelectedSchedule(null)}>
+            <button
+                className="btn btn-primary mb-4 text-white"
+                onClick={() => setSelectedSchedule(null)}
+            >
             Back to Schedules
           </button>
-          <h3 className="mb-4 text-2xl font-semibold text-white">Sections for {selectedSchedule.name}</h3>
+            <h3 className="mb-4 text-2xl font-semibold text-white">
+                Sections for {selectedSchedule.name}
+            </h3>
 
           <DataTable
             data={sections}
@@ -520,7 +544,10 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             getRowKey={(sec) => sec.id}
             loading={sectionsLoading}
             actions={(sec) => (
-              <button className="btn btn-md btn-primary text-white" onClick={() => setSelectedSection(sec)}>
+                <button
+                    className="btn btn-md btn-primary text-white"
+                    onClick={() => setSelectedSection(sec)}
+                >
                 View SFF
               </button>
             )}
@@ -531,7 +558,10 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       {/* Step 5: SFF + Students Table */}
       {selectedProgram && selectedProfessor && selectedSchedule && selectedSection && (
         <>
-          <button className="btn btn-primary text-white mb-4" onClick={() => setSelectedSection(null)}>
+            <button
+                className="btn btn-primary mb-4 text-white"
+                onClick={() => setSelectedSection(null)}
+            >
             Back to Sections
           </button>
           <h3 className="mb-4 text-2xl font-semibold text-white">
@@ -588,7 +618,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
           >
             <div className="relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
               <button
-                className="absolute right-2 top-2 text-gray-500 hover:text-gray-800"
+                  className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
                 onClick={() => {
                   studentDialogRef.current?.close();
                   setViewingStudent(null);
@@ -604,7 +634,9 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
                     Responses for {viewingStudent.first_name} {viewingStudent.last_name}
                   </h4>
 
-                  <h5 className="mb-2 text-lg font-semibold">SFF Data for {selectedSection.name}</h5>
+                    <h5 className="mb-2 text-lg font-semibold">
+                        SFF Data for {selectedSection.name}
+                    </h5>
                   {sffLoading ? <FacultyChartsSkeleton /> : <SffDataDisplay sffData={sffData} />}
 
                   <h5 className="mt-4 mb-2 text-lg font-semibold">Student Answers</h5>

@@ -6,12 +6,15 @@ interface Program {
   name: string;
 }
 
-const ProgramCard: React.FC<{ program: Program; onClick?: (program: Program) => void }> = ({ program, onClick }) => (
+const ProgramCard: React.FC<{ program: Program; onClick?: (program: Program) => void }> = ({
+                                                                                               program,
+                                                                                               onClick,
+                                                                                           }) => (
   <div
-    className="w-full cursor-pointer rounded-xl bg-[#1c402a] p-6 text-white shadow-xl hover:bg-[#2e5c3a] transition"
+      className="w-full cursor-pointer rounded-xl bg-[#1c402a] p-6 text-white shadow-xl transition hover:bg-[#2e5c3a]"
     onClick={() => onClick?.(program)}
   >
-    <h3 className="text-xl font-bold text-center">{program.name}</h3>
+      <h3 className="text-center text-xl font-bold">{program.name}</h3>
   </div>
 );
 

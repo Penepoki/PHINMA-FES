@@ -1,25 +1,38 @@
-import React, { useState, useRef } from "react";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import React, {useEffect, useRef, useState} from "react";
+import api from "../../utils/api";
 import BreadAndLogout from "../../Components/Bread and Logout";
-// import ProfilePic from "../../assets/Dashboard Page Assets/Renzo_Picture no background.png"; // fallback if needed
 
 interface ProfileProps {
   setActiveView: (view: string) => void;
 }
 
-const API_BASE = "https://api.phinma-fes.com"; // adjust if your API prefix differs
-const DEAN_ID = 42; // TODO: replace with the actual dean/user id from your app state
+type MeResponse = {
+    id: number;
+    email: string;
+    full_name?: string;
+    first_name?: string;
+    last_name?: string;
+    profile_picture_url?: string | null;
+    // add any other fields your serializer returns
+};
 
-function Profile({ setActiveView }: ProfileProps) {
+
+export default function Profile({setActiveView}: ProfileProps) {
+    const [me, setMe] = useState<MeResponse | null>(null);
   const [profileData, setProfileData] = useState({
-    name: "John Doe",
-    email: "johndoe@example.com",
-    joined: "January 2021",
-    avatar: "", // populated after upload
+      name: "User",
+      email: "",
+      first_name: "",
+      last_name: "",
+      joined: "", // optional
+      avatar: "",
   });
 
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
   const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
+    const [otp, setOtp] = useState("");
+    const [otpRequested, setOtpRequested] = useState(false);
+    const [otpVerified, setOtpVerified] = useState(false);
 
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -27,6 +40,37 @@ function Profile({ setActiveView }: ProfileProps) {
   const [cacheBust, setCacheBust] = useState<number>(Date.now());
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    // Helpers
+    const getToken = () => localStorage.getItem("token");
+
+    // 1) Load current user on mount so avatar persists across routes
+    useEffect(() => {
+        (async () => {
+            const token = getToken();
+            if (!token) return;
+            try {
+                const {data: user} = await api.get<MeResponse>(`/user-profile/`);
+                setMe(user);
+                const name =
+                    user.full_name ||
+                    [user.first_name || "", user.last_name || ""].join(" ").trim() ||
+                    "User";
+                setProfileData((p) => ({
+                    ...p,
+                    name,
+                    email: user.email || "",
+                    first_name: user.first_name || "",
+                    last_name: user.last_name || "",
+                    avatar: user.profile_picture_url || "",
+                }));
+            } catch (e: any) {
+                console.error(e);
+                setErrorMsg(e?.message || "Failed to load profile.");
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -38,20 +82,54 @@ function Profile({ setActiveView }: ProfileProps) {
     setPasswords((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwords.new && passwords.new !== passwords.confirm) {
       alert("New passwords do not match!");
       return;
     }
-    // TODO: call your backend to save profile/password changes
-    alert("Profile and password changes saved!");
+
+        try {
+            // OPTIONAL: if you allow editing name or password here, PATCH those endpoints
+            // Example (name fields):
+            const body: Record<string, any> = {};
+            if (profileData.first_name !== undefined) body.first_name = profileData.first_name;
+            if (profileData.last_name !== undefined) body.last_name = profileData.last_name;
+            if (profileData.email !== undefined) body.email = profileData.email;
+
+            if (Object.keys(body).length) {
+                const {data: updated} = await api.patch<MeResponse>(`/user-profile/`, body);
+                setMe(updated);
+                setProfileData((p) => ({
+                    ...p,
+                    email: updated.email || p.email,
+                    first_name: updated.first_name || p.first_name,
+                    last_name: updated.last_name || p.last_name,
+                    name: (updated.full_name) || `${updated.first_name || ''} ${updated.last_name || ''}`.trim()
+                }));
+            }
+
+            // Change password if provided and OTP verified
+            if (otpVerified && passwords.new) {
+                const {data: data2} = await api.post(`/user-profile/change-password/`, {
+                        old_password: passwords.current,
+                        new_password: passwords.new,
+                        otp
+                });
+            }
+
+            alert("Profile changes saved!");
+        } catch (err: any) {
+            console.error(err);
+            const detail = err?.response?.data?.detail || err?.response?.data?.message;
+            alert(detail || err?.message || "Failed to save changes");
+        }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMsg(null);
     const file = e.target.files?.[0];
-    if (!file) return;
+      if (!file || !me) return;
 
     // basic client-side validation
     if (!/^image\/(png|jpe?g|webp|avif)$/.test(file.type)) {
@@ -69,61 +147,24 @@ function Profile({ setActiveView }: ProfileProps) {
       setUploading(true);
       setProgress(5);
 
-      // 1) get presigned URL from backend
-      const token = localStorage.getItem("token"); // DRF Token auth (Authorization: Token <token>)
-      if (!token) throw new Error("Not authenticated. Please log in again.");
+        // Decide a stable logical path; backend appends a uuid
+        // Example: users/<id>/profile
+        const logicalPath = `users/${me.id}/profile`;
 
-      const presignRes = await fetch(`${API_BASE}/api/uploads/presign`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Token ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          path: `deans/${DEAN_ID}/photo.png`,
-          contentType: file.type,
-        }),
-      });
-
-      if (!presignRes.ok) {
-        const txt = await presignRes.text();
-        throw new Error(`Presign failed (${presignRes.status}): ${txt}`);
-      }
-      const { uploadUrl, fileUrl } = await presignRes.json();
-      setProgress(25);
-
-      // 2) PUT directly to MinIO using the presigned URL
-      // Use XHR to track progress
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", uploadUrl, true);
-        xhr.setRequestHeader("Content-Type", file.type);
-
-        xhr.upload.onprogress = (evt) => {
-          if (evt.lengthComputable) {
-            const pct = 25 + Math.round((evt.loaded / evt.total) * 70); // 25->95%
-            setProgress(Math.min(95, pct));
-          }
-        };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            setProgress(100);
-            resolve();
-          } else {
-            reject(new Error(`Upload failed (${xhr.status})`));
-          }
-        };
-        xhr.onerror = () => reject(new Error("Network error during upload"));
-        xhr.send(file);
-      });
-
-      // 3) Save/Display final CDN URL
-      setProfileData((prev) => ({ ...prev, avatar: fileUrl }));
-      setCacheBust(Date.now()); // bust CDN cache on UI
+        // 1) get presigned URL
+        // Local upload via multipart form-data
+        const form = new FormData();
+        form.append("avatar", file);
+        const {data: updated} = await api.post<MeResponse>(`/user-profile/upload-avatar/`, form, {headers: {"Content-Type": "multipart/form-data"}});
+        setMe(updated);
+        // 4) Update UI immediately
+        setProfileData((prev) => ({...prev, avatar: updated.profile_picture_url || prev.avatar}));
+        setCacheBust(Date.now());
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err?.message || "Upload failed.");
+        const detail = err?.response?.data?.detail || err?.response?.data?.message;
+        setErrorMsg(detail || err?.message || "Upload failed.");
     } finally {
       setUploading(false);
       setProgress(0);
@@ -134,17 +175,15 @@ function Profile({ setActiveView }: ProfileProps) {
     <div className="custom-container">
       <BreadAndLogout
         setActiveView={setActiveView}
-        breadcrumbs={[
-          { label: "Home", view: "home" },
-          { label: "Profile" },
-        ]}
+        breadcrumbs={[{label: "Home", view: "home"}, {label: "Profile"}]}
       />
 
       <div className="profile-page z-10 flex h-full w-full flex-col items-center justify-center gap-6 p-4 md:flex-row md:p-8">
-        {/* Profile Card Section */}
+          {/* Profile Card */}
         <div className="flex h-1/2 w-full flex-col items-center justify-center rounded-xl p-6 text-white shadow-2xl backdrop-blur-lg md:h-full md:w-1/2">
           <div className="avatar">
-            <div className="ring-primary ring-offset-base-100 w-40 rounded-full ring ring-offset-2 md:w-72 overflow-hidden bg-white/5">
+              <div
+                  className="ring-primary ring-offset-base-100 w-40 overflow-hidden rounded-full bg-white/5 ring ring-offset-2 md:w-72">
               {profileData.avatar ? (
                 <img
                   src={`${profileData.avatar}?v=${cacheBust}`}
@@ -152,9 +191,7 @@ function Profile({ setActiveView }: ProfileProps) {
                   className="object-cover"
                 />
               ) : (
-                // fallback image if you have one
-                // <img src={ProfilePic} alt="User Avatar" />
-                <div className="w-full h-full flex items-center justify-center text-sm text-gray-300">
+                  <div className="flex h-full w-full items-center justify-center text-sm text-gray-300">
                   No photo
                 </div>
               )}
@@ -179,18 +216,15 @@ function Profile({ setActiveView }: ProfileProps) {
               <div className="mt-1 text-center text-sm text-gray-300">{progress}%</div>
             </div>
           )}
-          {errorMsg && (
-            <div className="mt-3 text-sm text-red-300">
-              {errorMsg}
-            </div>
-          )}
+            {errorMsg && <div className="mt-3 text-sm text-red-300">{errorMsg}</div>}
         </div>
 
-        {/* Profile Details Section */}
+          {/* Profile Details */}
         <div className="h-full w-full overflow-x-clip overflow-y-auto rounded-xl p-12 text-white shadow-2xl backdrop-blur-lg md:w-1/2">
           <h3 className="mb-4 text-2xl font-bold">Profile Information</h3>
           <span className="mb-6 block font-thin text-[#888888]">
-            This is where you can manage your personal details, update your information, and adjust your preferences so everything in the system stays accurate and tailored to you.
+            Manage your personal details and preferences so everything stays accurate and tailored
+            to you.
           </span>
 
           <form onSubmit={handleSave} className="space-y-4 text-lg">
@@ -204,6 +238,28 @@ function Profile({ setActiveView }: ProfileProps) {
                 className="input input-bordered w-full text-black"
               />
             </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                      <label className="mb-1 block text-sm">First name</label>
+                      <input
+                          name="first_name"
+                          value={profileData.first_name}
+                          onChange={handleChange}
+                          type="text"
+                          className="input input-bordered w-full text-black"
+                      />
+                  </div>
+                  <div>
+                      <label className="mb-1 block text-sm">Last name</label>
+                      <input
+                          name="last_name"
+                          value={profileData.last_name}
+                          onChange={handleChange}
+                          type="text"
+                          className="input input-bordered w-full text-black"
+                      />
+                  </div>
+              </div>
             <div>
               <label className="mb-1 block text-sm">Joined</label>
               <input
@@ -217,7 +273,55 @@ function Profile({ setActiveView }: ProfileProps) {
             <hr className="my-4 border-gray-500" />
 
             <h4 className="text-xl font-semibold">Change Password</h4>
-            {["current", "new", "confirm"].map((field) => (
+
+              {!otpRequested && (
+                  <button
+                      type="button"
+                      className="btn btn-outline btn-primary mb-2"
+                      onClick={async () => {
+                          try {
+                              await api.post(`/user-profile/request-otp/`);
+                              setOtpRequested(true);
+                              alert("OTP sent to your email.");
+                          } catch (err: any) {
+                              const detail = err?.response?.data?.detail || err?.response?.data?.message;
+                              alert(detail || err?.message || "Failed to request OTP");
+                          }
+                      }}
+                  >
+                      Request OTP
+                  </button>
+              )}
+
+              {otpRequested && !otpVerified && (
+                  <div className="space-y-2">
+                      <label className="mb-1 block text-sm">Enter OTP from your email</label>
+                      <input
+                          type="text"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          className="input input-bordered w-full text-black"
+                      />
+                      <button
+                          type="button"
+                          className="btn btn-success"
+                          onClick={async () => {
+                              try {
+                                  await api.post(`/user-profile/verify-otp/`, {otp});
+                                  setOtpVerified(true);
+                                  alert("OTP verified. You can now change your password.");
+                              } catch (err: any) {
+                                  const detail = err?.response?.data?.detail || err?.response?.data?.message;
+                                  alert(detail || err?.message || "Failed to verify OTP");
+                              }
+                          }}
+                      >
+                          Verify OTP
+                      </button>
+                  </div>
+              )}
+
+              {otpVerified && ["current", "new", "confirm"].map((field) => (
               <div key={field} className="relative">
                 <label className="mb-1 block text-sm capitalize">
                   {field === "confirm" ? "Confirm New Password" : `${field} Password`}
@@ -232,15 +336,14 @@ function Profile({ setActiveView }: ProfileProps) {
                 <button
                   type="button"
                   onClick={() =>
-                    setShowPassword((prev) => ({ ...prev, [field]: !prev[field as keyof typeof prev] }))
+                      setShowPassword((prev) => ({
+                          ...prev,
+                          [field]: !prev[field as keyof typeof prev],
+                      }))
                   }
-                  className="absolute right-3 top-9 -translate-y-1/2 transform text-gray-500"
+                  className="absolute top-9 right-3 -translate-y-1/2 transform text-gray-500"
                 >
-                  {showPassword[field as keyof typeof showPassword] ? (
-                    <EyeSlashIcon className="h-5 w-5" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5" />
-                  )}
+                    {showPassword[field as keyof typeof showPassword] ? "🙈" : "👁️"}
                 </button>
               </div>
             ))}
@@ -254,5 +357,3 @@ function Profile({ setActiveView }: ProfileProps) {
     </div>
   );
 }
-
-export default Profile;

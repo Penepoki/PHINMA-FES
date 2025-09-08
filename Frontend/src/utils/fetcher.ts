@@ -2,19 +2,48 @@
 import api from "../utils/api";
 
 export async function evaluationFetcher() {
-  const response = await api.get("/evaluation/evaluations/");
+    // Resolve faculty context when available to avoid empty arrays for HR
+    let params: any = {};
+    try {
+        const {resolveFacultyId} = await import("./facultyContext");
+        const fid = await resolveFacultyId();
+        if (fid) params.faculty = fid;
+    } catch {
+    }
+    const response = await api.get("/evaluation/evaluations/", {params});
   return response.data;
 }
 export async function schedulesFetcher() {
-  const response = await api.get("/schedule/schedules/");
+    let params: any = {};
+    try {
+        const {resolveFacultyId} = await import("./facultyContext");
+        const fid = await resolveFacultyId();
+        if (fid) params.faculty = fid;
+    } catch {
+    }
+    const response = await api.get("/schedule/schedules/", {params});
   return response.data;
 }
 export async function programFetcher() {
-  const response = await api.get("/program/programs/");
-  return response.data
+    let params: any = {};
+    try {
+        const {resolveFacultyId} = await import("./facultyContext");
+        const fid = await resolveFacultyId();
+        if (fid) params.faculty = fid;
+    } catch {
+    }
+    const response = await api.get("/program/programs/", {params});
+    return response.data;
 }
 export async function programProfessorFetcher() {
-  const response = await api.get("/program-professor/program-professors/");
+    let params: any = {};
+    try {
+        const {resolveFacultyId} = await import("./facultyContext");
+        const fid = await resolveFacultyId();
+        if (fid) params.faculty = fid;
+    } catch {
+    }
+    const response = await api.get("/program-professor/program-professors/", {params});
   return response.data;
 }
 

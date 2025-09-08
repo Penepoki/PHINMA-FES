@@ -1,11 +1,6 @@
-import {
-  EyeIcon,
-  EyeSlashIcon,
-  EnvelopeIcon,
-  UserIcon,
-} from "@heroicons/react/24/outline";
-import api from "../../utils/api.ts";
-import { AxiosError } from "axios";
+import {EyeIcon, EyeSlashIcon, EnvelopeIcon, UserIcon} from "@heroicons/react/24/outline";
+import api, {markTokenReady} from "../../utils/api.ts";
+import {AxiosError, isAxiosError} from "axios";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 
@@ -50,27 +45,43 @@ function LoginCard() {
 
   const handleLogin = async () => {
     setIsLoading(true);
-    setError(null); // Clear previous error
+    setError(null);
 
     try {
+      // Clear any stale faculty context id on the client before starting a new login
+      localStorage.removeItem("faculty_id");
+
       const response = await api.post(
         "/login/",
         {
-          username: identifier, // can be username or email
+          username: identifier,
           password,
         },
-        { skipAuth: true }
+          {skipAuth: true}
       );
 
-      // Success — extract info
-      const { token, roles, faculty_id } = response.data;
+      const data = response.data;
 
+      // Step 1: OTP required
+      if (data.otp_required) {
+        setIsOtpSent(true);
+        // If backend exposes dev_otp in DEBUG, prefill for convenience (optional)
+        if (data.dev_otp) {
+          const digits = String(data.dev_otp).split("").slice(0, 6);
+          setOtp([digits[0] || "", digits[1] || "", digits[2] || "", digits[3] || "", digits[4] || "", digits[5] || ""]);
+        }
+        // focus first OTP box
+        setTimeout(() => otpRefs.current[0]?.focus(), 0);
+        return;
+      }
+
+      // Step 2 success path (in case backend returns token directly)
+      const {token, roles, faculty_id} = data;
       if (!token || !roles || roles.length === 0) {
         setError("Login failed: missing authentication data.");
         return;
       }
 
-      // Handle "Remember Me"
       if (rememberMe) {
         localStorage.setItem("rememberedIdentifier", identifier);
       } else {
@@ -79,10 +90,27 @@ function LoginCard() {
 
       const userRole = roles[0];
       localStorage.setItem("token", token);
+      markTokenReady();
+      await new Promise((r) => setTimeout(r, 0));
       localStorage.setItem("userRole", userRole);
-
       if (faculty_id) {
         localStorage.setItem("faculty_id", faculty_id);
+      }
+
+      // Clear HR temp context on backend (ignore errors for non-HR)
+      try {
+        await api.post("/clear-faculty-context/");
+      } catch {
+      }
+
+      // Fetch dashboard info to store name and avoid stale UI
+      try {
+        const me = await api.get("/user-dashboard/");
+        if (me?.data) {
+          if (me.data.first_name) localStorage.setItem("firstName", me.data.first_name);
+          if (me.data.last_name) localStorage.setItem("lastName", me.data.last_name);
+        }
+      } catch {
       }
 
       switch (userRole) {
@@ -103,16 +131,14 @@ function LoginCard() {
       }
     } catch (error: any) {
       console.error("Login error:", error);
-
       if (error.response) {
         const { status, data } = error.response;
-
         if (status === 401) {
           setError(data?.detail || "Invalid username or password.");
         } else if (status === 403) {
           setError("Access denied. Please Contact administrator.");
         } else {
-          setError("Server error. Please try again later.");
+          setError(data?.detail || "Server error. Please try again later.");
         }
       } else if (error.request) {
         setError("No response from server. Check your internet connection.");
@@ -123,8 +149,6 @@ function LoginCard() {
       setIsLoading(false);
     }
   };
-
-
 
   const handleSignUp = async () => {
     setIsLoading(true); // Start loading
@@ -212,10 +236,7 @@ function LoginCard() {
     }
   };
 
-  const handleOtpChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index: number,
-  ) => {
+    const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const value = e.target.value.replace(/\D/g, "").slice(0, 1);
     const newOtp = [...otp];
     newOtp[index] = value;
@@ -226,16 +247,14 @@ function LoginCard() {
     }
   };
 
-  const handleOtpKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    index: number,
-  ) => {
+    const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
     }
   };
 
   const handleResendOtp = async () => {
+      // Resend for Forgot Password flow
     try {
       const response = await api.post("/forgot-password/", {
         email,
@@ -258,34 +277,109 @@ function LoginCard() {
     }
   };
 
+    const handleResendLoginOtp = async () => {
+        // Resend for Login OTP overlay: call login again without otp to trigger resend
+        try {
+            const response = await api.post(
+                "/login/",
+                {
+                    username: identifier,
+                    password,
+                },
+                {skipAuth: true}
+            );
+            const data = response.data;
+            if (data?.otp_required) {
+                setIsOtpSent(true);
+                if (data.dev_otp) {
+                    const digits = String(data.dev_otp).split("").slice(0, 6);
+                    setOtp([digits[0] || "", digits[1] || "", digits[2] || "", digits[3] || "", digits[4] || "", digits[5] || ""]);
+                }
+                setError("");
+                alert("OTP resent!");
+            }
+        } catch (err) {
+            setError("Failed to resend OTP. Please try again.");
+        }
+    };
+
   const verifyOtp = async () => {
     const enteredOtp = otp.join("");
-    console.log("Verifying OTP:", enteredOtp);
-    setIsLoading(true); // Start loading
+    setIsLoading(true);
 
     try {
-      const response = await api.post("/verify-otp/", {
-        email,
-        otp: enteredOtp,
-      });
-      if (response.data.message === "OTP verified") {
-        setIsOtpVerified(true);
-        setError("");
-      } else {
-        setError("Wrong OTP");
-        setIsOtpVerified(true);
+      // Step 2: submit login with OTP to receive token
+      const res = await api.post(
+          "/login/",
+          {
+            username: identifier,
+            password,
+            otp: enteredOtp,
+          },
+          {skipAuth: true}
+      );
+
+      const {token, roles, faculty_id} = res.data;
+      if (!token || !roles || roles.length === 0) {
+        setError("Login failed after OTP: missing data.");
+        return;
       }
-    } catch (err) {
-      const error = err as AxiosError;
-      if (error.response?.status === 400) {
-        setError("Missing required fields");
-      } else if (error.response?.status === 409) {
-        setError("Username does not exist");
+
+      if (rememberMe) {
+        localStorage.setItem("rememberedIdentifier", identifier);
       } else {
-        setError("Unexpected error during OTP verification");
+        localStorage.removeItem("rememberedIdentifier");
+      }
+
+      const userRole = roles[0];
+      localStorage.setItem("token", token);
+      markTokenReady();
+      await new Promise((r) => setTimeout(r, 0));
+      localStorage.setItem("userRole", userRole);
+      if (faculty_id) localStorage.setItem("faculty_id", faculty_id);
+
+      // Clear HR temp context on backend (ignore errors for non-HR)
+      try {
+        await api.post("/clear-faculty-context/");
+      } catch {
+      }
+
+      // Fetch dashboard info to store name and avoid stale UI
+      try {
+        const me = await api.get("/user-dashboard/");
+        if (me?.data) {
+          if (me.data.first_name) localStorage.setItem("firstName", me.data.first_name);
+          if (me.data.last_name) localStorage.setItem("lastName", me.data.last_name);
+        }
+      } catch {
+      }
+
+      // navigate according to role
+      switch (userRole) {
+        case "Dean":
+          navigate("/Dashboard/dean");
+          break;
+        case "HR":
+          navigate("/Dashboard/hr");
+          break;
+        case "Student":
+          navigate("/Dashboard/student");
+          break;
+        case "Professor":
+          navigate("/Dashboard/professor");
+          break;
+        default:
+          setError("Invalid user role.");
+      }
+    } catch (err: unknown) {
+      if (isAxiosError<{ detail?: string; message?: string; error?: string }>(err)) {
+        const data = err.response?.data;
+        setError(data?.detail || data?.message || data?.error || "Error verifying OTP. Try again.");
+      } else {
+        setError("Error verifying OTP. Try again.");
       }
     } finally {
-      setIsLoading(false); // Stop loading
+      setIsLoading(false);
     }
   };
 
@@ -294,7 +388,8 @@ function LoginCard() {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
-    <div className="card card-border z-50 mx-auto w-[90%] max-w-[28rem] bg-white opacity-95 shadow-2xl transition-opacity duration-300 ease-in-out hover:opacity-100 lg:mr-40">
+      <div
+          className="card card-border relative z-50 mx-auto w-[90%] max-w-[28rem] bg-white opacity-95 shadow-2xl transition-opacity duration-300 ease-in-out hover:opacity-100 lg:mr-40">
       <div className="card-body space-y-1 md:space-y-3">
         <h2 className="card-title text-center text-3xl font-bold">
           {isSignUp
@@ -306,6 +401,53 @@ function LoginCard() {
 
         {!isSignUp && !isForgotPassword ? (
           <>
+            {/* OTP Full-Card Overlay */}
+            {isOtpSent && (
+                <div
+                    className="absolute inset-0 z-20 flex flex-col items-center justify-start rounded-xl bg-white/95 p-6 shadow-2xl">
+                    <h3 className="mb-2 text-2xl font-bold">Enter the 6-digit OTP</h3>
+                  <p className="mb-4 text-center text-gray-600">We sent a one-time passcode to your email.</p>
+                  <div className="mb-4 flex justify-center gap-2">
+                    {otp.map((digit, index) => (
+                        <input
+                            key={index}
+                            ref={(el) => {
+                              otpRefs.current[index] = el;
+                            }}
+                            type="text"
+                            maxLength={1}
+                            className="input w-12 text-center text-xl"
+                            value={digit}
+                            onChange={(e) => handleOtpChange(e, index)}
+                            onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                        />
+                    ))}
+                  </div>
+                  <div className="flex w-full max-w-sm flex-col gap-2">
+                    <button
+                        onClick={verifyOtp}
+                        disabled={isLoading}
+                        className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
+                    >
+                      {isLoading ? "Verifying OTP..." : "Verify OTP"}
+                    </button>
+                      <button
+                          onClick={handleResendLoginOtp}
+                          className="btn btn-outline w-full text-sm"
+                      >
+                          Resend OTP
+                      </button>
+                      <button
+                          onClick={() => setIsOtpSent(false)}
+                          className="btn btn-ghost w-full text-sm"
+                      >
+                          Back To Login
+                    </button>
+                    {error && <p className="text-center text-red-500">{error}</p>}
+                  </div>
+                </div>
+            )}
+
             {/* Login Fields */}
             <div className="floating-label relative">
               <span>Username or Email</span>
@@ -330,7 +472,7 @@ function LoginCard() {
                   type={showPassword ? "text" : "password"}
                   required
                   placeholder="Password"
-                  className="input w-[88%] pr-10"
+                  className="input w-full pr-12 hover:scale-100 focus:scale-100"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => {
@@ -340,7 +482,7 @@ function LoginCard() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:scale-125 transition-transform hover:text-primary"
+                  className="hover:text-primary focus:text-primary absolute top-1/2 right-3 z-10 -translate-y-1/2 p-1 text-gray-600 transition-colors duration-200 focus:outline-none"
                 >
                   {showPassword ? (
                     <EyeSlashIcon className="h-5 w-5" />
@@ -369,23 +511,50 @@ function LoginCard() {
               </a>
             </div>
 
-            <div className="card-actions justify-center">
-              <button
-                onClick={handleLogin}
-                disabled={isLoading}
-                className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
-              >
-                {isLoading ? "Logging In..." : "Login"}
-              </button>
-              {error && <p className="text-red-500">{error}</p>}
-            </div>
+            {!isOtpSent ? (
+                <div className="card-actions justify-center">
+                  <button
+                      onClick={handleLogin}
+                      disabled={isLoading}
+                      className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
+                  >
+                    {isLoading ? "Logging In..." : "Login"}
+                  </button>
+                  {error && <p className="text-red-500">{error}</p>}
+                </div>
+            ) : (
+                <>
+                  <div className="my-4 flex justify-center gap-2">
+                    {otp.map((digit, index) => (
+                        <input
+                            key={index}
+                            ref={(el) => {
+                              otpRefs.current[index] = el;
+                            }}
+                            type="text"
+                            maxLength={1}
+                            className="input w-12 text-center text-xl"
+                            value={digit}
+                            onChange={(e) => handleOtpChange(e, index)}
+                            onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                        />
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button
+                        onClick={verifyOtp}
+                        disabled={isLoading}
+                        className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
+                    >
+                      {isLoading ? "Verifying OTP..." : "Verify OTP"}
+                    </button>
+                  </div>
+                </>
+            )}
 
             <div className="text-center">
               <span>Don't have an account? </span>
-              <button
-                onClick={() => setIsSignUp(true)}
-                className="text-primary hover:underline"
-              >
+                <button onClick={() => setIsSignUp(true)} className="text-primary hover:underline">
                 Sign Up
               </button>
             </div>
@@ -403,9 +572,7 @@ function LoginCard() {
                     placeholder="Enter your registered email"
                     className="input w-full"
                     value={email}
-                    onChange={(e) =>
-                      setEmail(e.target.value)
-                    }
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
 
@@ -415,9 +582,7 @@ function LoginCard() {
                     disabled={isLoading}
                     className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
                   >
-                    {isLoading
-                      ? "Sending OTP..."
-                      : "Send OTP"}
+                      {isLoading ? "Sending OTP..." : "Send OTP"}
                   </button>
                 </div>
               </>
@@ -436,12 +601,8 @@ function LoginCard() {
                       maxLength={1}
                       className="input w-12 text-center text-xl"
                       value={digit}
-                      onChange={(e) =>
-                        handleOtpChange(e, index)
-                      }
-                      onKeyDown={(e) =>
-                        handleOtpKeyDown(e, index)
-                      }
+                      onChange={(e) => handleOtpChange(e, index)}
+                      onKeyDown={(e) => handleOtpKeyDown(e, index)}
                     />
                   ))}
                 </div>
@@ -452,9 +613,7 @@ function LoginCard() {
                     disabled={isLoading}
                     className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
                   >
-                    {isLoading
-                      ? "Verifying OTP..."
-                      : "Verify OTP"}
+                      {isLoading ? "Verifying OTP..." : "Verify OTP"}
                   </button>
                   <button
                     onClick={handleResendOtp}
@@ -475,14 +634,14 @@ function LoginCard() {
                       type={showNewPassword ? "text" : "password"}
                       required
                       placeholder="Enter new password"
-                      className="input w-[88%] pr-10"
+                      className="input w-full pr-12 hover:scale-100 focus:scale-100"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:scale-125 transition-transform hover:text-primary"
+                      className="hover:text-primary focus:text-primary absolute top-1/2 right-3 z-10 -translate-y-1/2 p-1 text-gray-600 transition-colors duration-200 focus:outline-none"
                     >
                       {showNewPassword ? (
                         <EyeSlashIcon className="h-5 w-5" />
@@ -500,14 +659,14 @@ function LoginCard() {
                       type={showConfirmNewPassword ? "text" : "password"}
                       required
                       placeholder="Confirm new password"
-                      className="input w-[88%] pr-10"
+                      className="input w-full pr-12 hover:scale-100 focus:scale-100"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:scale-125 transition-transform hover:text-primary"
+                      className="hover:text-primary focus:text-primary absolute top-1/2 right-3 z-10 -translate-y-1/2 p-1 text-gray-600 transition-colors duration-200 focus:outline-none"
                     >
                       {showConfirmNewPassword ? (
                         <EyeSlashIcon className="h-5 w-5" />
@@ -542,9 +701,7 @@ function LoginCard() {
               </button>
             </div>
 
-            {error && (
-              <p className="text-center text-red-500">{error}</p>
-            )}
+              {error && <p className="text-center text-red-500">{error}</p>}
           </>
         ) : (
           <>
@@ -629,7 +786,7 @@ function LoginCard() {
                   type={showSignupPassword ? "text" : "password"}
                   required
                   placeholder="Password"
-                  className="input w-[88%] pr-10"
+                  className="input w-full pr-12 hover:scale-100 focus:scale-100"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => {
@@ -639,7 +796,7 @@ function LoginCard() {
                 <button
                   type="button"
                   onClick={() => setShowSignupPassword(!showSignupPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:scale-125 transition-transform hover:text-primary"
+                  className="hover:text-primary focus:text-primary absolute top-1/2 right-3 z-10 -translate-y-1/2 p-1 text-gray-600 transition-colors duration-200 focus:outline-none"
                 >
                   {showSignupPassword ? (
                     <EyeSlashIcon className="h-5 w-5" />
@@ -658,7 +815,7 @@ function LoginCard() {
                   type={showConfirmSignupPassword ? "text" : "password"}
                   required
                   placeholder="Confirm Password"
-                  className="input w-[88%] pr-10"
+                  className="input w-full pr-12 hover:scale-100 focus:scale-100"
                   value={confirmSignupPassword}
                   onChange={(e) => setConfirmSignupPassword(e.target.value)}
                   onKeyDown={(e) => {
@@ -667,10 +824,8 @@ function LoginCard() {
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowConfirmSignupPassword(!showConfirmSignupPassword)
-                  }
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:scale-125 transition-transform hover:text-primary"
+                  onClick={() => setShowConfirmSignupPassword(!showConfirmSignupPassword)}
+                  className="hover:text-primary focus:text-primary absolute top-1/2 right-3 z-10 -translate-y-1/2 p-1 text-gray-600 transition-colors duration-200 focus:outline-none"
                 >
                   {showConfirmSignupPassword ? (
                     <EyeSlashIcon className="h-5 w-5" />
@@ -693,10 +848,7 @@ function LoginCard() {
 
             <div className="text-center">
               <span>Already have an account? </span>
-              <button
-                onClick={() => setIsSignUp(false)}
-                className="text-primary hover:underline"
-              >
+                <button onClick={() => setIsSignUp(false)} className="text-primary hover:underline">
                 Log In
               </button>
             </div>
