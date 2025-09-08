@@ -100,13 +100,19 @@ export default function Profile({setActiveView}: ProfileProps) {
             if (Object.keys(body).length) {
                 const {data: updated} = await api.patch<MeResponse>(`/user-profile/`, body);
                 setMe(updated);
+                const nameNow = (updated.full_name) || `${updated.first_name || ''} ${updated.last_name || ''}`.trim();
                 setProfileData((p) => ({
                     ...p,
                     email: updated.email || p.email,
                     first_name: updated.first_name || p.first_name,
                     last_name: updated.last_name || p.last_name,
-                    name: (updated.full_name) || `${updated.first_name || ''} ${updated.last_name || ''}`.trim()
+                    name: nameNow
                 }));
+                try {
+                    sessionStorage.setItem('fullName', nameNow);
+                    window.dispatchEvent(new CustomEvent('user:profileUpdated', {detail: {fullName: nameNow}}));
+                } catch {
+                }
             }
 
             // Change password if provided and OTP verified
@@ -184,24 +190,21 @@ export default function Profile({setActiveView}: ProfileProps) {
           <div className="avatar">
               <div
                   className="ring-primary ring-offset-base-100 w-40 overflow-hidden rounded-full bg-white/5 ring ring-offset-2 md:w-72">
-              {profileData.avatar ? (
-                <img
-                  src={`${profileData.avatar}?v=${cacheBust}`}
-                  alt="User Avatar"
-                  className="object-cover"
-                />
-              ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-gray-300">
-                  No photo
-                </div>
-              )}
+                  <img
+                      src={`${(profileData.avatar || '/media/defaults/avatar.png')}?v=${cacheBust}`}
+                      alt="User Avatar"
+                      className="object-cover"
+                      onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = '/media/defaults/avatar.png';
+                      }}
+                  />
             </div>
           </div>
 
           <h2 className="mt-4 text-4xl font-bold">{profileData.name}</h2>
-          <p className="text-gray-300">Dean View</p>
 
-          <input
+
+            <input
             ref={fileInputRef}
             type="file"
             accept="image/png,image/jpeg,image/webp,image/avif"

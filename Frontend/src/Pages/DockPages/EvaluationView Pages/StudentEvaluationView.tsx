@@ -99,6 +99,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [filterSemester, setFilterSemester] = useState<string>("");
   const [filterYear, setFilterYear] = useState<string>("");
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [availableYearsLoading, setAvailableYearsLoading] = useState<boolean>(false);
   const [sections, setSections] = useState<Section[]>([]);
   const [sffData, setSffData] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
@@ -127,6 +129,42 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       setFacultyId(id ?? null);
     })();
   }, []);
+
+  // Fetch available years from StudentEvaluations scoped by faculty
+  useEffect(() => {
+    if (facultyId == null) return;
+    const fetchYears = async () => {
+      setAvailableYearsLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const res = await api.get("/studentevaluation/studentevaluation/by-faculty/", {
+          params: {faculty: facultyId},
+          headers: {Authorization: `Bearer ${token}`},
+        });
+        const rows = Array.isArray(res.data) ? res.data : [];
+        // Extract 4-digit year from schedule.year (Date string) when present
+        const years = new Set<string>();
+        for (const ev of rows) {
+          const yraw = ev?.schedule?.year;
+          if (typeof yraw === "string" && yraw.length >= 4) {
+            const y = yraw.slice(0, 4);
+            if (/^\d{4}$/.test(y)) years.add(y);
+          } else if (typeof yraw === "number") {
+            years.add(String(yraw));
+          }
+        }
+        const sorted = Array.from(years);
+        sorted.sort((a, b) => Number(b) - Number(a));
+        setAvailableYears(sorted);
+      } catch (e) {
+        setAvailableYears([]);
+      } finally {
+        setAvailableYearsLoading(false);
+      }
+    };
+    fetchYears();
+  }, [facultyId]);
 
   /* ---------------------------
      Fetch: Programs (on mount)
@@ -406,6 +444,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
                 evaluationId={programs[0]?.id /* TODO: replace with the correct eval ID */}
                 filterType="faculty"
                 filterId={facultyId}
+                semester={filterSemester || undefined}
+                year={filterYear || undefined}
               />
             ) : null)}
 
@@ -426,18 +466,20 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
                     </select>
                 </div>
 
-                {/* Year filter */}
+              {/* Year filter (combobox populated from StudentEvaluations) */}
                 <div className="flex items-center gap-2">
                     <label className="text-white">Year:</label>
-                    <input
-                        type="number"
-                        min={2000}
-                        max={2100}
-                        className="input input-bordered w-40"
+                  <select
+                      className="input input-bordered w-44"
                         value={filterYear}
                         onChange={(e) => setFilterYear(e.target.value)}
-                        placeholder="YYYY"
-                    />
+                      disabled={availableYearsLoading}
+                  >
+                    <option value="">All</option>
+                    {availableYears.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
                 </div>
             </div>
             {/* Programs: either skeletons or actual cards */}
@@ -462,6 +504,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             evaluationId={selectedProgram.id /* TODO: replace with correct program eval ID */}
             filterType="program"
             filterId={selectedProgram.id}
+            semester={filterSemester || undefined}
+            year={filterYear || undefined}
           />
             <button
                 className="btn btn-primary mb-4 text-white"
@@ -497,6 +541,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             evaluationId={selectedProfessor.id /* TODO: replace with correct professor eval ID */}
             filterType="professor"
             filterId={selectedProfessor.id}
+            semester={filterSemester || undefined}
+            year={filterYear || undefined}
           />
             <button
                 className="btn btn-primary mb-4 text-white"

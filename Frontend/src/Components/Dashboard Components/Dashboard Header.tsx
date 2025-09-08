@@ -76,7 +76,6 @@ const DashboardHeader = () => {
     })();
 
     (async () => {
-      if (cachedName) return;
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
@@ -96,6 +95,44 @@ const DashboardHeader = () => {
         if (error?.response?.status === 401) navigate("/login");
       }
     })();
+
+    // React to profile updates dispatched from ProfileView
+    const onProfileUpdated = (e: any) => {
+      const name = e?.detail?.fullName;
+      if (typeof name === 'string' && name.trim()) {
+        setDisplayName(name);
+        sessionStorage.setItem('fullName', name);
+      }
+    };
+    window.addEventListener('user:profileUpdated', onProfileUpdated as any);
+
+    // React to token changes (e.g., login as different account)
+    const onStorage = (ev: StorageEvent) => {
+      if (ev.key === 'token') {
+        sessionStorage.removeItem('fullName');
+        sessionStorage.removeItem('userRole');
+        // refetch fresh name
+        (async () => {
+          try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            const response = await api.get('/user-dashboard/', {
+              headers: {Authorization: `Token ${token}`},
+            });
+            const name = response.data.full_name || `${response.data.first_name ?? ''} ${response.data.last_name ?? ''}`.trim() || 'User';
+            setDisplayName(name);
+            sessionStorage.setItem('fullName', name);
+          } catch {
+          }
+        })();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('user:profileUpdated', onProfileUpdated as any);
+      window.removeEventListener('storage', onStorage);
+    };
   }, [navigate, isTempFaculty, isSuperuser]);
 
   const honorific = useMemo(() => honorificFor(primaryRole), [primaryRole]);

@@ -1249,7 +1249,16 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': 'program is required'}, status=400)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evals = StudentEvaluation.objects.filter(schedule__program_id=program_id)
+        if semester:
+            evals = evals.filter(schedule__semester=semester)
+        if year:
+            try:
+                evals = evals.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         from django.db.models import Count as DJCount
         evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
         totals = dict(evals.values_list('id', 'total_q'))
@@ -1271,7 +1280,16 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         professor_id = request.query_params.get('professor')
         if not professor_id:
             return Response({'error': 'professor is required'}, status=400)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evals = StudentEvaluation.objects.filter(schedule__instructor_id=professor_id)
+        if semester:
+            evals = evals.filter(schedule__semester=semester)
+        if year:
+            try:
+                evals = evals.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         from django.db.models import Count as DJCount
         evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
         totals = dict(evals.values_list('id', 'total_q'))
@@ -1293,7 +1311,16 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
         faculty_id = request.query_params.get('faculty') or _resolve_faculty_from_request_or_hr_temp(request)
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=400)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         evals = StudentEvaluation.objects.filter(schedule__program__faculty_id=faculty_id)
+        if semester:
+            evals = evals.filter(schedule__semester=semester)
+        if year:
+            try:
+                evals = evals.filter(schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         from django.db.models import Count as DJCount
         evals = evals.annotate(total_q=DJCount('import_questions', distinct=True))
         totals = dict(evals.values_list('id', 'total_q'))
@@ -1472,36 +1499,63 @@ class StudentEvaluationResponseViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='by-professor')
     def by_professor(self, request):
         """RETURNS RESPONSES FOR A PROFESSOR BASED ON THEIR SCHEDULES
-        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-professor?professor=<professor_id>"""
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-professor?professor=<professor_id>&semester=First&year=2025"""
         professor_id = request.query_params.get('professor')
         if not professor_id:
             return Response({'error': 'professor is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         responses = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__instructor_id=professor_id)
+        if semester:
+            responses = responses.filter(student_evaluation__schedule__semester=semester)
+        if year:
+            try:
+                responses = responses.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(responses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='by-program')
     def by_program(self, request):
         """RETURNS RESPONSES FOR A PROGRAM
-        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-program?program=<pogram_id>"""
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-program?program=<pogram_id>&semester=First&year=2025"""
         program_id = request.query_params.get('program')
         if not program_id:
             return Response({'error': 'program is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         responses = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__program_id=program_id)
+        if semester:
+            responses = responses.filter(student_evaluation__schedule__semester=semester)
+        if year:
+            try:
+                responses = responses.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(responses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='by-faculty')
     def by_faculty(self, request):
         """RETURNS RESPONSES FOR A FACULTY
-        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-faculty?faculty=<faculty_id>"""
+        usage or endpoint: /studentevaluationresponse/studentevaluationresponse/by-faculty?faculty=<faculty_id>&semester=First&year=2025"""
         faculty_id = request.query_params.get('faculty')
         if not faculty_id:
             return Response({'error': 'faculty is required'}, status=status.HTTP_400_BAD_REQUEST)
+        semester = request.query_params.get('semester')
+        year = request.query_params.get('year')
         responses = StudentEvaluationResponse.objects.filter(
             student_evaluation__schedule__program__faculty_id=faculty_id)
+        if semester:
+            responses = responses.filter(student_evaluation__schedule__semester=semester)
+        if year:
+            try:
+                responses = responses.filter(student_evaluation__schedule__year__year=int(year))
+            except (ValueError, TypeError):
+                pass
         serializer = self.get_serializer(responses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

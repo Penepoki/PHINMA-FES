@@ -19,6 +19,8 @@ interface ResponsesChartsTableProps {
   evaluationId: number;
   filterType: FilterType;
   filterId: number;
+    semester?: string;
+    year?: string;
 }
 
 /** ============================
@@ -88,20 +90,30 @@ function groupBy<T, K extends keyof any>(array: T[], getKey: (item: T) => K) {
 }
 
 const endpointMap = {
-  section: (evaluationId: number, filterId: number) =>
-    `/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-section?student_evaluation=${evaluationId}&section=${filterId}`,
-  professor: (_evaluationId: number, filterId: number) =>
-    `/studentevaluationresponse/studentevaluationresponse/by-professor?professor=${filterId}`,
-  program: (_evaluationId: number, filterId: number) =>
-    `/studentevaluationresponse/studentevaluationresponse/by-program?program=${filterId}`,
-  faculty: (_evaluationId: number, filterId: number) =>
-    `/studentevaluationresponse/studentevaluationresponse/by-faculty?faculty=${filterId}`,
+    section: (evaluationId: number, filterId: number, semester?: string, year?: string) =>
+        `/studentevaluationresponse/studentevaluationresponse/by-evaluation-and-section?student_evaluation=${evaluationId}&section=${filterId}` +
+        (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+        (year ? `&year=${encodeURIComponent(year)}` : ""),
+    professor: (_evaluationId: number, filterId: number, semester?: string, year?: string) =>
+        `/studentevaluationresponse/studentevaluationresponse/by-professor?professor=${filterId}` +
+        (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+        (year ? `&year=${encodeURIComponent(year)}` : ""),
+    program: (_evaluationId: number, filterId: number, semester?: string, year?: string) =>
+        `/studentevaluationresponse/studentevaluationresponse/by-program?program=${filterId}` +
+        (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+        (year ? `&year=${encodeURIComponent(year)}` : ""),
+    faculty: (_evaluationId: number, filterId: number, semester?: string, year?: string) =>
+        `/studentevaluationresponse/studentevaluationresponse/by-faculty?faculty=${filterId}` +
+        (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+        (year ? `&year=${encodeURIComponent(year)}` : ""),
 };
 
 const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
                                                                        evaluationId,
                                                                        filterType,
                                                                        filterId,
+                                                                       semester,
+                                                                       year,
                                                                    }) => {
   const [responses, setResponses] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -123,7 +135,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
       try {
         if (filterType === "section") {
           const [resResponses, resQuestions] = await Promise.all([
-            api.get(endpointMap[filterType](evaluationId, filterId)),
+              api.get(endpointMap[filterType](evaluationId, filterId, semester, year)),
               api.get(
                   `/studentevaluationquestion/studentevaluationquestion/by-evaluation?student_evaluation=${evaluationId}`,
               ),
@@ -134,11 +146,17 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
         } else {
           let evalsRes;
           if (filterType === "program") {
-              evalsRes = await api.get(`/studentevaluation/studentevaluation/by-program?program=${filterId}`);
+              evalsRes = await api.get(`/studentevaluation/studentevaluation/by-program?program=${filterId}` +
+                  (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+                  (year ? `&year=${encodeURIComponent(year)}` : ""));
           } else if (filterType === "professor") {
-              evalsRes = await api.get(`/studentevaluation/studentevaluation/by-professor?professor=${filterId}`);
+              evalsRes = await api.get(`/studentevaluation/studentevaluation/by-professor?professor=${filterId}` +
+                  (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+                  (year ? `&year=${encodeURIComponent(year)}` : ""));
           } else if (filterType === "faculty") {
-              evalsRes = await api.get(`/studentevaluation/studentevaluation/by-faculty?faculty=${filterId}`);
+              evalsRes = await api.get(`/studentevaluation/studentevaluation/by-faculty?faculty=${filterId}` +
+                  (semester ? `&semester=${encodeURIComponent(semester)}` : "") +
+                  (year ? `&year=${encodeURIComponent(year)}` : ""));
           }
           let evaluationIds: number[] = [];
           if (Array.isArray(evalsRes?.data)) {
@@ -152,7 +170,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
             ),
           );
           const questions = allQuestions.flatMap((res) => res.data);
-          const resResponses = await api.get(endpointMap[filterType](evaluationId, filterId));
+            const resResponses = await api.get(endpointMap[filterType](evaluationId, filterId, semester, year));
           if (!isMounted) return;
           setResponses(resResponses.data);
           setQuestions(questions);
@@ -186,6 +204,10 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
           endpoint = `/studentevaluationresponse/studentevaluationresponse/completed-count-by-faculty?faculty=${filterId}`;
         }
         if (endpoint) {
+            if (filterType !== "section") {
+                endpoint += (semester ? `&semester=${encodeURIComponent(semester)}` : "");
+                endpoint += (year ? `&year=${encodeURIComponent(year)}` : "");
+            }
           const res = await api.get(endpoint);
           setUniqueStudentCount(res.data.completed_count);
         }
