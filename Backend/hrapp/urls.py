@@ -107,7 +107,7 @@ urlpatterns = [
     # HR/Dean user admin endpoints
     path('admin/', include(user_admin_router.urls)),
 
-    path("uploads/presign", presign_put, name="presign-put")
+    path("uploads/presign", presign_put, name="presign-put"),
 
     # ML Sentiment Analysis endpoints
     path('ml/train-sentiment-model/', train_ml_sentiment_model, name='train-ml-sentiment-model'),
