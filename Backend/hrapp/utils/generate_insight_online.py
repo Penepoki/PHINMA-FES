@@ -381,46 +381,6 @@ def build_retention_prompt(entries):
     return "\n".join(lines)
 
 
-def _format_series_table(per_series, overall):
-    """Build a fixed-width ASCII table for series stats to improve readability in plain text."""
-    # Determine dynamic width for the series name column
-    series_names = list(sorted(per_series.keys()))
-    series_width = max(10, min(18, max((len(k) for k in series_names), default=10)))
-
-    cols = ["Series", "n", "last%", "avg%", "min%", "max%", "trend%"]
-    widths = [series_width, 3, 7, 7, 7, 7, 9]
-
-    def fmt_row(vals):
-        # left align first col, right align the rest
-        s = vals[0].ljust(widths[0])
-        for v, w in zip(vals[1:], widths[1:]):
-            s += " | " + str(v).rjust(w)
-        return " " + s
-
-    header = fmt_row(cols)
-    sep = "-" * len(header)
-    rows = [header, sep]
-
-    for key in series_names:
-        st = per_series[key]
-        vals = [
-            key,
-            st.get("count", 0),
-            f"{st.get('last', '—')}",
-            f"{st.get('avg', '—')}",
-            f"{st.get('min', '—')}",
-            f"{st.get('max', '—')}",
-            f"{st['trend']}" if st.get('trend') is not None else "—",
-        ]
-        rows.append(fmt_row(vals))
-
-    rows.append(sep)
-    o = overall or {"count": 0, "avg": 0, "min": 0, "max": 0}
-    vals = ["Overall", o.get("count", 0), "—", f"{o.get('avg', 0)}", f"{o.get('min', 0)}", f"{o.get('max', 0)}", "—"]
-    rows.append(fmt_row(vals))
-
-    return "\n".join(rows)
-
 
 def _normalize_recommendations_text(text: str) -> str:
     """Normalize AI text: clean spacing, standardize bullets/numbering, and indentation."""
@@ -491,25 +451,80 @@ def _build_recommendations_html(text_block: str) -> str:
 
 
 def generate_retention_recommendations(max_new_tokens: int = 900, temperature: float = 0.45):
-    """Generate Lean Six Sigma recommendations from saved retention entries."""
+    """Generate Lean Six Sigma recommendations from saved retention entries with robust error handling."""
     entries = list(ScatterPlotAnalytics.objects.all().order_by('created_at'))
     if not entries:
         return {
             "recommendations": "No retention entries found. Add entries per year/semester to enable AI guidance.",
-            "metadata": {"entries": 0}
+            "metadata": {"entries": 0, "success": False, "error": "no_entries"}
         }
 
-    prompt = build_retention_prompt(entries)
-    api_key = get_api_key()
-    text = generate_ai_feedback(prompt, api_key, max_new_tokens=max_new_tokens, temperature=temperature)
+    # Prepare prompt and call AI with retries; gracefully degrade on failure
+    error = None
+    attempts = 0
+    text = ""
+
+    # Build prompt
+    try:
+        prompt = build_retention_prompt(entries)
+    except Exception as e:
+        error = f"prompt_error: {e}"
+        prompt = None
+
+    # Get API key
+    api_key = None
+    if error is None:
+        try:
+            api_key = get_api_key()
+        except Exception as e:
+            error = f"api_key_error: {e}"
+
+    # Call AI with up to 2 attempts
+    if error is None and api_key and prompt:
+        last_exc = None
+        while attempts < 2:
+            try:
+                text = generate_ai_feedback(prompt, api_key, max_new_tokens=max_new_tokens, temperature=temperature)
+                break
+            except Exception as e:
+                last_exc = e
+                attempts += 1
+        if not text:
+            error = f"ai_generation_error: {last_exc}" if last_exc else "ai_generation_error: unknown"
 
     # Build formatted output wrapper for better alignment and readability
-    per_series, overall = _summarize_retention_series(entries)
     width = 88
     header = ("=" * width) + "\n" + "LEAN SIX SIGMA RETENTION RECOMMENDATIONS" + "\n" + ("=" * width)
-    table = _format_series_table(per_series, overall)
-    body = _normalize_recommendations_text(text)
-    final_text = f"{header}\n\nDATA SNAPSHOT\n{table}\n\nRECOMMENDATIONS\n{body}\n\n" + ("=" * width)
+
+    if error:
+        # Fallback body with guidance and template, no AI content
+        body_lines = [
+            "AI generation unavailable. Showing fallback guidance.",
+            f"Reason: {error}",
+            "",
+            "Suggested next steps:",
+            "1) Verify API connectivity and key configuration.",
+            "2) Retry later; the provider may be rate-limiting or unavailable.",
+            "3) Ensure retention entries include valid numeric rates.",
+            "",
+            "Manual template:",
+            "1) <concise action>",
+            "  • DMAIC: <phase>",
+            "  • Root-cause hypothesis: <5 Whys/Fishbone insight>",
+            "  • Metric (CTQ/KPI): <what to track>",
+            "  • Expected retention lift: <ballpark %>",
+            "  • First experiment: <specific, testable step>",
+            "",
+            "90-day roadmap:",
+            "- Weeks 1–4: <actions>",
+            "- Weeks 5–8: <actions>",
+            "- Weeks 9–12: <actions>",
+        ]
+        body = "\n".join(body_lines)
+    else:
+        body = _normalize_recommendations_text(text)
+
+    final_text = f"{header}\n\nRECOMMENDATIONS\n{body}\n\n" + ("=" * width)
     html_block = _build_recommendations_html(final_text)
 
     return {
@@ -520,6 +535,9 @@ def generate_retention_recommendations(max_new_tokens: int = 900, temperature: f
             "series_count": len({f"{e.year}-{e.semester}" for e in entries}),
             "generated_tokens_estimate": len(final_text.split()),
             "css_class": "ai-recommendation",
-            "css_rules": ".ai-recommendation{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.95rem;line-height:1.35;text-align:left}.ai-recommendation pre{margin:0}"
+            "css_rules": ".ai-recommendation{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.95rem;line-height:1.35;text-align:left}.ai-recommendation pre{margin:0}",
+            "success": error is None,
+            "error": error,
+            "attempts": attempts
         }
     }
