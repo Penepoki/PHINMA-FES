@@ -451,7 +451,8 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
             ) : null)}
 
             {/* Filters for year/semester */}
-            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div
+              className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center rounded-xl border border-white/10 bg-gradient-to-r from-[#0f1f16] to-[#0f1821] p-4 shadow-md">
                 {/* Semester filter */}
                 <div className="flex items-center gap-2">
                     <label className="text-white">Semester:</label>
@@ -501,6 +502,22 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       {/* Step 2: Professors Table */}
       {selectedProgram && !selectedProfessor && (
         <>
+          {/* Active filters banner */}
+          {(filterSemester || filterYear) && (
+              <div className="mb-3 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80">
+                Active filters:
+                {filterSemester && <span
+                    className="ml-2 inline-block rounded bg-[#1c402a] px-2 py-0.5 text-white">Semester: {filterSemester}</span>}
+                {filterYear && <span
+                    className="ml-2 inline-block rounded bg-[#1b2e3e] px-2 py-0.5 text-white">Year: {filterYear}</span>}
+                {(filterSemester || filterYear) && (
+                    <button className="btn btn-xs ml-3" onClick={() => {
+                      setFilterSemester("");
+                      setFilterYear("");
+                    }}>Clear</button>
+                )}
+              </div>
+          )}
           <ResponsesChartsTable
             evaluationId={selectedProgram.id /* TODO: replace with correct program eval ID */}
             filterType="program"
@@ -538,6 +555,21 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       {/* Step 3: Schedules Table */}
       {selectedProgram && selectedProfessor && !selectedSchedule && (
         <>
+          {(filterSemester || filterYear) && (
+              <div className="mb-3 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80">
+                Active filters:
+                {filterSemester && <span
+                    className="ml-2 inline-block rounded bg-[#1c402a] px-2 py-0.5 text-white">Semester: {filterSemester}</span>}
+                {filterYear && <span
+                    className="ml-2 inline-block rounded bg-[#1b2e3e] px-2 py-0.5 text-white">Year: {filterYear}</span>}
+                {(filterSemester || filterYear) && (
+                    <button className="btn btn-xs ml-3" onClick={() => {
+                      setFilterSemester("");
+                      setFilterYear("");
+                    }}>Clear</button>
+                )}
+              </div>
+          )}
           <ResponsesChartsTable
             evaluationId={selectedProfessor.id /* TODO: replace with correct professor eval ID */}
             filterType="professor"
@@ -616,6 +648,21 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
           </h3>
 
           {/* Section-wide charts */}
+          {(filterSemester || filterYear) && (
+              <div className="mb-3 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80">
+                Active filters:
+                {filterSemester && <span
+                    className="ml-2 inline-block rounded bg-[#1c402a] px-2 py-0.5 text-white">Semester: {filterSemester}</span>}
+                {filterYear && <span
+                    className="ml-2 inline-block rounded bg-[#1b2e3e] px-2 py-0.5 text-white">Year: {filterYear}</span>}
+                {(filterSemester || filterYear) && (
+                    <button className="btn btn-xs ml-3" onClick={() => {
+                      setFilterSemester("");
+                      setFilterYear("");
+                    }}>Clear</button>
+                )}
+              </div>
+          )}
           {sffLoading ? (
             <FacultyChartsSkeleton />
           ) : (

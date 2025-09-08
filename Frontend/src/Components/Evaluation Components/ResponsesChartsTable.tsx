@@ -187,7 +187,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
       return () => {
           isMounted = false;
       };
-  }, [evaluationId, filterType, filterId]);
+  }, [evaluationId, filterType, filterId, semester, year]);
 
   useEffect(() => {
     async function fetchUniqueCount() {
@@ -219,7 +219,7 @@ const ResponsesChartsTable: React.FC<ResponsesChartsTableProps> = ({
     }
     if (!filterId) return;
     fetchUniqueCount();
-  }, [evaluationId, filterType, filterId, responses, questions]);
+  }, [evaluationId, filterType, filterId, responses, questions, semester, year]);
 
   const enrichedResponses = responses.map((resp) => {
     const q = questions.find((q: any) => q.id === resp.student_eval_question);
