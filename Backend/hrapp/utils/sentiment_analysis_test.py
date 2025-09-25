@@ -1,10 +1,12 @@
 import os
 import json
+
 import re
 from transformers import pipeline
 import django
 import sys
 from typing import Any, Dict, List, Optional, Tuple
+
 
 # Setup Django environment
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -12,6 +14,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'SaintJudeDjango.settings')
 django.setup()
 
 from hrapp.models.evaluation_models import Timestamp, StudentEvaluationResponse, StudentEvaluationQuestion
+
 
 ############################################################
 # Utilities

@@ -1,6 +1,8 @@
 import os
+
 import re
 import html
+
 import yaml
 from hrapp.models.evaluation_models import Evaluation, Timestamp
 from django.conf import settings
@@ -37,6 +39,7 @@ def get_api_key():
         os.getenv("HUGGINGFACE_API_KEY")
         or os.getenv("HF_API_KEY")
             
+
     )
     if not api_key:
         raise RuntimeError("No HuggingFace API key found in environment variables or Django settings.")
@@ -54,6 +57,7 @@ def generate_ai_feedback(prompt: str, hf_api_key: str, model: str = "mistralai/M
         temperature=temperature
     )
     return completion.choices[0].message['content'] if hasattr(completion.choices[0], 'message') else str(completion)
+
 
 # ---------- ENHANCED DATA ANALYSIS FUNCTIONS ----------
 def analyze_copus_patterns(timestamps):
@@ -235,6 +239,7 @@ def generate_ai_feedback_for_evaluation(evaluation, max_new_tokens=1024, tempera
     if not api_key:
         raise RuntimeError("No HuggingFace API key found in environment or settings")
 
+
     # Initial request
     feedback = generate_ai_feedback(prompt, api_key, max_new_tokens=max_new_tokens, temperature=temperature)
     
@@ -289,6 +294,31 @@ Do not repeat previous content. Be concise but complete. End with [END] when fin
 from collections import defaultdict
 from statistics import mean
 from hrapp.models.evaluation_models import ScatterPlotAnalytics
+
+    # Initial request
+    feedback = generate_ai_feedback(prompt, api_key, max_new_tokens=max_new_tokens, temperature=temperature)
+    
+    # Clean up response (remove any echoed prompts)
+    feedback = feedback.replace(COPUS_CODE_EXPLANATION.strip(), "").replace(FEEDBACK_INSTRUCTIONS.strip(), "").lstrip()
+    # Remove any lines that match the data row format: Row N: Time: ...
+    feedback = '\n'.join([
+        line for line in feedback.splitlines()
+        if not re.match(r"^\s*Row \d+: Time: ", line)
+    ])
+
+    # Enhanced continue prompt strategy with context preservation
+    continues = 0
+    while (
+        (
+            (len(feedback.split()) > 0 and len(feedback.split()) >= int(0.9 * max_new_tokens)) or
+            not feedback.rstrip().endswith(('.', '!', '?'))
+        ) and continues < max_continues and '[END]' not in feedback
+    ):
+        # Get the last sentence for context
+        last_sentence = feedback.split('.')[-2] + '.' if '.' in feedback else feedback[-100:]
+        
+        # Enhanced continue prompt with data context
+        continue_prompt = f"""You were providing data-specific COPUS feedback and your last statement was: "{last_sentence.strip()}"
 
 
 def _summarize_retention_series(entries):
@@ -539,5 +569,6 @@ def generate_retention_recommendations(max_new_tokens: int = 900, temperature: f
             "success": error is None,
             "error": error,
             "attempts": attempts
+
         }
     }
