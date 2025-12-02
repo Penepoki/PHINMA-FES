@@ -1077,44 +1077,110 @@ function LeanSixSigma({ setActiveView }: ResourceGroupProps) {
         </div>
 
         {/* AI Recommendations for Retention (Lean Six Sigma) */}
-        <div className="mt-6 flex w-full items-center justify-center rounded-lg bg-black/20 p-4 shadow-2xl backdrop-blur-lg">
+        <div className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#1c402a]/40 to-[#1b2e3e]/40 p-8 shadow-2xl backdrop-blur-lg border border-gray-600/20">
           <div className="w-full">
-            <h3 className="mb-3 text-xl font-semibold text-white">
-              AI Recommendations for Retention (Lean Six Sigma)
-            </h3>
+            {/* Header with Icon */}
+            <div className="mb-6 flex items-center gap-4">
+              <div className="shrink-0 text-blue-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  className="h-8 w-8 stroke-current"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <h3 className="text-2xl font-bold text-white font-['Cabin']">
+                  AI Recommendations for Retention
+                </h3>
+                <p className="text-sm text-gray-400 opacity-80 font-['Cabin']">
+                  Lean Six Sigma Analysis & Insights
+                </p>
+              </div>
+            </div>
+
             {aiRecsLoading ? (
-              <div className="flex items-center gap-2 text-white">
-                <span className="loading loading-spinner loading-sm"></span>
-                <span>Generating recommendations...</span>
+              <div className="flex items-center justify-center gap-3 py-12 text-white">
+                <span className="loading loading-spinner loading-md text-blue-400"></span>
+                <span className="text-lg font-['Cabin']">Generating AI recommendations...</span>
               </div>
             ) : aiRecsError ? (
-              <div className="alert alert-error">
-                <span>Failed to load recommendations: {aiRecsError}</span>
+              <div className="rounded-lg bg-red-900/20 border border-red-500/30 p-6">
+                <div className="flex items-center gap-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="h-6 w-6 stroke-current text-red-400"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                  <span className="text-red-300 font-['Cabin']">Failed to load recommendations: {aiRecsError}</span>
+                </div>
               </div>
             ) : aiRecsHtml ? (
-              <div className="text-white">
-                <table className="table w-full text-white">
-                  <thead>
-                    <tr>
-                      <th>AI Recommendation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>
-                        <div className="max-h-[60vh] overflow-x-hidden overflow-y-auto pr-2">
-                          <div
-                            className="ai-recommendation text-left"
-                            dangerouslySetInnerHTML={{ __html: aiRecsHtml }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="rounded-lg bg-white/5 border border-gray-500/20 overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 px-6 py-4 border-b border-gray-500/20">
+                  <div className="flex items-center gap-3">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5 stroke-current text-blue-400"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                    <h4 className="text-lg font-semibold text-white font-['Cabin']">AI-Generated Insights</h4>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="max-h-[65vh] overflow-x-hidden overflow-y-auto pr-3">
+                    <div
+                      className="ai-recommendation text-left text-gray-100 leading-relaxed font-['Cabin'] text-base"
+                      style={{
+                        lineHeight: '1.7',
+                        fontFamily: "'Cabin', 'Inter', sans-serif"
+                      }}
+                      dangerouslySetInnerHTML={{ __html: aiRecsHtml }}
+                    />
+                  </div>
+                </div>
               </div>
             ) : (
-              <p className="text-gray-300">No recommendations available.</p>
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  className="h-12 w-12 stroke-current text-gray-500 mb-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+                <p className="text-gray-400 text-lg font-['Cabin']">No recommendations available</p>
+                <p className="text-gray-500 text-sm mt-2 font-['Cabin']">AI analysis will appear here when data is processed</p>
+              </div>
             )}
           </div>
         </div>

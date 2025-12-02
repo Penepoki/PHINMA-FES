@@ -36,10 +36,11 @@ def get_api_key():
     api_key = (
         os.getenv("HUGGINGFACE_API_KEY")
         or os.getenv("HF_API_KEY")
-            
+
     )
     if not api_key:
         raise RuntimeError("No HuggingFace API key found in environment variables or Django settings.")
+    print("", api_key)
     return api_key
 
 # ---------- AI REQUEST (HuggingFace Hub InferenceClient) ----------

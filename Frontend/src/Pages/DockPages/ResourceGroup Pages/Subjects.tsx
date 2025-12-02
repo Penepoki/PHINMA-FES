@@ -21,6 +21,13 @@ function Subjects({ setActiveView }: SubjectsProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [newSubjectName, setNewSubjectName] = useState("");
 
+  // Edit subject state
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [editSubjectName, setEditSubjectName] = useState("");
+
+  // Delete confirmation state
+  const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
+
   // Export state
   const defaultExportName = () => {
     return `subjects_${manilaFilenameTimestamp()}.csv`;
@@ -80,6 +87,62 @@ function Subjects({ setActiveView }: SubjectsProps) {
     }
   };
 
+  const updateSubject = async () => {
+    if (!editSubjectName.trim()) return alert("Please enter a subject name");
+    if (!editingSubject) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return alert("You are not authenticated. Please login.");
+
+    try {
+      await api.patch(
+        `/subject/subjects/${editingSubject.id}/`,
+        { name: editSubjectName },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      setEditingSubject(null);
+      setEditSubjectName("");
+      fetchSubjects();
+    } catch (error) {
+      console.error("Error updating subject:", error);
+    }
+  };
+
+  const openEditDialog = (subject: Subject) => {
+    setEditingSubject(subject);
+    setEditSubjectName(subject.name);
+    (document.getElementById("edit_subject") as HTMLDialogElement)?.showModal();
+  };
+
+  const closeEditDialog = () => {
+    setEditingSubject(null);
+    setEditSubjectName("");
+    (document.getElementById("edit_subject") as HTMLDialogElement)?.close();
+  };
+
+  const openDeleteDialog = (subject: Subject) => {
+    setSubjectToDelete(subject);
+    (document.getElementById("delete_subject_confirmation") as HTMLDialogElement)?.showModal();
+  };
+
+  const closeDeleteDialog = () => {
+    setSubjectToDelete(null);
+    (document.getElementById("delete_subject_confirmation") as HTMLDialogElement)?.close();
+  };
+
+  const confirmDeleteSubject = async () => {
+    if (!subjectToDelete) return;
+
+    try {
+      await deleteSubject(subjectToDelete.id);
+      closeDeleteDialog();
+    } catch (error) {
+      console.error("Error deleting subject:", error);
+    }
+  };
+
   // --- CSV helpers ---
   const csvEscape = (value: unknown) => {
     const s = String(value ?? "");
@@ -123,7 +186,7 @@ function Subjects({ setActiveView }: SubjectsProps) {
     <div className="flex flex-col items-start gap-2">
       <button
         title="Edit"
-        onClick={() => alert("Edit feature not implemented yet")}
+        onClick={() => openEditDialog(subject)}
         className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-blue-500 hover:underline"
       >
         <PencilSquareIcon className="h-4 w-4" />
@@ -131,9 +194,7 @@ function Subjects({ setActiveView }: SubjectsProps) {
       </button>
       <button
         title="Delete"
-        onClick={() => {
-          if (window.confirm(`Delete subject "${subject.name}"?`)) deleteSubject(subject.id);
-        }}
+        onClick={() => openDeleteDialog(subject)}
         className="flex items-center gap-1 text-sm transition-colors duration-300 hover:text-red-500 hover:underline"
       >
         <TrashIcon className="h-4 w-4" />
@@ -239,6 +300,83 @@ function Subjects({ setActiveView }: SubjectsProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </dialog>
+
+        {/* Edit Subject Modal */}
+        <dialog id="edit_subject" className="modal">
+          <div className="modal-box w-11/12 max-w-3xl">
+            <h3 className="mb-4 text-center text-2xl font-bold">Edit Subject</h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateSubject();
+                closeEditDialog();
+              }}
+              className="flex flex-col gap-6"
+            >
+              {/* Subject Name */}
+              <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                <label className="text-left text-lg font-bold md:w-1/6">Name:</label>
+                <input
+                  type="text"
+                  value={editSubjectName}
+                  onChange={(e) => setEditSubjectName(e.target.value)}
+                  placeholder="Enter subject name"
+                  className="input input-bordered w-full"
+                  required
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="modal-action">
+                <button type="submit" className="btn btn-success text-white">
+                  Update
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-cancel"
+                  onClick={closeEditDialog}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
+
+        {/* Delete Subject Confirmation Modal */}
+        <dialog id="delete_subject_confirmation" className="modal">
+          <div className="modal-box w-11/12 max-w-md">
+            <h3 className="mb-4 text-center text-2xl font-bold text-red-600">Confirm Delete</h3>
+
+            <div className="mb-6 text-center">
+              <p className="text-lg">Are you sure you want to delete the subject:</p>
+              <p className="mt-2 text-xl font-bold text-red-500">
+                "{subjectToDelete?.name}"
+              </p>
+              <p className="mt-2 text-sm text-gray-500">
+                This action cannot be undone.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="modal-action justify-center">
+              <button 
+                onClick={confirmDeleteSubject}
+                className="btn btn-error text-white"
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="btn btn-cancel"
+                onClick={closeDeleteDialog}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </dialog>
 
