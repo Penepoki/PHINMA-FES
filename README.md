@@ -73,4 +73,5 @@ git commit -m "Your message here"
 git push origin samplemerged
 ```
 
-
+#FOR CHANGE:
+Teach and Stud activities can be multiple per timestamp. Changing the existing formula for the total and other graphs
