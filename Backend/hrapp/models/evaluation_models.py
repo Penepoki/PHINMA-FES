@@ -12,30 +12,30 @@ import uuid
 
 class Timestamp(models.Model):
     STUDENT_ACTIVITY_CHOICES = [
-        ("listening", "Listening"),
-        ("individual_thinking", "Individual Thinking"),
-        ("group", "Group"),
-        ("answer_question", "Answer Question"),
-        ("ask_question", "Ask Question"),
-        ("whole_class_discussion", "Whole Class Discussion"),
-        ("student_presentations", "Student Presentations"),
-        ("test/quiz", "Test/Quiz"),
-        ("waiting", "Waiting"),
-        ("other", "Other"),
+        ("listening", "Listening"), #0
+        ("individual_thinking", "Individual Thinking"), #1
+        ("group", "Group"), #1
+        ("answer_question", "Answer Question"), #1
+        ("ask_question", "Ask Question"), #1
+        ("whole_class_discussion", "Whole Class Discussion"), #1
+        ("student_presentations", "Student Presentations"), #1
+        ("test/quiz", "Test/Quiz"), #1
+        ("waiting", "Waiting"), #0
+        ("other", "Other"), #0
     ]
 
     INSTRUCTOR_ACTIVITY_CHOICES = [
-        ("lecture", "Lecture"),
-        ("realtime_writing", "Realtime Writing"),
-        ("moving/guiding", "Moving/Guiding"),
-        ("answer_questions", "Answer Questions"),
-        ("pose_question", "Pose Question"),
-        ("follow_up_question", "Follow-up Question"),
-        ("1_on_1_discussion", "1-on-1 discussion"),
-        ("demonstrative", "Demonstrate/Video"),
-        ("administrative", "Administrative"),
-        ("waiting", "Waiting"),
-        ("other", "Other"),
+        ("lecture", "Lecture"), #0
+        ("realtime_writing", "Realtime Writing"), #0
+        ("moving/guiding", "Moving/Guiding"), #1
+        ("answer_questions", "Answer Questions"), #1
+        ("pose_question", "Pose Question"), #1
+        ("follow_up_question", "Follow-up Question"), #1
+        ("1_on_1_discussion", "1-on-1 discussion"), #1
+        ("demonstrative", "Demonstrate/Video"), #1
+        ("administrative", "Administrative"), #0
+        ("waiting", "Waiting"), #0
+        ("other", "Other"), #0
     ]
     evaluation = models.ForeignKey("Evaluation", on_delete=models.CASCADE, related_name="timestamps", default=None)
 
