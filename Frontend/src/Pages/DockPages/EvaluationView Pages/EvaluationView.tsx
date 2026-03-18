@@ -357,18 +357,22 @@ function Evaluation({ setActiveView }: EvalProps) {
             ))}
         </select>
 
-        {/* Semester combobox */}
-        <select
-          className="select select-bordered w-full max-w-xs"
-          value={selectedSemester}
-          onChange={(e) => setSelectedSemester(e.target.value)}
-          aria-label="Filter by Semester"
-        >
-          <option value="">All Semesters</option>
-          <option value="First">First</option>
-          <option value="Second">Second</option>
-          <option value="Summer">Summer</option>
-        </select>
+        {/* Semester quick filters */}
+        <div className="join">
+          {(["First", "Second", "Summer"] as const).map((sem) => {
+            const active = selectedSemester === sem;
+            return (
+              <button
+                key={sem}
+                type="button"
+                className={`join-item btn ${active ? "btn-primary text-white" : "btn-outline text-white"}`}
+                onClick={() => setSelectedSemester((prev) => (prev === sem ? "" : sem))}
+              >
+                {sem}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Professors Table */}
@@ -452,6 +456,39 @@ function Evaluation({ setActiveView }: EvalProps) {
               filteredProfessors.map((prof) => {
                 const profSchedules = getProfessorSchedules(prof);
                 const profEvaluations = getProfessorEvaluations(prof);
+                const profCopusEvaluations = profEvaluations.filter((e) =>
+                  ["copus_1", "copus_2", "copus_3"].includes(e.evaluation_type),
+                );
+                const profCopusCountBySchedule = profCopusEvaluations.reduce<Record<number, number>>(
+                  (acc, e) => {
+                    acc[e.schedule] = (acc[e.schedule] || 0) + 1;
+                    return acc;
+                  },
+                  {},
+                );
+                const professorPrograms = Array.from(
+                  new Set(
+                    programProfessors
+                      .filter((pp) => pp.professor === prof.id)
+                      .map((pp) => pp.program_name)
+                      .filter((name): name is string => Boolean(name)),
+                  ),
+                );
+                const professorProgramLabel =
+                  professorPrograms.length > 0 ? professorPrograms.join(", ") : "N/A";
+                const professorAvgCopusPerSchedule =
+                  profSchedules.length > 0
+                    ? (profCopusEvaluations.length / profSchedules.length).toFixed(2)
+                    : "0.00";
+                const professorSemesters = Array.from(
+                  new Set(
+                    profSchedules
+                      .map((s) => s.semester)
+                      .filter((sem): sem is string => Boolean(sem)),
+                  ),
+                );
+                const professorSemesterLabel =
+                  professorSemesters.length > 0 ? professorSemesters.join(", ") : "N/A";
 
                 const hasAllCopus = ["copus_1", "copus_2", "copus_3"].every((copus) =>
                   profEvaluations.some((e) => e.evaluation_type === copus),
@@ -478,20 +515,15 @@ function Evaluation({ setActiveView }: EvalProps) {
                           {/* Copus Summary */}
                           {hasAllCopus && (
                             <button
-                              type="button"
                               className={btnCopus}
                               onClick={() => {
                                 setSelectedProfessor(prof);
                                 openSummaryModal();
                               }}
+                              type="button"
                             >
                               Copus Summary
                             </button>
-                          )}
-
-                          {/* Divider ONLY when Copus Summary is visible */}
-                          {hasAllCopus && (
-                            <div className="divider divider-horizontal divider-accent mx-2" />
                           )}
 
                           {/* COPUS 1/2/3 */}
@@ -543,28 +575,22 @@ function Evaluation({ setActiveView }: EvalProps) {
                               <div className="avatar mt-3">
                                 <div className="h-24 w-24 rounded-full">
                                   <img
-                                    src={(prof as any)?.profile_picture_url || "https://via.placeholder.com/150"}
+                                    src={prof.profile_picture_url || "https://via.placeholder.com/150"}
                                     alt="Professor avatar"
                                   />
                                 </div>
                               </div>
                               <div className="ml-6 flex w-full flex-col justify-center border-b-2 border-gray-300">
                                 <div>
-                                  Department: <strong>{prof.department || "N/A"}</strong>
+                                  Department: <strong>{professorProgramLabel}</strong>
                                 </div>
                                 {profSchedules.length > 0 ? (
                                   <>
                                     <div>
-                                      Room and Subject:{" "}
-                                      <strong>
-                                        {profSchedules[0].room} {profSchedules[0].subject}
-                                      </strong>
+                                      Average COPUS per Schedule: <strong>{professorAvgCopusPerSchedule}</strong>
                                     </div>
                                     <div>
-                                      Year and Semester:{" "}
-                                      <strong>
-                                        {profSchedules[0].year} {profSchedules[0].semester}
-                                      </strong>
+                                      Semester: <strong>{professorSemesterLabel}</strong>
                                     </div>
                                   </>
                                 ) : (
@@ -580,7 +606,7 @@ function Evaluation({ setActiveView }: EvalProps) {
                               <table className="table w-full border-b-2 border-gray-300">
                                 <thead className="text-gray-300">
                                   <tr>
-                                    <th>Evaluated Subject</th>
+                                    <th>Evaluation Status</th>
                                     <th>Schedule</th>
                                   </tr>
                                 </thead>
@@ -588,7 +614,11 @@ function Evaluation({ setActiveView }: EvalProps) {
                                   {profSchedules.length > 0 ? (
                                     profSchedules.map((schedule, idx) => (
                                       <tr key={idx}>
-                                        <td>{schedule.subject}</td>
+                                        <td>
+                                          {(profCopusCountBySchedule[schedule.id] || 0) > 0
+                                            ? `Yes (${profCopusCountBySchedule[schedule.id] || 0})`
+                                            : "No"}
+                                        </td>
                                         <td>{schedule.name}</td>
                                       </tr>
                                     ))

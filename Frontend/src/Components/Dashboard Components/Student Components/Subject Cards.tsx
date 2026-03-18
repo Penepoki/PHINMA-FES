@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 /* =========================
    Types
 ========================= */
+export type EvaluationStatus = "no_evaluation" | "pending" | "answered";
+
 export type SubjectCardItem = {
   name: string;
   image?: string | null;
@@ -12,6 +14,7 @@ export type SubjectCardItem = {
   subtitle?: string | null;
   isAddCard?: boolean;
   isCompleted?: boolean; // optional, only shows a small ring
+  evaluationStatus?: EvaluationStatus;
   onClick?: () => void;
 };
 
@@ -55,6 +58,7 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
   isAddCard = false,
   isCompleted = false,
   completeRing = true,
+  evaluationStatus,
   onClick,
 }) => {
   if (isAddCard) {
@@ -75,13 +79,30 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
     );
   }
 
+  const status = evaluationStatus ?? (isCompleted ? "answered" : "pending");
+  const statusColors: Record<EvaluationStatus, string> = {
+    no_evaluation: "bg-red-500",
+    pending: "bg-blue-500",
+    answered: "bg-green-500",
+  };
+  const bottomStatusClasses: Record<EvaluationStatus, string> = {
+    no_evaluation: "bg-red-500/20",
+    pending: "bg-blue-500/20",
+    answered: "bg-green-500/20",
+  };
+
   return (
     <motion.div
       animate={{ y: [3, -1, 3], x: [-5, 3, -5], scale: [1, 1.01, 1] }}
       transition={{ duration: 7, repeat: Infinity, ease: [0.42, 0, 0.58, 1] }}
-      className="shadow-2xl transition-transform hover:scale-105"
+      className="relative h-full shadow-2xl transition-transform hover:scale-105"
       onClick={onClick}
     >
+      {/* Status notifier */}
+      <div className="absolute top-3 right-3 z-10">
+        <span className={`block h-3 w-3 rounded-full ring-2 ring-white/70 ${statusColors[status]}`} />
+      </div>
+
       {/* TOP */}
       <div className="flex h-40 w-full cursor-pointer flex-col items-center justify-center rounded-tl-xl rounded-tr-xl bg-black/20 shadow-2xl">
         <div
@@ -103,8 +124,7 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
 
       {/* BOTTOM */}
       <div
-        className={`flex h-30 w-full flex-col rounded-br-lg rounded-bl-xl px-5 py-2 shadow-2xl
-    ${isCompleted ? "backdrop-hue-rotate-300" : "backdrop-hue-rotate-0 bg-red-500/20"}`}
+        className={`flex h-30 w-full flex-col rounded-br-lg rounded-bl-xl px-5 py-2 shadow-2xl ${bottomStatusClasses[status]}`}
       >
         <div className="mt-4 flex flex-col text-start">
           <span className={`text-2xl font-bold ${textColor}`}>{name}</span>
@@ -143,15 +163,15 @@ const SubjectCards: React.FC<{
         <div className="flex flex-col items-center">
           {/* Optional header — keep exactly as original */}
 
-          <div className="flex flex-wrap justify-center gap-6 px-6 py-6 md:mt-6 md:px-0">
-            {isLoading
-              ? Array.from({ length: skeletonCount }).map((_, idx) => (
-                <div key={`sk-${idx}`} className="w-full sm:w-1/2 lg:w-1/4">
+          <div className="grid w-full grid-cols-1 gap-6 px-6 py-6 sm:grid-cols-2 xl:grid-cols-4 md:mt-6 md:px-0">
+          {isLoading
+            ? Array.from({ length: skeletonCount }).map((_, idx) => (
+                <div key={`sk-${idx}`} className="w-full">
                   <SkeletonSubjectCard />
                 </div>
               ))
-              : cards.map((subject, idx) => (
-                <div key={`${subject.name}-${idx}`} className="w-full sm:w-1/2 lg:w-1/4">
+            : cards.map((subject, idx) => (
+                <div key={`${subject.name}-${idx}`} className="w-full">
                   <SubjectCard
                     {...subject}
                     completeRing={completeRing}

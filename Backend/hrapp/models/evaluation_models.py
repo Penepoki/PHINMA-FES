@@ -151,10 +151,10 @@ class StudentEvaluation(models.Model):
     def save(self, *args, **kwargs):
         if self.title:
             if not self.title.startswith("Student Evaluation: "):
-                self.title = f"Student Evaluation: {self.schedule.instructor} - {self.schedule.subject}"
+                self.title = f"Student Evaluation: {self.schedule.instructor} Subject: {self.schedule.subject} Section & Year: {self.schedule.section.name}"
 
         elif self.schedule.instructor and self.schedule.subject:
-            self.title = f"Student Evaluation: {self.schedule.instructor.full_name} - {self.schedule.subject}"
+            self.title = f"Student Evaluation: {self.schedule.instructor.full_name} Subject: {self.schedule.subject} Section & Year: {self.schedule.section.name}"
         super().save(*args, **kwargs)
 
     def __str__(self):

@@ -1,18 +1,40 @@
 import React, { useEffect, useState } from "react";
-import SubjectCards from "../../../Components/Dashboard Components/Student Components/Subject Cards";
+import SubjectCards, {
+  type EvaluationStatus,
+  type SubjectCardItem,
+} from "../../../Components/Dashboard Components/Student Components/Subject Cards";
 import SemesterCard from "../../../Components/Dashboard Components/HR Components/Semester Cards";
 import DashboardHeader from "../../../Components/Dashboard Components/Dashboard Header";
 import api from "../../../utils/api";
 import { mapTypeToFrontend } from "../../../Components/Evaluation Components/CreateStudentQuestion";
+import { AxiosError } from "axios";
 
-// --- If SubjectCardItem is exported from Subject Cards, import it instead.
-// For safety we redeclare the minimal shape SubjectCards expects:
-type SubjectCardItem = {
-  name: string;
-  image?: string | null;
-  bgColor?: string;
-  textColor?: string;
-};
+interface EvalQuestionRaw {
+  id: number;
+  question: string;
+  type: string;
+  options?: string[];
+}
+
+interface MappedQuestion {
+  id: number;
+  question: string;
+  type: string;
+  choices: string[];
+}
+
+interface EvaluationByScheduleResponse {
+  id: number;
+  title: string;
+  description: string;
+  import_questions: Array<number | EvalQuestionRaw>;
+  is_completed: boolean;
+}
+
+interface StudentEvaluationResponseItem {
+  student_eval_question: number;
+  answer: string;
+}
 
 interface Schedule {
   id: number;
@@ -28,7 +50,7 @@ interface StudentEvaluation {
   id: number;
   title: string;
   description: string;
-  import_questions: any[];
+  import_questions: MappedQuestion[];
 }
 
 interface Subject {
@@ -37,9 +59,10 @@ interface Subject {
   teacher: string;
   section: string;
   scheduleId: number;
-  questions: any[];
+  questions: MappedQuestion[];
   image?: string | null;
   isCompleted?: boolean;
+  evaluationStatus: EvaluationStatus;
 }
 
 /* ---------------------------
@@ -76,17 +99,26 @@ function Home() {
           questions: [],
           image: null,
           isCompleted: false,
+          evaluationStatus: "pending",
         }));
 
         await Promise.all(
           subjectCards.map(async (subject) => {
             try {
-              const evalRes = await api.get(
+              const evalRes = await api.get<EvaluationByScheduleResponse>(
                 `/studentevaluation/studentevaluation/by-schedule/${subject.scheduleId}/`,
               );
-              subject.isCompleted = !!evalRes.data.is_completed;
-            } catch {
-              subject.isCompleted = false;
+              subject.isCompleted = evalRes.data.is_completed;
+              subject.evaluationStatus = evalRes.data.is_completed ? "answered" : "pending";
+            } catch (error) {
+              const statusCode = (error as AxiosError)?.response?.status;
+              if (statusCode === 404) {
+                subject.isCompleted = false;
+                subject.evaluationStatus = "no_evaluation";
+              } else {
+                subject.isCompleted = false;
+                subject.evaluationStatus = "pending";
+              }
             }
           }),
         );
@@ -107,27 +139,27 @@ function Home() {
     if (!selectedSubject) return;
 
     try {
-      const evalResponse = await api.get(
+      const evalResponse = await api.get<EvaluationByScheduleResponse>(
         `/studentevaluation/studentevaluation/by-schedule/${selectedSubject.scheduleId}/`,
       );
       const importQuestions = evalResponse.data.import_questions || [];
-      let mappedQuestions: any[] = [];
+      let mappedQuestions: MappedQuestion[] = [];
 
       if (importQuestions.length > 0) {
         if (typeof importQuestions[0] === "number") {
-          const allQuestionsResponse = await api.get(
+          const allQuestionsResponse = await api.get<EvalQuestionRaw[]>(
             "/studentevaluationquestion/studentevaluationquestion/",
           );
           mappedQuestions = allQuestionsResponse.data
-            .filter((q: any) => importQuestions.includes(q.id))
-            .map((q: any) => ({
+            .filter((q) => importQuestions.includes(q.id))
+            .map((q) => ({
               id: q.id,
               question: q.question,
               type: mapTypeToFrontend(q.type),
               choices: q.options || [],
             }));
         } else {
-          mappedQuestions = importQuestions.map((q: any) => ({
+          mappedQuestions = (importQuestions as EvalQuestionRaw[]).map((q) => ({
             id: q.id,
             question: q.question,
             type: mapTypeToFrontend(q.type),
@@ -145,15 +177,17 @@ function Home() {
       if (evalResponse.data.is_completed) {
         const answers: Record<number, string> = {};
         try {
-          const prevResponse = await api.get(
+          const prevResponse = await api.get<StudentEvaluationResponseItem[]>(
             `/studentevaluationresponse/studentevaluationresponse/?student_evaluation=${evalResponse.data.id}&user=current`,
           );
           if (prevResponse.data && prevResponse.data.length > 0) {
-            prevResponse.data.forEach((resp: any) => {
+            prevResponse.data.forEach((resp) => {
               answers[resp.student_eval_question] = resp.answer;
             });
           }
-        } catch { }
+        } catch {
+          // Ignore if no previous responses are available yet.
+        }
         setViewAnswers(answers);
         setOpenViewDialog(true);
       } else {
@@ -185,15 +219,18 @@ function Home() {
 
       setSubjects((prev) =>
         prev.map((subject) =>
-          subject.id === currentSubject.id ? { ...subject, isCompleted: true } : subject,
+          subject.id === currentSubject.id
+            ? { ...subject, isCompleted: true, evaluationStatus: "answered" }
+            : subject,
         ),
       );
       setOpenAnswerDialog(false);
       alert(`${currentSubject.name} evaluation submitted successfully!`);
-    } catch (error: any) {
-      console.error("Error submitting evaluation:", error);
-      if (error.response?.data?.error) {
-        alert(error.response.data.error);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ error?: string }>;
+      console.error("Error submitting evaluation:", axiosError);
+      if (axiosError.response?.data?.error) {
+        alert(axiosError.response.data.error);
       } else {
         alert("Error submitting evaluation. Please try again.");
       }
@@ -201,7 +238,7 @@ function Home() {
   };
 
   const totalSubjects = subjects.length;
-  const completedCount = subjects.filter((s) => s.isCompleted).length;
+  const completedCount = subjects.filter((s) => s.evaluationStatus === "answered").length;
   const ratio = `${completedCount}/${totalSubjects}`;
 
   const semesterData = [
@@ -218,16 +255,16 @@ function Home() {
     );
   }
 
-  const unfinishedSubjects = subjects.filter((s) => !s.isCompleted);
-  const finishedSubjects = subjects.filter((s) => s.isCompleted);
+  const unfinishedSubjects = subjects.filter((s) => s.evaluationStatus !== "answered");
+  const finishedSubjects = subjects.filter((s) => s.evaluationStatus === "answered");
 
-  // Map internal Subject → SubjectCardItem with visual cue when completed
+  // Map internal Subject -> SubjectCardItem with status-driven notifier/colors
   const toCardItem = (s: Subject): SubjectCardItem => ({
     name: s.name,
     image: s.image ?? null,
     textColor: "text-white",
-    // green-ish / distinct look when finished; fallback style when unfinished
-    bgColor: s.isCompleted ? "backdrop-hue-rotate-700" : "backdrop-hue-700",
+    evaluationStatus: s.evaluationStatus,
+    bgColor: s.evaluationStatus === "answered" ? "bg-green-500/20" : "bg-black/20",
   });
 
   const unfinishedCardItems: SubjectCardItem[] = unfinishedSubjects.map(toCardItem);
@@ -254,7 +291,7 @@ function Home() {
           </div>
 
           <div>
-            <SectionHeader title="Finished Subjects" />
+            <SectionHeader title="Finished Subject" />
             <SubjectCards
                 subjects={finishedCardItems}
                 onClick={(name) => {

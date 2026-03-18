@@ -76,6 +76,8 @@ def login_view(request):
 @api_view(['POST'])
 @login_required
 def logout_view(request):
+    # Always clear any temporary HR faculty context on logout.
+    cache.delete(f"hr_temp_faculty_{request.user.id}")
     try:
         token = Token.objects.get(user=request.user)  # Fetch token
         token.delete()  # Delete the token
@@ -3242,12 +3244,10 @@ def retention_regression_improved(request):
 @permission_classes([IsAuthenticated])
 def clear_faculty_context_view(request):
     """
-    Clears the temporary faculty context for the current HR user.
+    Clears the temporary faculty context for the current user.
+    This endpoint is intentionally idempotent and safe for all authenticated roles.
     """
-    user = request.user
-    if not user.groups.filter(name='HR').exists():
-        return Response({'error': 'Only HR users can clear faculty context.'}, status=status.HTTP_403_FORBIDDEN)
-    cache.delete(f"hr_temp_faculty_{user.id}")
+    cache.delete(f"hr_temp_faculty_{request.user.id}")
     return Response({'message': 'Temporary faculty context cleared.'}, status=status.HTTP_200_OK)
 
 

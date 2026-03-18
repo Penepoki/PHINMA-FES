@@ -43,6 +43,31 @@ function LoginCard() {
     }
   }, []);
 
+  const resetForgotPasswordState = () => {
+    setIsForgotPassword(false);
+    setIsOtpSent(false);
+    setIsOtpVerified(false);
+    setOtp(["", "", "", "", "", ""]);
+    setEmail("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowNewPassword(false);
+    setShowConfirmNewPassword(false);
+    setError(null);
+  };
+
+  const startForgotPasswordFlow = () => {
+    setIsForgotPassword(true);
+    setIsOtpSent(false);
+    setIsOtpVerified(false);
+    setOtp(["", "", "", "", "", ""]);
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowNewPassword(false);
+    setShowConfirmNewPassword(false);
+    setError(null);
+  };
+
   const handleLogin = async () => {
     setIsLoading(true);
     setError(null);
@@ -96,6 +121,10 @@ function LoginCard() {
       if (faculty_id) {
         localStorage.setItem("faculty_id", faculty_id);
       }
+
+      // Reset stale temp-faculty context from any previous session.
+      localStorage.removeItem("isTempFaculty");
+      localStorage.removeItem("facultyId");
 
       // Clear HR temp context on backend (ignore errors for non-HR)
       try {
@@ -152,31 +181,42 @@ function LoginCard() {
 
   const handleSignUp = async () => {
     setIsLoading(true); // Start loading
+    setError(null);
     try {
+      const payload = {
+        first_name: first_name.trim(),
+        last_name: last_name.trim(),
+        username: username.trim(),
+        password,
+        email: email.trim(),
+      };
+
+      if (!payload.first_name || !payload.last_name || !payload.username || !payload.password || !payload.email) {
+        setError("Please fill in all required fields.");
+        return;
+      }
+
       if (password !== confirmSignupPassword) {
         setError("Passwords do not match");
         return;
       }
-      const response = await api.post("/signup/", {
-        first_name,
-        last_name,
-        username,
-        password,
-        email,
-      });
 
-      if (response.data.token) {
+      const response = await api.post(
+        "/signup/",
+        payload,
+        { skipAuth: true },
+      );
+
+      if (response.data?.token) {
         localStorage.setItem("token", response.data.token);
         navigate("/dashboard/student");
       } else {
-        setError("If-Else Something went wrong" + response.data.error);
+        setError(response.data?.error || response.data?.message || "Signup failed. Please try again.");
       }
-    } catch (err) {
-      const error = err as AxiosError;
-      if (error.response?.status === 400) {
-        setError("Missing required fields");
-      } else if (error.response?.status === 409) {
-        setError("Username already exists");
+    } catch (err: unknown) {
+      if (isAxiosError<{ detail?: string; error?: string; message?: string }>(err)) {
+        const data = err.response?.data;
+        setError(data?.detail || data?.error || data?.message || "Unexpected error during sign-up");
       } else {
         setError("Unexpected error during sign-up");
       }
@@ -215,12 +255,7 @@ function LoginCard() {
       if (response.data.message === "password reset successful") {
         setError("");
         alert("Password has been reset. You can now Log in.");
-        setIsForgotPassword(false);
-        setIsOtpSent(false);
-        setIsOtpVerified(false);
-        setOtp(["", "", "", "", "", ""]);
-        setNewPassword("");
-        setConfirmPassword("");
+        resetForgotPasswordState();
       } else {
         setError(response.data.message || "Else Error");
       }
@@ -303,7 +338,7 @@ function LoginCard() {
     }
   };
 
-  const verifyOtp = async () => {
+  const verifyLoginOtp = async () => {
     const enteredOtp = otp.join("");
     setIsLoading(true);
 
@@ -338,6 +373,10 @@ function LoginCard() {
       localStorage.setItem("userRole", userRole);
       if (faculty_id) localStorage.setItem("faculty_id", faculty_id);
 
+      // Reset stale temp-faculty context from any previous session.
+      localStorage.removeItem("isTempFaculty");
+      localStorage.removeItem("facultyId");
+
       // Clear HR temp context on backend (ignore errors for non-HR)
       try {
         await api.post("/clear-faculty-context/");
@@ -370,6 +409,39 @@ function LoginCard() {
           break;
         default:
           setError("Invalid user role.");
+      }
+    } catch (err: unknown) {
+      if (isAxiosError<{ detail?: string; message?: string; error?: string }>(err)) {
+        const data = err.response?.data;
+        setError(data?.detail || data?.message || data?.error || "Error verifying OTP. Try again.");
+      } else {
+        setError("Error verifying OTP. Try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyForgotPasswordOtp = async () => {
+    const enteredOtp = otp.join("");
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await api.post(
+        "/verify-otp/",
+        {
+          email,
+          otp: enteredOtp,
+        },
+        { skipAuth: true },
+      );
+
+      if (response.data?.message === "OTP verified successfully") {
+        setIsOtpVerified(true);
+        setError(null);
+      } else {
+        setError(response.data?.message || "Invalid OTP");
       }
     } catch (err: unknown) {
       if (isAxiosError<{ detail?: string; message?: string; error?: string }>(err)) {
@@ -425,7 +497,7 @@ function LoginCard() {
                 </div>
                 <div className="flex w-full max-w-sm flex-col gap-2">
                   <button
-                    onClick={verifyOtp}
+                    onClick={verifyLoginOtp}
                     disabled={isLoading}
                     className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
                   >
@@ -504,7 +576,7 @@ function LoginCard() {
                 <span>Remember me</span>
               </label>
               <a
-                onClick={() => setIsForgotPassword(true)}
+                onClick={startForgotPasswordFlow}
                 className="text-primary cursor-pointer text-sm hover:underline"
               >
                 Forgot Password?
@@ -542,7 +614,7 @@ function LoginCard() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <button
-                    onClick={verifyOtp}
+                    onClick={verifyLoginOtp}
                     disabled={isLoading}
                     className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
                   >
@@ -609,7 +681,7 @@ function LoginCard() {
 
                 <div className="flex flex-col gap-2">
                   <button
-                    onClick={verifyOtp}
+                    onClick={verifyForgotPasswordOtp}
                     disabled={isLoading}
                     className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
                   >
@@ -690,11 +762,7 @@ function LoginCard() {
 
             <div className="mt-4 text-center">
               <button
-                onClick={() => {
-                  setIsForgotPassword(false);
-                  setIsOtpSent(false);
-                  setOtp(["", "", "", "", "", ""]);
-                }}
+                onClick={resetForgotPasswordState}
                 className="text-primary hover:underline"
               >
                 Back to Login
@@ -839,12 +907,15 @@ function LoginCard() {
             <div className="card-actions justify-center">
               <button
                 onClick={handleSignUp}
+                type="button"
                 disabled={isLoading}
                 className="btn h-13 w-full bg-gradient-to-r from-[#1b2e3e] to-[#1c402a] text-xl text-white"
               >
                 {isLoading ? "Signing Up..." : "Sign Up"}
               </button>
             </div>
+
+            {error && <p className="text-center text-red-500">{error}</p>}
 
             <div className="text-center">
               <span>Already have an account? </span>

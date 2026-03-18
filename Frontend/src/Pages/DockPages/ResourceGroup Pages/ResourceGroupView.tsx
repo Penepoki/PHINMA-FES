@@ -17,6 +17,7 @@ interface ResourceGroupProps {
 function ResourceGroup({ setActiveView }: ResourceGroupProps) {
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [sections, setSections] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [professors, setProfessors] = useState([]);
@@ -27,10 +28,18 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
     const fetchAllData = async () => {
       setIsLoading(true);
       try {
-        const [programsRes, subjectsRes, roomsRes, schedulesRes, professorsRes] = await Promise.all(
+        const [
+          programsRes,
+          subjectsRes,
+          sectionsRes,
+          roomsRes,
+          schedulesRes,
+          professorsRes
+        ] = await Promise.all(
           [
             api.get("/program/programs"),
             api.get("/subject/subjects"),
+            api.get("/section/sections"),
             api.get("/room/rooms"),
             api.get("/schedule/schedules"),
             api.get("/faculty/faculties"),
@@ -39,6 +48,7 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
 
         setPrograms(programsRes.data);
         setSubjects(subjectsRes.data);
+        setSections(sectionsRes.data);
         setRooms(roomsRes.data);
         setSchedules(schedulesRes.data);
         setProfessors(professorsRes.data);
@@ -83,58 +93,57 @@ function ResourceGroup({ setActiveView }: ResourceGroupProps) {
       {/* ⬇️ Only this wrapper line is changed to fix mobile cut-off */}
       <div
         className="
-          z-10 flex w-full flex-col items-stretch
-          justify-start gap-6 p-6
-          md:flex-row
-          md:h-full md:items-center md:justify-center overflow-auto
+          z-10 w-full p-6 gap-6
+          grid grid-cols-1 md:grid-cols-3
+          md:h-full md:content-center overflow-auto
         "
       >
         {/* Programs */}
-        <div className="rg-container flex flex-col items-center bg-[#1c402a]/40 md:gap-y-6 md:p-6">
+        <div className="rg-container h-full flex flex-col items-center bg-[#1c402a]/40 md:gap-y-6 md:p-6">
           <BuildingLibraryIcon className="mb-2 h-12 w-12 text-blue-400" />
           <h2 className="mb-2 text-2xl font-bold">Programs</h2>
-          <span className="text-xl text-gray-300">Number of current programs:</span>
-          <span className="text-9xl text-white">{renderCount(programs.length)}</span>
+          <span className="text-xl text-gray-300 text-center">Number of current programs:</span>
+          <span className="text-9xl text-white mt-auto">{renderCount(programs.length)}</span>
         </div>
 
         {/* Subjects */}
-        <div className="rg-container flex flex-col items-center bg-[#1c3c2f]/40 md:gap-y-6 md:p-6">
+        <div className="rg-container h-full flex flex-col items-center bg-[#1c3c2f]/40 md:gap-y-6 md:p-6">
           <BookOpenIcon className="mb-2 h-12 w-12 text-purple-400" />
           <h2 className="mb-2 text-2xl font-bold">Subjects</h2>
-          <span className="text-xl text-gray-300">Number of current subjects:</span>
-          <span className="text-9xl text-white">{renderCount(subjects.length)}</span>
+          <span className="text-xl text-gray-300 text-center">Number of current subjects:</span>
+          <span className="text-9xl text-white mt-auto">{renderCount(subjects.length)}</span>
         </div>
 
         {/* Rooms */}
-        <div className="rg-container flex flex-col items-center bg-[#1c3734]/40 md:gap-y-6 md:p-6">
+        <div className="rg-container h-full flex flex-col items-center bg-[#1c3734]/40 md:gap-y-6 md:p-6">
           <BuildingOffice2Icon className="mb-2 h-12 w-12 text-pink-400" />
           <h2 className="mb-2 text-2xl font-bold">Rooms</h2>
-          <span className="text-xl text-gray-300">Number of current rooms:</span>
-          <span className="text-9xl text-white">{renderCount(rooms.length)}</span>
+          <span className="text-xl text-gray-300 text-center">Number of current rooms:</span>
+          <span className="text-9xl text-white mt-auto">{renderCount(rooms.length)}</span>
         </div>
 
         {/* Sections */}
-        <div className="rg-container flex flex-col items-center bg-[#1b3239]/40 md:gap-y-6 md:p-6">
+        <div className="rg-container h-full flex flex-col items-center bg-[#1b3239]/40 md:gap-y-6 md:p-6">
           <RectangleStackIcon className="mb-2 h-12 w-12 text-red-400" />
           <h2 className="mb-2 text-2xl font-bold">Sections</h2>
-          <span className="text-xl text-gray-300">Number of current sections:</span>
-          <span className="text-9xl text-white">{renderCount(programs.length)}</span>
+          <span className="text-xl text-gray-300 text-center">Number of current sections:</span>
+          <span className="text-9xl text-white mt-auto">{renderCount(sections.length)}</span>
         </div>
 
         {/* Schedules */}
-        <div className="rg-container flex flex-col items-center bg-[#1b2e3e]/40 md:gap-y-6 md:p-6">
+        <div className="rg-container h-full flex flex-col items-center bg-[#1b2e3e]/40 md:gap-y-6 md:p-6">
           <CalendarDaysIcon className="mb-2 h-12 w-12 text-emerald-400" />
           <h2 className="mb-2 text-2xl font-bold">Schedules</h2>
-          <span className="text-xl text-gray-300">Number of current schedules:</span>
-          <span className="text-9xl text-white">{renderCount(schedules.length)}</span>
+          <span className="text-xl text-gray-300 text-center">Number of current schedules:</span>
+          <span className="text-9xl text-white mt-auto">{renderCount(schedules.length)}</span>
         </div>
 
         {/* Professors */}
-        <div className="rg-container flex flex-col items-center bg-[#1a2845]/40 md:gap-y-6 md:p-6">
+        <div className="rg-container h-full flex flex-col items-center bg-[#1a2845]/40 md:gap-y-6 md:p-6">
           <UserGroupIcon className="mb-2 h-12 w-12 text-yellow-400" />
           <h2 className="mb-2 text-2xl font-bold">Professors</h2>
-          <span className="text-xl text-gray-300">Number of current professors:</span>
-          <span className="text-9xl text-white">{renderCount(professors.length)}</span>
+          <span className="text-xl text-gray-300 text-center">Number of current professors:</span>
+          <span className="text-9xl text-white mt-auto">{renderCount(professors.length)}</span>
         </div>
       </div>
     </div>

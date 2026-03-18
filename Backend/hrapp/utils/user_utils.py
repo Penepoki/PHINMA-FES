@@ -15,13 +15,13 @@ def user_signup(data):
 
     # USER SIGNUP VALIDATIONS
     if not first_name or not last_name or not username or not password or not email:
-        return {"Fill the list Required"}
+        return {"error": "Please fill in all required fields."}
 
     if User.objects.filter(username=username).exists():
-        return {"username already exists"}
+        return {"error": "Username already exists."}
 
     if User.objects.filter(email=email).exists():
-        return {"email already exists"}
+        return {"error": "Email already exists."}
 
     # Domain restriction for signup
     allowed_pattern = r"(@sjc@phinmaed\.com$|\.sjc@phinmaed\.com$)"
@@ -30,7 +30,7 @@ def user_signup(data):
         return {"error": "Email must use the .sjc@phinmaed.com domain."}
 
     if User.objects.filter(username=username).exists():
-        return {'message': 'Username already exists!'}
+        return {'error': 'Username already exists!'}
 
     user = User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
 

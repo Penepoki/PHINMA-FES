@@ -436,21 +436,7 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
       {/* Step 1: Program Tiles + (optional) Faculty summary */}
       {!selectedProgram && (
         <>
-          {/* Faculty summary charts */}
-          {facultyId !== null &&
-            (programsLoading ? (
-              <FacultyChartsSkeleton />
-            ) : programs.length > 0 ? (
-              <ResponsesChartsTable
-                evaluationId={programs[0]?.id /* TODO: replace with the correct eval ID */}
-                filterType="faculty"
-                filterId={facultyId}
-                semester={filterSemester || undefined}
-                year={filterYear || undefined}
-              />
-            ) : null)}
-
-            {/* Filters for year/semester */}
+          {/* Filters for year/semester */}
           <div
               className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center rounded-xl border border-white/10 bg-gradient-to-r from-[#0f1f16] to-[#0f1821] p-4 shadow-md">
                 {/* Semester filter */}
@@ -484,6 +470,21 @@ function StudentEvaluation({ setActiveView }: StudentEvalProps) {
                   </select>
                 </div>
             </div>
+
+          {/* Faculty summary charts */}
+          {facultyId !== null &&
+            (programsLoading ? (
+              <FacultyChartsSkeleton />
+            ) : programs.length > 0 ? (
+              <ResponsesChartsTable
+                evaluationId={programs[0]?.id /* TODO: replace with the correct eval ID */}
+                filterType="faculty"
+                filterId={facultyId}
+                semester={filterSemester || undefined}
+                year={filterYear || undefined}
+              />
+            ) : null)}
+
             {/* Programs: either skeletons or actual cards */}
             {programsLoading ? (
                 <ProgramListSkeleton/>

@@ -13,6 +13,13 @@ interface Option {
   name: string;
 }
 
+interface ProgramProfessorItem {
+  professor: number;
+  professor_details: {
+    full_name: string;
+  };
+}
+
 interface SchedulesProps {
   setActiveView: (view: string) => void;
 }
@@ -122,7 +129,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
     instructor: "",
     room: "",
     program: "",
-    name: "",
     start_time: "",
     end_time: "",
     semester: "",
@@ -136,7 +142,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
     instructor: "",
     room: "",
     program: "",
-    name: "",
     start_time: "",
     end_time: "",
     semester: "",
@@ -156,45 +161,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
   const [editSelectedRoom, setEditSelectedRoom] = useState<Option | null>(null);
   const [editSelectedProfessor, setEditSelectedProfessor] = useState<Option | null>(null);
 
-  const [professorOptions, setProfessorOptions] = useState<Option[]>([]);
-  const [editProfessorOptions, setEditProfessorOptions] = useState<Option[]>([]);
   const [currentEditingSchedule, setCurrentEditingSchedule] = useState<Schedule | null>(null);
-
-  // Professor options for create form
-  useEffect(() => {
-    if (selectedProgram) {
-      api
-        .get(`/program-professor/program-professors/?program_id=${selectedProgram.id}`)
-        .then((res) => {
-          setProfessorOptions(
-            res.data.map((item: any) => ({
-              id: item.professor,
-              name: item.professor_details.full_name,
-            }))
-          );
-        });
-    } else {
-      setProfessorOptions([]);
-    }
-  }, [selectedProgram]);
-
-  // Professor options for edit form
-  useEffect(() => {
-    if (editSelectedProgram) {
-      api
-        .get(`/program-professor/program-professors/?program_id=${editSelectedProgram.id}`)
-        .then((res) => {
-          setEditProfessorOptions(
-            res.data.map((item: any) => ({
-              id: item.professor,
-              name: item.professor_details.full_name,
-            }))
-          );
-        });
-    } else {
-      setEditProfessorOptions([]);
-    }
-  }, [editSelectedProgram]);
 
   useEffect(() => {
     (async () => {
@@ -233,7 +200,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
       !selectedSubject ||
       !selectedRoom ||
       !selectedProfessor ||
-      !form.name ||
+
       !form.start_time ||
       !form.end_time ||
       !form.semester ||
@@ -253,7 +220,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
           subject: selectedSubject.id,
           room: selectedRoom.id,
           instructor: selectedProfessor.id,
-          name: form.name,
+
           start_time: form.start_time,
           end_time: form.end_time,
           semester: form.semester,
@@ -264,28 +231,31 @@ function Schedules({ setActiveView }: SchedulesProps) {
           params: { faculty: effectiveFacultyId ?? undefined },
         }
       );
-      // Reset form
-      setForm({
-        section: "",
-        subject: "",
-        instructor: "",
-        room: "",
-        program: "",
-        name: "",
-        start_time: "",
-        end_time: "",
-        semester: "",
-        year: "",
-      });
-      setSelectedProgram(null);
-      setSelectedSection(null);
-      setSelectedSubject(null);
-      setSelectedRoom(null);
-      setSelectedProfessor(null);
+      resetCreateForm();
+      (document.getElementById("create_new_schedule") as HTMLDialogElement)?.close();
       fetchSchedules();
     } catch (error) {
       console.error("Error creating schedule:", error);
     }
+  };
+
+  const resetCreateForm = () => {
+    setForm({
+      section: "",
+      subject: "",
+      instructor: "",
+      room: "",
+      program: "",
+      start_time: "",
+      end_time: "",
+      semester: "",
+      year: "",
+    });
+    setSelectedProgram(null);
+    setSelectedSection(null);
+    setSelectedSubject(null);
+    setSelectedRoom(null);
+    setSelectedProfessor(null);
   };
 
   const updateSchedule = async () => {
@@ -298,7 +268,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
       !editSelectedSubject ||
       !editSelectedRoom ||
       !editSelectedProfessor ||
-      !editForm.name ||
       !editForm.start_time ||
       !editForm.end_time ||
       !editForm.semester ||
@@ -320,7 +289,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
           subject: editSelectedSubject.id,
           room: editSelectedRoom.id,
           instructor: editSelectedProfessor.id,
-          name: editForm.name,
           start_time: editForm.start_time,
           end_time: editForm.end_time,
           semester: editForm.semester,
@@ -349,7 +317,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
       instructor: "",
       room: "",
       program: "",
-      name: "",
       start_time: "",
       end_time: "",
       semester: "",
@@ -373,7 +340,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
       instructor: schedule.instructor.toString(),
       room: schedule.room.toString(),
       program: schedule.program.toString(),
-      name: schedule.name,
       start_time: schedule.start_time,
       end_time: schedule.end_time,
       semester: schedule.semester,
@@ -519,7 +485,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
           <div className="modal-box w-11/12 max-w-5xl">
             <h3 className="mb-4 text-center text-2xl font-bold">Edit Schedule</h3>
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 if (
                   !editSelectedProgram ||
@@ -527,7 +493,6 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   !editSelectedSubject ||
                   !editSelectedRoom ||
                   !editSelectedProfessor ||
-                  !editForm.name ||
                   !editForm.start_time ||
                   !editForm.end_time ||
                   !editForm.semester ||
@@ -536,7 +501,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   alert("Please fill in all required fields.");
                   return;
                 }
-                updateSchedule();
+                await updateSchedule();
               }}
               className="flex flex-col gap-6"
             >
@@ -584,31 +549,13 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   }`}
                 value={editSelectedProfessor}
                 onChange={setEditSelectedProfessor}
-                mapResponse={(data) =>
-                  data.map((item: any) => ({
+                mapResponse={(data: ProgramProfessorItem[]) =>
+                  data.map((item) => ({
                     id: item.professor,
                     name: item.professor_details.full_name,
                   }))
                 }
               />
-
-              {/* Title */}
-              <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <label className="text-left text-lg font-bold md:w-1/4">Title:</label>
-                <input
-                  type="text"
-                  placeholder="Enter title"
-                  className="input input-bordered w-full"
-                  value={editForm.name}
-                  onChange={(e) =>
-                    setEditForm((f) => ({
-                      ...f,
-                      name: e.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
 
               {/* Start Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
@@ -712,9 +659,9 @@ function Schedules({ setActiveView }: SchedulesProps) {
             </p>
             <div className="modal-action">
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (currentEditingSchedule) {
-                    deleteSchedule(currentEditingSchedule.id);
+                    await deleteSchedule(currentEditingSchedule.id);
                   }
                 }}
                 className="btn btn-error text-white"
@@ -739,7 +686,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
           <div className="modal-box w-11/12 max-w-5xl">
             <h3 className="mb-4 text-center text-2xl font-bold">Create New Schedule</h3>
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 if (
                   !selectedProgram ||
@@ -747,7 +694,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   !selectedSubject ||
                   !selectedRoom ||
                   !selectedProfessor ||
-                  !form.name ||
+
                   !form.start_time ||
                   !form.end_time ||
                   !form.semester ||
@@ -756,8 +703,7 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   alert("Please fill in all required fields.");
                   return;
                 }
-                createSchedule();
-                (document.getElementById("create_new_schedule") as HTMLDialogElement)?.close();
+                await createSchedule();
               }}
               className="flex flex-col gap-6"
             >
@@ -805,13 +751,14 @@ function Schedules({ setActiveView }: SchedulesProps) {
                   }`}
                 value={selectedProfessor}
                 onChange={setSelectedProfessor}
-                mapResponse={(data) =>
-                  data.map((item: any) => ({
+                mapResponse={(data: ProgramProfessorItem[]) =>
+                  data.map((item) => ({
                     id: item.professor,
                     name: item.professor_details.full_name,
                   }))
                 }
               />
+
 
               {/* Start Time */}
               <div className="flex flex-col gap-2 md:flex-row md:items-center">

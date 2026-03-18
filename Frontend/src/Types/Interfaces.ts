@@ -35,6 +35,7 @@ export interface Program {
 export interface ProgramProfessor {
   id: number;
   program: number;
+  program_name?: string;
   professor: number;
   professor_details: Professor;
 }
