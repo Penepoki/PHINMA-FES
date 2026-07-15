@@ -26,7 +26,6 @@ DEBUG = config('DEBUG', cast=bool)
 ALLOWED_HOSTS = [
     'api.phinma-fes.com',
     'www.phinma-fes.com',
-    'srv948362.hstgr.cloud',
     'phinma-fes.com',
     'localhost',
     '127.0.0.1',
@@ -36,7 +35,6 @@ CSRF_TRUSTED_ORIGINS = [
     "https://phinma-fes.com",
     "https://api.phinma-fes.com",
     "https://www.phinma-fes.com",
-    "https://srv948362.hstgr.cloud",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
@@ -66,8 +64,6 @@ EMAIL_USE_TLS = True
 # EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 # EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 # DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or 'no-reply@phinma-fes.com'
-EMAIL_HOST_USER = 'phinmafes@gmail.com'
-EMAIL_HOST_PASSWORD = 'rlkg gzys ovsj hvzj'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # Application definition
 INSTALLED_APPS = [
@@ -161,9 +157,6 @@ DATABASES = {
         },
     }
 }
-print("RAW ENV DB_PASSWORD:", os.environ.get("DB_PASSWORD"))
-print("DB_USER:", config("DB_USER"))
-print("DB_PASSWORD:", config("DB_PASSWORD"))
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
